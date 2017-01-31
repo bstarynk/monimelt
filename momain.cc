@@ -1,4 +1,4 @@
-// file main.cc
+// file momain.cc
 #include "monimelt.h"
 
 #include <cxxabi.h>
@@ -273,3 +273,67 @@ MomSerial63::make_random_of_bucket(unsigned bucknum)
                  << " s=" << s);
   return MomSerial63{s};
 } // end of MomSerial63::make_random_of_bucket
+
+
+void
+MomUtf8Out::out(std::ostream&os) const
+{
+  uint32_t uc = 0;
+  auto it = _str.begin();
+  auto end = _str.end();
+  while ((uc=utf8::next(it, end)) != 0)
+    {
+      switch (uc)
+        {
+        case 0:
+          os << "\\0";
+          break;
+        case '\"':
+          os << "\\\"";
+          break;
+        case '\\':
+          os << "\\\\";
+          break;
+        case '\a':
+          os << "\\a";
+          break;
+        case '\b':
+          os << "\\b";
+          break;
+        case '\f':
+          os << "\\f";
+          break;
+        case '\n':
+          os << "\\n";
+          break;
+        case '\r':
+          os << "\\r";
+          break;
+        case '\t':
+          os << "\\t";
+          break;
+        case '\v':
+          os << "\\v";
+          break;
+        case '\033':
+          os << "\\e";
+          break;
+        default:
+          if (uc<127 && ::isprint((char)uc))
+            os << (char)uc;
+          else if (uc<=0xffff)
+            {
+              char buf[8];
+              snprintf(buf, sizeof(buf), "\\u%04x", (int)uc);
+              os << buf;
+            }
+          else
+            {
+              char buf[16];
+              snprintf(buf, sizeof(buf), "\\U%08x", (int)uc);
+              os << buf;
+            }
+        }
+    }
+} // end of MomUtf8Out::out
+

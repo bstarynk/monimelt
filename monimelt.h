@@ -269,6 +269,334 @@ public:
 };        /* end class MomSerial63 */
 
 
+typedef uint32_t MomHash_t;
+typedef Json::Value MomJson;
+
+//////////////// to ease debugging
+class MomOut
+{
+  std::function<void(std::ostream&)> _fn_out;
+public:
+  MomOut(std::function<void(std::ostream&)> fout): _fn_out(fout) {};
+  ~MomOut() = default;
+  void out(std::ostream&os) const
+  {
+    _fn_out(os);
+  };
+};
+inline std::ostream& operator << (std::ostream& os, const MomOut& bo)
+{
+  bo.out(os);
+  return os;
+};
+
+
+class MomUtf8Out
+{
+  std::string _str;
+  unsigned _flags;
+public:
+  MomUtf8Out(const std::string&str, unsigned flags=0) : _str(str), _flags(flags)
+  {
+    if (!utf8::is_valid(str.begin(), str.end()))
+      {
+        MOM_BACKTRACELOG("MomUtf8Out invalid str=" << str);
+        throw std::runtime_error("MomUtf8Out invalid string");
+      }
+  };
+  ~MomUtf8Out()
+  {
+    _str.clear();
+    _flags=0;
+  };
+  MomUtf8Out(const MomUtf8Out&) = default;
+  MomUtf8Out(MomUtf8Out&&) = default;
+  void out(std::ostream&os) const;
+};        // end class MomUtf8Out
+
+inline std::ostream& operator << (std::ostream& os, const MomUtf8Out& bo)
+{
+  bo.out(os);
+  return os;
+};
+
+
+class MomObject;
+class MomVal;
+class MomString;
+class MomObject;
+class MomSet;
+class MomTuple;
+
+
+#define MOM_SIZE_MAX (INT32_MAX/3)
+enum class MomVKind : std::uint8_t
+{
+  NoneK,
+  IntK,
+  /* we probably dont need doubles at first. But we want to avoid NaNs if we need them; we would use nil instead of boxed NaN */
+  // DoubleK,
+  StringK,
+  RefobjK,
+  SetK,
+  TupleK,
+  /* we don't need mix (of scalar values, e.g. ints, doubles, strings, objects) at first */
+  // MixK,
+};
+
+class MomRefobj
+{
+  MomObject* _ptrobj;
+public:
+  MomRefobj(MomObject& ob) : _ptrobj(&ob) {};
+  MomRefobj(MomObject* pob=nullptr) : _ptrobj(pob) {};
+  ~MomRefobj()
+  {
+    _ptrobj = nullptr;
+  };
+  MomRefobj(const MomRefobj& ro) : _ptrobj(ro._ptrobj) {};
+  MomRefobj(MomRefobj&& mo): _ptrobj(std::move(mo._ptrobj)) {};
+  MomRefobj& operator = (const MomRefobj& ro)
+  {
+    _ptrobj = ro._ptrobj;
+    return *this;
+  };
+  MomRefobj& operator = (MomRefobj&&mo)
+  {
+    _ptrobj = std::move(mo._ptrobj);
+    return *this;
+  };
+  MomObject* get_const(void) const
+  {
+    if (!_ptrobj)
+      {
+        MOM_BACKTRACELOG("MomRefobj::get_const nil pointer @" << (void*)this);
+        throw std::runtime_error("MomRefobj::get_const nil dereference");
+      }
+    return _ptrobj;
+  };
+  MomObject* get(void)
+  {
+    if (!_ptrobj)
+      {
+        MOM_BACKTRACELOG("MomRefobj::get nil pointer @" << (void*)this);
+        throw std::runtime_error("MomRefobj::get nil dereference");
+      }
+    return _ptrobj;
+  }
+  MomObject* unsafe_get(void)
+  {
+    return _ptrobj;
+  };
+  MomObject* unsafe_get_const(void)
+  {
+    return _ptrobj;
+  };
+  operator MomObject* () const
+  {
+    return get_const();
+  };
+  MomObject* operator * (void) const
+  {
+    return get_const();
+  };
+  MomObject* operator * (void)
+  {
+    return get();
+  };
+  MomObject* operator -> (void) const
+  {
+    return get_const();
+  };
+  MomObject* operator -> (void)
+  {
+    return get();
+  };
+  MomRefobj& unsafe_put(MomObject*pob)
+  {
+    _ptrobj = pob;
+    return *this;
+  };
+  MomRefobj& put_non_nil(MomObject*pob)
+  {
+    if (pob==nullptr)
+      {
+        MOM_BACKTRACELOG("MomRefobj::put_non_nil got nil pointer @" << (void*)this);
+        throw std::runtime_error("MomRefobj::put_non_nil with nil pointer");
+      }
+    return *this;
+  }
+  MomRefobj& operator = (MomObject*pob)
+  {
+    return put_non_nil(pob);
+  };
+  MomRefobj& operator = (std::nullptr_t)
+  {
+    _ptrobj=nullptr;
+    return *this;
+  };
+  MomRefobj& clear(void)
+  {
+    _ptrobj = nullptr;
+    return *this;
+  };
+  inline MomHash_t hash(void) const;
+};    // end class MomRefobj
+static_assert(sizeof(MomRefobj)==sizeof(void*), "too wide MomRefobj");
+
+
+class MomObject
+{
+};    // end class MomObject
+
+class MomSequence;
+
+class MomVal
+{
+  /// these classes are subclasses of MomVal
+  friend class MomVNone;
+  friend class MomVInt;
+  friend class MomVString;
+  friend class MomVRef;
+  friend class MomVSet;
+  friend class MomVTuple;
+  friend class MomRefobj;
+public:
+  struct TagNone {};
+  struct TagInt {};
+  struct TagString {};
+  struct TagRefobj {};
+  struct TagSet {};
+  struct TagTuple {};
+protected:
+  const MomVKind _kind;
+  union
+  {
+    void* _ptr;
+    intptr_t _int;
+    MomRefobj _ref;
+    std::shared_ptr<const MomString> _str;
+    std::shared_ptr<const MomSet> _set;
+    std::shared_ptr<const MomTuple> _tup;
+  };
+  MomVal(TagNone, std::nullptr_t)
+    : _kind(MomVKind::NoneK), _ptr(nullptr) {};
+  MomVal(TagInt, intptr_t i)
+    : _kind(MomVKind::IntK), _int(i) {};
+  inline MomVal(TagString, const std::string& s);
+  inline MomVal(TagString, const MomString*);
+  inline MomVal(TagRefobj, const MomRefobj);
+  inline MomVal(TagSet, const MomSet*pset);
+  inline MomVal(TagTuple, const MomTuple*ptup);
+public:
+  MomVKind kind() const
+  {
+    return _kind;
+  };
+  MomVal() : MomVal(TagNone {}, nullptr) {};
+  MomVal(std::nullptr_t) : MomVal(TagNone {}, nullptr) {};
+  inline MomVal(const MomVal&v);
+  inline MomVal(MomVal&&v);
+  inline MomVal& operator = (const MomVal&);
+  inline MomVal& operator = (MomVal&&);
+  inline void clear();
+  void reset(void)
+  {
+    clear();
+  };
+  ~MomVal()
+  {
+    reset();
+  };
+  inline bool equal(const MomVal&) const;
+  bool operator == (const MomVal&r) const
+  {
+    return equal(r);
+  };
+  bool less(const MomVal&) const;
+  bool less_equal(const MomVal&) const;
+  bool operator < (const MomVal&v) const
+  {
+    return less(v);
+  };
+  bool operator <= (const MomVal&v) const
+  {
+    return less_equal(v);
+  };
+  inline MomHash_t hash() const;
+  void out(std::ostream&os) const;
+  /// the is_XXX methods are testing the kind
+  /// the as_XXX methods may throw an exception
+  /// the get_XXX methods may throw an exception or gives a raw non-null ptr
+  /// the to_XXX methods make return a default
+  bool is_null(void) const
+  {
+    return _kind == MomVKind::NoneK;
+  };
+  bool operator ! (void) const
+  {
+    return is_null();
+  };
+  operator bool (void) const
+  {
+    return !is_null();
+  };
+  inline std::nullptr_t as_null(void) const;
+  //
+  bool is_int(void) const
+  {
+    return  _kind == MomVKind::IntK;
+  };
+  inline intptr_t as_int (void) const;
+  inline intptr_t to_int (intptr_t def=0) const
+  {
+    if (_kind != MomVKind::IntK) return def;
+    return _int;
+  };
+  //
+  bool is_string(void) const
+  {
+    return _kind == MomVKind::StringK;
+  };
+  inline std::shared_ptr<const MomString> as_bstring(void) const;
+  inline std::shared_ptr<const MomString> to_bstring(const std::shared_ptr<const MomString>& def=nullptr) const;
+  inline const MomString*get_bstring(void) const;
+  inline std::string as_string(void) const;
+  inline std::string to_string(const std::string& str="") const;
+  //
+  bool is_set(void) const
+  {
+    return _kind == MomVKind::SetK;
+  };
+  inline std::shared_ptr<const MomSet> as_set(void) const;
+  inline std::shared_ptr<const MomSet> to_set(const std::shared_ptr<const MomSet> def=nullptr) const;
+  inline const MomSet*get_set(void) const;
+  //
+  bool is_tuple(void) const
+  {
+    return _kind == MomVKind::TupleK;
+  };
+  inline std::shared_ptr<const MomTuple> as_tuple(void) const;
+  inline std::shared_ptr<const MomTuple> to_tuple(const std::shared_ptr<const MomTuple> def=nullptr) const;
+  inline const MomTuple*get_tuple(void) const;
+  //
+  bool is_sequence(void) const
+  {
+    return  _kind == MomVKind::SetK || _kind ==MomVKind::TupleK;
+  };
+  inline std::shared_ptr<const MomSequence> as_sequence(void) const;
+  inline std::shared_ptr<const MomSequence> to_sequence(const std::shared_ptr<const MomSequence> def=nullptr) const;
+  inline const MomSequence*get_sequence(void) const;
+  //
+  bool is_refobj(void) const
+  {
+    return _kind == MomVKind::RefobjK;
+  };
+  inline MomRefobj as_refobj(void) const;
+  inline MomRefobj to_refobj(const MomRefobj def=nullptr) const;
+  inline const MomRefobj get_refobj(void) const;
+};    // end class MomVal
+
 ////////////////////////////////////////////////////////////////
 /***************** INLINE FUNCTIONS ****************/
 MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
@@ -286,4 +614,32 @@ MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
     }
 }      /* end MomSerial63::MomSerial63 */
 
+
+
+/// see also http://stackoverflow.com/a/28613483/841108
+void MomVal::clear()
+{
+  auto k = _kind;
+  *const_cast<MomVKind*>(&_kind) = MomVKind::NoneK;
+  switch(k)
+    {
+    case MomVKind::NoneK:
+      break;
+    case MomVKind::IntK:
+      _int = 0;
+      break;
+    case MomVKind::StringK:
+      _str.~shared_ptr<const MomString>();;
+      break;
+    case MomVKind::RefobjK:
+      _ref.clear();
+      break;
+    case MomVKind::SetK:
+      _set.~shared_ptr<const MomSet>();
+    case MomVKind::TupleK:
+      _tup.~shared_ptr<const MomTuple>();
+      break;
+    }
+  _ptr = nullptr;
+} // end MomVal::clear()
 #endif /*MONIMELT_HEADER*/
