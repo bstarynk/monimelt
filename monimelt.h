@@ -266,6 +266,42 @@ public:
   static const MomSerial63 make_random_of_bucket(unsigned bun);
   MomSerial63(const MomSerial63&s) : _serial(s._serial) {};
   MomSerial63(MomSerial63&& s) : _serial(std::move(s._serial)) { };
+  bool equal(const MomSerial63 r) const
+  {
+    return _serial == r._serial;
+  };
+  bool less(const MomSerial63 r) const
+  {
+    return _serial < r._serial;
+  };
+  bool less_equal(const MomSerial63 r) const
+  {
+    return _serial <= r._serial;
+  };
+  bool operator == (const MomSerial63 r) const
+  {
+    return equal(r);
+  };
+  bool operator != (const MomSerial63 r) const
+  {
+    return !equal(r);
+  };
+  bool operator < (const MomSerial63 r) const
+  {
+    return less(r);
+  };
+  bool operator <= (const MomSerial63 r) const
+  {
+    return less_equal(r);
+  };
+  bool operator > (const MomSerial63 r) const
+  {
+    return !less_equal(r);
+  };
+  bool operator >= (const MomSerial63 r) const
+  {
+    return !less(r);
+  };
 };        /* end class MomSerial63 */
 
 
@@ -324,7 +360,6 @@ inline std::ostream& operator << (std::ostream& os, const MomUtf8Out& bo)
 class MomObject;
 class MomVal;
 class MomString;
-class MomObject;
 class MomSet;
 class MomTuple;
 
@@ -388,7 +423,7 @@ public:
   {
     return _ptrobj;
   };
-  MomObject* unsafe_get_const(void)
+  MomObject* unsafe_get_const(void) const
   {
     return _ptrobj;
   };
@@ -483,6 +518,89 @@ struct MomLessRefobj
 
 class MomObject
 {
+public:
+  typedef std::pair<const MomSerial63, const MomSerial63> pairid_t;
+private:
+  const pairid_t _serpair;
+public:
+  const MomSerial63 hi_ident() const
+  {
+    return _serpair.first;
+  };
+  const MomSerial63 lo_ident() const
+  {
+    return _serpair.second;
+  };
+  uint64_t hi_serial() const
+  {
+    return _serpair.first.serial();
+  };
+  uint64_t lo_serial() const
+  {
+    return _serpair.second.serial();
+  };
+  MomHash_t hash() const
+  {
+    auto hs = hi_serial();
+    auto ls = lo_serial();
+    MomHash_t h = 0;
+    h = MomHash_t(hs ^ ls);
+    if (MOM_UNLIKELY(h==0))
+      {
+        if (MomHash_t(hs) != 0) return MomHash_t(hs);
+        if (MomHash_t(ls) != 0) return MomHash_t(ls);
+        return 17 + ((MomHash_t(hs + ls)) & 0xffffff);
+      }
+    else return h;
+  };
+  bool equal(const MomObject*r) const
+  {
+    return this==r;
+  };
+  bool equal(const MomRefobj rf) const
+  {
+    return this== rf.unsafe_get_const();
+  };
+  bool less(const MomObject*r) const
+  {
+    if (!r) return false;
+    if (this == r) return false;
+    return _serpair < r->_serpair;
+  };
+  bool less_equal(const MomObject*r) const
+  {
+    if (!r) return false;
+    if (r==this) return true;
+    return _serpair <= r->_serpair;
+  };
+  bool less_equal(const MomRefobj rf) const
+  {
+    return less_equal(rf.unsafe_get_const());
+  };
+  bool operator = (const MomObject*r) const
+  {
+    return equal(r);
+  };
+  bool operator != (const MomObject*r) const
+  {
+    return !equal(r);
+  };
+  bool operator < (const MomObject*r) const
+  {
+    return less(r);
+  };
+  bool operator <= (const MomObject*r) const
+  {
+    return less_equal(r);
+  };
+  bool operator > (const MomObject*r) const
+  {
+    return !less_equal(r);
+  };
+  bool operator >= (const MomObject*r) const
+  {
+    return !less(r);
+  };
 };    // end class MomObject
 
 class MomSequence;
@@ -754,4 +872,6 @@ void MomVal::clear()
     }
   _ptr = nullptr;
 } // end MomVal::clear()
+
+
 #endif /*MONIMELT_HEADER*/
