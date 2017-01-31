@@ -240,10 +240,14 @@ public:
     (uint64_t)10 * 62*62*62 * 62*62*62 * 62*62*62 * 62;
   static constexpr const uint64_t _maxserial_ =
     _minserial_ + _deltaserial_;
+  static constexpr unsigned _nbdigits_ = 11;
+  static constexpr const char _b62digits_[] =
+    "0123456789" "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   static_assert(_maxserial_ < ((uint64_t)1<<63),
                 "corrupted _maxserial_ in MomSerial63");
   static_assert(_deltaserial_ > ((uint64_t)1<<62),
                 "corrupted _deltaserial_ in MomSerial63");
+  static_assert(sizeof(_b62digits_)==63, "bad _b62digits_ in MomSerial63");
   static constexpr const unsigned _maxbucket_ = 10*62;
   inline MomSerial63(uint64_t n=0, bool nocheck=false);
   ~MomSerial63()
@@ -262,6 +266,7 @@ public:
   {
     return _serial % (_deltaserial_ / _maxbucket_);
   };
+  std::string to_string(void) const;
   static const MomSerial63 make_random(void);
   static const MomSerial63 make_random_of_bucket(unsigned bun);
   MomSerial63(const MomSerial63&s) : _serial(s._serial) {};

@@ -275,6 +275,17 @@ MomSerial63::make_random_of_bucket(unsigned bucknum)
 } // end of MomSerial63::make_random_of_bucket
 
 
+std::string MomSerial63::to_string(void) const
+{
+  char buf[24];
+  static_assert(sizeof(buf)>_nbdigits_, "too small buf");
+  buf[0] = '_';
+  memset (buf+1, '0', _nbdigits_);
+  memset (buf+_nbdigits_, 0, sizeof(buf)-_nbdigits_);
+  uint64_t n = _serial;
+#warning incomplete  MomSerial63::to_string
+} // end  MomSerial63::to_string
+
 void
 MomUtf8Out::out(std::ostream&os) const
 {
