@@ -1,4 +1,4 @@
-// file monimelt.h -*- C++ -*-
+// file monimelt.h       -*- C++ -*-
 #ifndef MOMIMELT_HEADER
 #define MONIMELT_HEADER "monimelt.h"
 
@@ -168,7 +168,122 @@ extern "C" bool mom_verboseflag;
 #define MOM_VERBOSELOG(Log) \
   MOM_VERBOSELOG_AT_BIS(__FILE__,__LINE__,Log)
 
-class MomSerial {
-};				/* end class MomSerial */
+
+#define MOM_NEVERLOG_AT(Fil,Lin,Log) do { \
+  if (false && mom_verboseflag)     \
+    std::clog << "*MOM @" << Fil << ":" << Lin  \
+              << " /" << __FUNCTION__ << ": " \
+              << Log << std::endl;              \
+ } while(0)
+#define MOM_NEVERLOG_AT_BIS(Fil,Lin,Log) \
+  MOM_NEVERLOG_AT(Fil,Lin,Log)
+#define MOM_NEVERLOG(Log) \
+  MOM_NEVERLOG_AT_BIS(__FILE__,__LINE__,Log)
+
+// MOM_DO_NOT_LOG has the same length in characters as MOM_VERBOSELOG
+#define MOM_DO_NOT_LOG(Log) MOM_NEVERLOG(Log)
+//      MOM_VERBOSELOG has the same width
+
+
+class MomRandom
+{
+  static thread_local MomRandom _rand_thr_;
+  unsigned long _rand_count;
+  std::mt19937 _rand_generator;
+  uint32_t generate_32u(void)
+  {
+    if (MOM_UNLIKELY(_rand_count++ % 4096 == 0))
+      {
+        std::random_device randev;
+        auto s1=randev(), s2=randev(), s3=randev(), s4=randev(),
+             s5=randev(), s6=randev(), s7=randev();
+        std::seed_seq seq {s1,s2,s3,s4,s5,s6,s7};
+        _rand_generator.seed(seq);
+      }
+    return _rand_generator();
+  };
+  uint32_t generate_nonzero_32u(void)
+  {
+    uint32_t r = 0;
+    do
+      {
+        r = generate_32u();
+      }
+    while (MOM_UNLIKELY(r==0));
+    return r;
+  };
+  uint64_t generate_64u(void)
+  {
+    return (static_cast<uint64_t>(generate_32u())<<32) | static_cast<uint64_t>(generate_32u());
+  };
+public:
+  static uint32_t random_32u(void)
+  {
+    return _rand_thr_.generate_32u();
+  };
+  static uint64_t random_64u(void)
+  {
+    return _rand_thr_.generate_64u();
+  };
+  static uint32_t random_nonzero_32u(void)
+  {
+    return _rand_thr_.generate_nonzero_32u();
+  };
+};        // end class MomRandom
+
+class MomSerial63
+{
+  uint64_t _serial;
+public:
+  static constexpr const uint64_t _minserial_ = 1024;
+  static constexpr const uint64_t _deltaserial_ =
+    (uint64_t)10 * 62*62*62 * 62*62*62 * 62*62*62 * 62;
+  static constexpr const uint64_t _maxserial_ =
+    _minserial_ + _deltaserial_;
+  static_assert(_maxserial_ < ((uint64_t)1<<63),
+                "corrupted _maxserial_ in MomSerial63");
+  static_assert(_deltaserial_ > ((uint64_t)1<<62),
+                "corrupted _deltaserial_ in MomSerial63");
+  static constexpr const unsigned _maxbucket_ = 10*62;
+  inline MomSerial63(uint64_t n=0, bool nocheck=false);
+  ~MomSerial63()
+  {
+    _serial=0;
+  };
+  uint64_t serial() const
+  {
+    return _serial;
+  };
+  unsigned bucketnum() const
+  {
+    return _serial / (_deltaserial_ / _maxbucket_);
+  };
+  uint64_t buckoffset() const
+  {
+    return _serial % (_deltaserial_ / _maxbucket_);
+  };
+  static const MomSerial63 make_random(void);
+  static const MomSerial63 make_random_of_bucket(unsigned bun);
+  MomSerial63(const MomSerial63&s) : _serial(s._serial) {};
+  MomSerial63(MomSerial63&& s) : _serial(std::move(s._serial)) { };
+};        /* end class MomSerial63 */
+
+
+////////////////////////////////////////////////////////////////
+/***************** INLINE FUNCTIONS ****************/
+MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
+{
+  if (nocheck || n==0) return;
+  if (n<_minserial_)
+    {
+      MOM_BACKTRACELOG("MomSerial63 too small n:" << n);
+      throw std::runtime_error("MomSerial63 too small n");
+    };
+  if (n>_maxserial_)
+    {
+      MOM_BACKTRACELOG("MomSerial63 too big n:" << n);
+      throw std::runtime_error("MomSerial63 too big n");
+    }
+}      /* end MomSerial63::MomSerial63 */
 
 #endif /*MONIMELT_HEADER*/

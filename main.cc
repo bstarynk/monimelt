@@ -8,6 +8,7 @@
 #include <QCommandLineParser>
 #include "sqlite3.h"
 
+thread_local MomRandom MomRandom::_rand_thr_;
 bool mom_verboseflag;
 void* mom_dlh;
 
@@ -201,6 +202,11 @@ main (int argc_main, char **argv_main)
         mom_verboseflag = true;
     }
   sqlite3_config (SQLITE_CONFIG_LOG, mom_sqlite_errorlog, NULL);
+  {
+    unsigned bn = getpid() % MomSerial63::_maxbucket_;
+    auto s = MomSerial63::make_random_of_bucket(bn);
+    MOM_ASSERT(s.bucketnum() == bn, "corrupted bucketnum");
+  }
 } // end main
 
 double
@@ -210,7 +216,7 @@ mom_elapsed_real_time (void)
   clock_gettime (CLOCK_REALTIME, &curts);
   return 1.0 * (curts.tv_sec - start_realtime_ts_mom.tv_sec)
          + 1.0e-9 * (curts.tv_nsec - start_realtime_ts_mom.tv_nsec);
-}
+} // end mom_elapsed_real_time
 
 double
 mom_process_cpu_time (void)
@@ -218,7 +224,7 @@ mom_process_cpu_time (void)
   struct timespec curts = { 0, 0 };
   clock_gettime (CLOCK_PROCESS_CPUTIME_ID, &curts);
   return 1.0 * (curts.tv_sec) + 1.0e-9 * (curts.tv_nsec);
-}
+} // end mom_process_cpu_time
 
 double
 mom_thread_cpu_time (void)
@@ -226,4 +232,44 @@ mom_thread_cpu_time (void)
   struct timespec curts = { 0, 0 };
   clock_gettime (CLOCK_THREAD_CPUTIME_ID, &curts);
   return 1.0 * (curts.tv_sec) + 1.0e-9 * (curts.tv_nsec);
-}
+} // end mom_thread_cpu_time
+
+
+const MomSerial63
+MomSerial63::make_random(void)
+{
+  uint64_t s = 0;
+  do
+    {
+      s = MomRandom::random_64u() & (((uint64_t)1<<63)-1);
+    }
+  while (s<=_minserial_ || s>=_maxserial_);
+  return MomSerial63{s};
+} // end MomSerial63::make_random
+
+
+const MomSerial63
+MomSerial63::make_random_of_bucket(unsigned bucknum)
+{
+  if (MOM_UNLIKELY(bucknum >= _maxbucket_))
+    {
+      MOM_BACKTRACELOG("MomSerial63::random_of_bucket too big bucknum="
+                       << bucknum);
+      throw std::runtime_error("random_of_bucket too big bucknum");
+    }
+  uint64_t ds = MomRandom::random_64u() % (_deltaserial_ / _maxbucket_);
+  uint64_t s = (bucknum * (_deltaserial_ / _maxbucket_)) + ds + _minserial_;
+  MOM_ASSERT(s>=_minserial_ && s<=_maxserial_,
+             "good s=" << s << " between _minserial_=" << _minserial_
+             << " and _maxserial_=" << _maxserial_
+             << " with ds=" << ds << " and bucknum=" << bucknum
+             << " and _deltaserial_=" << _deltaserial_
+             << " and _maxbucket_=" << _maxbucket_);
+  MOM_DO_NOT_LOG("ds=" << ds << " bucknum=" << bucknum
+                 << " _deltaserial_=" << _deltaserial_
+                 << " _maxbucket_=" << _maxbucket_
+                 << " _minserial_=" << _minserial_
+                 << " _maxserial_=" << _maxserial_
+                 << " s=" << s);
+  return MomSerial63{s};
+} // end of MomSerial63::make_random_of_bucket
