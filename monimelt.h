@@ -441,9 +441,45 @@ public:
     return *this;
   };
   inline MomHash_t hash(void) const;
+  inline bool less(const MomRefobj) const;
+  inline bool less_equal(const MomRefobj) const;
+  inline bool equal(const MomRefobj) const;
+  bool operator < (const MomRefobj r) const
+  {
+    return less(r);
+  };
+  bool operator <= (const MomRefobj r) const
+  {
+    return less_equal(r);
+  };
+  bool operator > (const MomRefobj r) const
+  {
+    return r.less(*this);
+  };
+  bool operator >= (const MomRefobj r) const
+  {
+    return r.less_equal(*this);
+  };
+  bool operator == (const MomRefobj r) const
+  {
+    return equal(r);
+  };
+  bool operator != (const MomRefobj r) const
+  {
+    return !equal(r);
+  };
 };    // end class MomRefobj
 static_assert(sizeof(MomRefobj)==sizeof(void*), "too wide MomRefobj");
 
+struct MomHashRefobj
+{
+  inline size_t operator() (MomRefobj) const;
+};
+
+struct MomLessRefobj
+{
+  inline bool operator() (MomRefobj l, MomRefobj r) const;
+};
 
 class MomObject
 {
@@ -596,6 +632,82 @@ public:
   inline MomRefobj to_refobj(const MomRefobj def=nullptr) const;
   inline const MomRefobj get_refobj(void) const;
 };    // end class MomVal
+
+class MomVNone: public MomVal
+{
+public:
+  MomVNone() : MomVal(TagNone {},nullptr) {};
+  ~MomVNone() = default;
+};        // end MomVNone
+
+class MomVInt: public MomVal
+{
+public:
+  MomVInt(int64_t i=0): MomVal(TagInt {},i) {};
+  ~MomVInt() = default;
+};        // end MomVInt
+
+
+class MomVString: public MomVal
+{
+public:
+  MomVString(const MomString&);
+  MomVString(const char*s, int l= -1);
+  MomVString(const std::string& str);
+  ~MomVString() = default;
+};        // end MomVString
+
+class MomVSet: public MomVal
+{
+public:
+  ~MomVSet() = default;
+  inline MomVSet(void);
+  inline MomVSet(const MomSet&bs);
+  inline MomVSet(const std::set<const MomRefobj,MomLessRefobj>&);
+  inline MomVSet(const std::unordered_set<const MomRefobj,MomHashRefobj>&);
+  inline MomVSet(const std::vector<MomRefobj>&);
+  inline MomVSet(const std::vector<MomObject*>&);
+// MomVSet(const std::initializer_list<MomRefobj> il)
+//   : MomVSet(std::vector<MomRefobj>(il)) {};
+// MomVSet(const std::initializer_list<MomObject*>il)
+//   : MomVSet(std::vector<MomObject*>(il)) {};
+// template <typename... Args> MomVSet(MomObject*obp, Args ... args)
+//   : MomVSet(std::initializer_list<MomObject*>
+// {
+//   obp, args...
+// }) {};
+// template <typename... Args> MomVSet(MomRefobj ref, Args ... args)
+//   : MomVSet(std::initializer_list<const MomRefobj>
+// {
+//   ref, args...
+// }) {};
+};        // end MomVSet
+
+class MomVTuple: public MomVal
+{
+public:
+  ~MomVTuple() = default;
+  inline MomVTuple(const MomTuple&);
+  inline MomVTuple(void);
+  MomVTuple(const std::vector<MomRefobj>&);
+  MomVTuple(const std::vector<MomObject*>&);
+// MomVTuple(std::initializer_list<MomRefobj> il)
+//   : MomVTuple(std::vector<MomRefobj>(il)) {};
+// MomVTuple(std::initializer_list<MomObject*>il)
+//   : MomVTuple(std::vector<MomObject*>(il)) {};
+// template <typename... Args> MomVTuple(MomRefobj pob,Args ... args)
+//   : MomVTuple(std::initializer_list<MomRefobj>
+// {
+//   pob,args...
+// }) {};
+// template <typename... Args> MomVTuple(MomObject*obp,Args ... args)
+//   : MomVTuple(std::initializer_list<MomObject*>
+// {
+//   obp,args...
+// }) {};
+};        // end MomVTuple
+
+
 
 ////////////////////////////////////////////////////////////////
 /***************** INLINE FUNCTIONS ****************/
