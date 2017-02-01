@@ -274,16 +274,26 @@ MomSerial63::make_random_of_bucket(unsigned bucknum)
   return MomSerial63{s};
 } // end of MomSerial63::make_random_of_bucket
 
-
+//constexpr const char MomSerial63::_b62digits_[] = MOM_B62DIGITS;
 std::string MomSerial63::to_string(void) const
 {
+  static_assert(sizeof(MOM_B62DIGITS)==_base_+1, "bad MOM_B62DIGITS in MomSerial63");
   char buf[24];
   static_assert(sizeof(buf)>_nbdigits_, "too small buf");
+  memset (buf, 0, sizeof(buf));
   buf[0] = '_';
   memset (buf+1, '0', _nbdigits_);
-  memset (buf+_nbdigits_, 0, sizeof(buf)-_nbdigits_);
   uint64_t n = _serial;
-#warning incomplete  MomSerial63::to_string
+  char*pc = buf+_nbdigits_+1;
+  while (n != 0) {
+    unsigned d = n % _base_;
+    n = n / _base_;
+    *pc = _b62digstr_[d];
+    pc--;
+  }
+  MOM_ASSERT(pc>buf, "to_string bad pc - buffer underflow");
+  MOM_ASSERT(strlen(buf) == _nbdigits_ + 2, "to_string bad buf=" << buf);
+  return std::string{buf};
 } // end  MomSerial63::to_string
 
 void

@@ -231,23 +231,24 @@ public:
   };
 };        // end class MomRandom
 
+#define MOM_B62DIGITS \
+    "0123456789" "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 class MomSerial63
 {
   uint64_t _serial;
 public:
   static constexpr const uint64_t _minserial_ = 1024;
-  static constexpr const uint64_t _deltaserial_ =
-    (uint64_t)10 * 62*62*62 * 62*62*62 * 62*62*62 * 62;
   static constexpr const uint64_t _maxserial_ =
-    _minserial_ + _deltaserial_;
+    (uint64_t)10 * 62*62*62 * 62*62*62 * 62*62*62 * 62;
+  static constexpr const uint64_t _deltaserial_ =
+    _maxserial_ - _minserial_;
+  static constexpr const char* _b62digstr_ = MOM_B62DIGITS;
   static constexpr unsigned _nbdigits_ = 11;
-  static constexpr const char _b62digits_[] =
-    "0123456789" "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  static constexpr unsigned _base_ = 62;
   static_assert(_maxserial_ < ((uint64_t)1<<63),
                 "corrupted _maxserial_ in MomSerial63");
   static_assert(_deltaserial_ > ((uint64_t)1<<62),
                 "corrupted _deltaserial_ in MomSerial63");
-  static_assert(sizeof(_b62digits_)==63, "bad _b62digits_ in MomSerial63");
   static constexpr const unsigned _maxbucket_ = 10*62;
   inline MomSerial63(uint64_t n=0, bool nocheck=false);
   ~MomSerial63()
