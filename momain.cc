@@ -285,12 +285,13 @@ std::string MomSerial63::to_string(void) const
   memset (buf+1, '0', _nbdigits_);
   uint64_t n = _serial;
   char*pc = buf+_nbdigits_+1;
-  while (n != 0) {
-    unsigned d = n % _base_;
-    n = n / _base_;
-    *pc = _b62digstr_[d];
-    pc--;
-  }
+  while (n != 0)
+    {
+      unsigned d = n % _base_;
+      n = n / _base_;
+      *pc = _b62digstr_[d];
+      pc--;
+    }
   MOM_ASSERT(pc>buf, "to_string bad pc - buffer underflow");
   MOM_ASSERT(strlen(buf) == _nbdigits_ + 2, "to_string bad buf=" << buf);
   return std::string{buf};
@@ -299,28 +300,39 @@ std::string MomSerial63::to_string(void) const
 
 const MomSerial63
 MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
-{;
+{
+  ;
   uint64_t n = 0;
-  if (s[0] != '_') goto failure;
-  if (!isdigit(s[1])) goto failure;
-  for (auto i=0U; i<_nbdigits_; i++) {
-    if (!s[i+1]) goto failure;
-    auto p = strchr(_b62digstr_,s[i+1]);
-    if (!p) goto failure;
-    n = n*_base_ + (p-_b62digstr_);
-  }
-  if (n!=0 && n<_minserial_) goto failure;
-  if (n>_maxserial_) goto failure;
+  if (!s)
+    goto failure;
+  if (s[0] != '_')
+    goto failure;
+  if (!isdigit(s[1]))
+    goto failure;
+  for (auto i=0U; i<_nbdigits_; i++)
+    {
+      if (!s[i+1])
+        goto failure;
+      auto p = strchr(_b62digstr_,s[i+1]);
+      if (!p)
+        goto failure;
+      n = n*_base_ + (p-_b62digstr_);
+    }
+  if (n!=0 && n<_minserial_)
+    goto failure;
+  if (n>_maxserial_)
+    goto failure;
   end = s+_nbdigits_+2;
   return MomSerial63{n};
- failure:
-  if (fail) {
-    std::string str{s};
-    if (str.size() > _nbdigits_+2)
-      str.resize(_nbdigits_+2);
-    MOM_BACKTRACELOG("make_from_cstr failure str=" << str);
-    throw std::runtime_error("MomSerial63::make_from_cstr failure");
-  }
+failure:
+  if (fail)
+    {
+      std::string str{s};
+      if (str.size() > _nbdigits_+2)
+        str.resize(_nbdigits_+2);
+      MOM_BACKTRACELOG("make_from_cstr failure str=" << str);
+      throw std::runtime_error("MomSerial63::make_from_cstr failure");
+    }
   end = s;
   return MomSerial63{0};
 } // end MomSerial63::make_from_cstr

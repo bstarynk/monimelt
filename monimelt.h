@@ -270,7 +270,10 @@ public:
   std::string to_string(void) const;
   static const MomSerial63 make_from_cstr(const char*s, const char*&end, bool fail=false);
   static const MomSerial63 make_from_cstr(const char*s, bool fail=false)
-  { const char*end=nullptr; return make_from_cstr(s,end,fail); };
+  {
+    const char*end=nullptr;
+    return make_from_cstr(s,end,fail);
+  };
   static const MomSerial63 make_random(void);
   static const MomSerial63 make_random_of_bucket(unsigned bun);
   MomSerial63(const MomSerial63&s) : _serial(s._serial) {};
