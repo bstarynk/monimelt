@@ -548,6 +548,7 @@ public:
     const char*end = nullptr;
     return id_from_cstr(s,end,fail);
   };
+  static inline const pairid_t random_id(void);
 private:
   const pairid_t _serpair;
 public:
@@ -630,6 +631,8 @@ public:
     return !less(r);
   };
 };    // end class MomObject
+
+
 
 class MomSequence;
 
@@ -901,17 +904,28 @@ void MomVal::clear()
   _ptr = nullptr;
 } // end MomVal::clear()
 
-bool MomRefobj::less(const MomRefobj r) const
+bool
+MomRefobj::less(const MomRefobj r) const
 {
   if (!r) return false;
   if (unsafe_get_const() == r.unsafe_get_const()) return false;
   if (!unsafe_get_const()) return true;
   return unsafe_get_const()->less(r);
-}
-bool MomRefobj::less_equal(const MomRefobj r) const
+} // end MomRefobj::less
+
+
+bool
+MomRefobj::less_equal(const MomRefobj r) const
 {
   if (unsafe_get_const() == r.unsafe_get_const()) return true;
   if (!unsafe_get_const()) return true;
   return unsafe_get_const()->less_equal(r);
-}
+} // end MomRefobj::less_equal
+
+const MomObject::pairid_t
+MomObject::random_id(void)
+{
+  return pairid_t{MomSerial63::make_random(),MomSerial63::make_random()};
+} // end MomObject::random_id
+
 #endif /*MONIMELT_HEADER*/
