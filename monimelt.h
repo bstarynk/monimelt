@@ -549,9 +549,13 @@ public:
     return id_from_cstr(s,end,fail);
   };
   static inline const pairid_t random_id(void);
+  static unsigned id_bucketnum(const pairid_t pi)
+  { return pi.first.bucketnum(); };
+  static inline const pairid_t random_id_of_bucket(unsigned bun);
 private:
   const pairid_t _serpair;
 public:
+  const pairid_t ident() const { return _serpair; };
   const MomSerial63 hi_ident() const
   {
     return _serpair.first;
@@ -927,5 +931,12 @@ MomObject::random_id(void)
 {
   return pairid_t{MomSerial63::make_random(),MomSerial63::make_random()};
 } // end MomObject::random_id
+
+const MomObject::pairid_t
+MomObject::random_id_of_bucket(unsigned bucknum)
+{
+  return pairid_t{MomSerial63::make_random_of_bucket(bucknum),
+      MomSerial63::make_random()};
+}      // end MomObject::random_id_of_bucket
 
 #endif /*MONIMELT_HEADER*/
