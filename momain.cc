@@ -296,6 +296,37 @@ std::string MomSerial63::to_string(void) const
   return std::string{buf};
 } // end  MomSerial63::to_string
 
+
+const MomSerial63
+MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
+{;
+  uint64_t n = 0;
+  if (s[0] != '_') goto failure;
+  if (!isdigit(s[1])) goto failure;
+  for (auto i=0U; i<_nbdigits_; i++) {
+    if (!s[i+1]) goto failure;
+    auto p = strchr(_b62digstr_,s[i+1]);
+    if (!p) goto failure;
+    n = n*_base_ + (p-_b62digstr_);
+  }
+  if (n!=0 && n<_minserial_) goto failure;
+  if (n>_maxserial_) goto failure;
+  end = s+_nbdigits_+2;
+  return MomSerial63{n};
+ failure:
+  if (fail) {
+    std::string str{s};
+    if (str.size() > _nbdigits_+2)
+      str.resize(_nbdigits_+2);
+    MOM_BACKTRACELOG("make_from_cstr failure str=" << str);
+    throw std::runtime_error("MomSerial63::make_from_cstr failure");
+  }
+  end = s;
+  return MomSerial63{0};
+} // end MomSerial63::make_from_cstr
+
+
+
 void
 MomUtf8Out::out(std::ostream&os) const
 {
