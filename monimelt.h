@@ -381,6 +381,7 @@ inline std::ostream& operator << (std::ostream& os, const MomUtf8Out& bo)
 class MomObject;
 class MomVal;
 class MomString;
+class MomSequence;
 class MomSet;
 class MomTuple;
 
@@ -646,8 +647,35 @@ public:
 };    // end class MomObject
 
 
+class MomSequence:  public std::enable_shared_from_this<MomSequence>
+{
+protected:
+  const MomHash_t _hash;
+  const unsigned _len;
+  MomRefobj* _seq;
+  ~MomSequence()
+  {
+    for (unsigned ix=0; ix<_len; ix++)
+      _seq[ix].clear();
+    delete _seq;
+    _seq = nullptr;
+    *(const_cast<MomHash_t*>(&_hash)) = 0;
+    *(const_cast<unsigned*>(&_len)) = 0;
+  }
+  MomSequence(MomHash_t h, unsigned ln, const MomRefobj*arr)
+    : _hash(h), _len(ln), _seq(new MomRefobj[ln])
+  {
+    MOM_ASSERT(ln==0 || arr!=nullptr, "missing arr");
+    for (unsigned ix=0; ix<ln; ix++) _seq[ix] = arr[ix];
+  };
+  MomSequence(MomHash_t h, const std::vector<MomRefobj>& vec)
+    : MomSequence(h, vec.size(), vec.data()) {};
+  MomSequence(MomHash_t h, std::initializer_list<MomRefobj> il)
+    : MomSequence(h, il.size(), il.begin()) {};
+  static std::vector<MomRefobj> vector_real_refs(const std::vector<MomRefobj>& vec);
+  static std::vector<MomRefobj> vector_real_refs(const std::initializer_list<MomRefobj> il);
+};        // end class MomSequence
 
-class MomSequence;
 
 class MomVal
 {
@@ -942,6 +970,12 @@ MomRefobj::less_equal(const MomRefobj r) const
   if (!unsafe_get_const()) return true;
   return unsafe_get_const()->less_equal(r);
 } // end MomRefobj::less_equal
+
+bool
+MomRefobj::equal(const MomRefobj r) const
+{
+  return (unsafe_get_const() == r.unsafe_get_const());
+} // end MomRefobj::equal
 
 const MomObject::pairid_t
 MomObject::random_id(void)
