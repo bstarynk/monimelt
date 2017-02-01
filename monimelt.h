@@ -251,6 +251,7 @@ public:
                 "corrupted _deltaserial_ in MomSerial63");
   static constexpr const unsigned _maxbucket_ = 10*62;
   inline MomSerial63(uint64_t n=0, bool nocheck=false);
+  MomSerial63(std::nullptr_t) : _serial(0) {};
   ~MomSerial63()
   {
     _serial=0;
@@ -278,6 +279,14 @@ public:
   static const MomSerial63 make_random_of_bucket(unsigned bun);
   MomSerial63(const MomSerial63&s) : _serial(s._serial) {};
   MomSerial63(MomSerial63&& s) : _serial(std::move(s._serial)) { };
+  operator bool () const
+  {
+    return _serial != 0;
+  };
+  bool operator ! () const
+  {
+    return _serial == 0;
+  };
   bool equal(const MomSerial63 r) const
   {
     return _serial == r._serial;
@@ -532,6 +541,13 @@ class MomObject
 {
 public:
   typedef std::pair<const MomSerial63, const MomSerial63> pairid_t;
+  static std::string id_to_string(const pairid_t);
+  static const pairid_t id_from_cstr(const char*s, const char*&end, bool fail=false);
+  static const pairid_t id_from_cstr(const char*s, bool fail=false)
+  {
+    const char*end = nullptr;
+    return id_from_cstr(s,end,fail);
+  };
 private:
   const pairid_t _serpair;
 public:
@@ -885,5 +901,17 @@ void MomVal::clear()
   _ptr = nullptr;
 } // end MomVal::clear()
 
-
+bool MomRefobj::less(const MomRefobj r) const
+{
+  if (!r) return false;
+  if (unsafe_get_const() == r.unsafe_get_const()) return false;
+  if (!unsafe_get_const()) return true;
+  return unsafe_get_const()->less(r);
+}
+bool MomRefobj::less_equal(const MomRefobj r) const
+{
+  if (unsafe_get_const() == r.unsafe_get_const()) return true;
+  if (!unsafe_get_const()) return true;
+  return unsafe_get_const()->less_equal(r);
+}
 #endif /*MONIMELT_HEADER*/

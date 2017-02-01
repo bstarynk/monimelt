@@ -334,7 +334,7 @@ failure:
       throw std::runtime_error("MomSerial63::make_from_cstr failure");
     }
   end = s;
-  return MomSerial63{0};
+  return MomSerial63{nullptr};
 } // end MomSerial63::make_from_cstr
 
 
