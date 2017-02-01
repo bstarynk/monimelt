@@ -541,6 +541,10 @@ class MomObject
 {
 public:
   typedef std::pair<const MomSerial63, const MomSerial63> pairid_t;
+  static bool id_is_null(const pairid_t pi)
+  {
+    return pi.first.serial() == 0 && pi.second.serial() == 0;
+  };
   static std::string id_to_string(const pairid_t);
   static const pairid_t id_from_cstr(const char*s, const char*&end, bool fail=false);
   static const pairid_t id_from_cstr(const char*s, bool fail=false)
@@ -550,12 +554,27 @@ public:
   };
   static inline const pairid_t random_id(void);
   static unsigned id_bucketnum(const pairid_t pi)
-  { return pi.first.bucketnum(); };
+  {
+    return pi.first.bucketnum();
+  };
   static inline const pairid_t random_id_of_bucket(unsigned bun);
 private:
   const pairid_t _serpair;
+  static MomHash_t hash0pairid(const pairid_t pi);
 public:
-  const pairid_t ident() const { return _serpair; };
+  static MomHash_t hash_id(const pairid_t pi)
+  {
+    if (MOM_UNLIKELY(id_is_null(pi))) return 0;
+    auto ls = pi.first.serial();
+    auto rs = pi.second.serial();
+    MomHash_t h {(MomHash_t)(ls ^ (rs>>2))};
+    if (MOM_UNLIKELY(h==0)) return hash0pairid(pi);
+    return h;
+  };
+  const pairid_t ident() const
+  {
+    return _serpair;
+  };
   const MomSerial63 hi_ident() const
   {
     return _serpair.first;
@@ -574,17 +593,7 @@ public:
   };
   MomHash_t hash() const
   {
-    auto hs = hi_serial();
-    auto ls = lo_serial();
-    MomHash_t h = 0;
-    h = MomHash_t(hs ^ ls);
-    if (MOM_UNLIKELY(h==0))
-      {
-        if (MomHash_t(hs) != 0) return MomHash_t(hs);
-        if (MomHash_t(ls) != 0) return MomHash_t(ls);
-        return 17 + ((MomHash_t(hs + ls)) & 0xffffff);
-      }
-    else return h;
+    return hash_id(_serpair);
   };
   bool equal(const MomObject*r) const
   {
@@ -918,6 +927,14 @@ MomRefobj::less(const MomRefobj r) const
 } // end MomRefobj::less
 
 
+MomHash_t
+MomRefobj::hash(void) const
+{
+  auto pob = unsafe_get_const();
+  if (!pob) return 0;
+  return pob->hash();
+} // end MomRefobj::hash
+
 bool
 MomRefobj::less_equal(const MomRefobj r) const
 {
@@ -936,7 +953,7 @@ const MomObject::pairid_t
 MomObject::random_id_of_bucket(unsigned bucknum)
 {
   return pairid_t{MomSerial63::make_random_of_bucket(bucknum),
-      MomSerial63::make_random()};
+                  MomSerial63::make_random()};
 }      // end MomObject::random_id_of_bucket
 
 #endif /*MONIMELT_HEADER*/

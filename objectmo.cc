@@ -32,3 +32,20 @@ MomObject::id_from_cstr(const char*s, const char*&end, bool fail)
   end = endright;
   return pairid_t{sleft,sright};
 } // end of MomObject::id_from_cstr
+
+
+/// this function is rarely called, only when the simple hash computed
+/// by hash_id - that is ls^(rs>>2) - is 0
+MomHash_t
+MomObject::hash0pairid(const pairid_t pi)
+{
+  auto ls = pi.first.serial();
+  auto rs = pi.second.serial();
+  MOM_ASSERT(ls != 0 || rs != 0, "hash0pairid zero pi");
+  MomHash_t h {(MomHash_t)((ls<<3) ^ (rs*5147))};
+  if (MOM_LIKELY(h != 0))
+    return h;
+  h = 17*(MomHash_t)(ls % 504677LL) + (MomHash_t)(rs % 11716949LL) + 31;
+  MOM_ASSERT(h!=0, "hash0pairid zero h");
+  return h;
+} // end MomObject::hash0pairid
