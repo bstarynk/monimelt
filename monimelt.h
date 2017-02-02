@@ -646,6 +646,9 @@ public:
   };
 };    // end class MomObject
 
+
+
+
 ////////////////////////////////////////////////////////////////
 class MomSequence:
   public std::enable_shared_from_this<MomSequence>
@@ -676,8 +679,17 @@ protected:
     *(const_cast<MomHash_t*>(&_hash)) = 0;
     *(const_cast<unsigned*>(&_len)) = 0;
   }
+  static unsigned check_length(unsigned ln)
+  {
+    if (ln >= MOM_SIZE_MAX)
+      {
+        MOM_BACKTRACELOG("MomSequence::check_length too big ln=" << ln);
+        throw std::runtime_error("MomSequence::check_length too big ln");
+      }
+    return ln;
+  }
   MomSequence(SeqKind k, MomHash_t h, unsigned ln, const MomRefobj*arr)
-    : _hash(h), _len(ln), _seq(new MomRefobj[ln]), _skd(k)
+    : _hash(h), _len( check_length(ln)), _seq(new MomRefobj[ln]), _skd(k)
   {
     MOM_ASSERT(ln==0 || arr!=nullptr, "missing arr");
     for (unsigned ix=0; ix<ln; ix++) (const_cast< MomRefobj*>(_seq))[ix] = arr[ix];
@@ -685,12 +697,22 @@ protected:
   MomSequence(SeqKind k, MomHash_t h, unsigned ln, const MomRefobj*rawarr, RawTag)
     : _hash(h), _len(ln), _seq(rawarr), _skd(k)
   {
+    MOM_ASSERT(ln<=MOM_SIZE_MAX, "too big length=" << ln);
     MOM_ASSERT(ln==0 || rawarr!=nullptr, "missing rawarr");
   }
+  MomSequence(SeqKind k, MomHash_t h, const MomSequence&sq)
+    : MomSequence(k,h,sq._len,sq._seq)
+  {
+    MOM_ASSERT(sq._skd != SeqKind::NoneS, "bad original sequence");
+  };
   MomSequence(SeqKind k, MomHash_t h, const std::vector<MomRefobj>& vec)
+    : MomSequence(k, h, check_length(vec.size()), vec.data()) {};
+  MomSequence(SeqKind k, MomHash_t h, const std::vector<MomRefobj>& vec, RawTag)
     : MomSequence(k, h, vec.size(), vec.data()) {};
   MomSequence(SeqKind k, MomHash_t h, std::initializer_list<MomRefobj> il)
-    : MomSequence(k, h, il.size(), il.begin()) {};
+    : MomSequence(k, h, check_length(il.size()), il.begin()) {};
+  MomSequence(SeqKind k, MomHash_t h, std::initializer_list<MomRefobj> il, RawTag)
+    : MomSequence(k, h, check_length(il.size()), il.begin()) {};
   static bool good_array_refobj(const MomRefobj* arr, unsigned len)
   {
     if (len>0 && !arr) return false;
@@ -849,6 +871,78 @@ protected:
     MOM_ASSERT(h!=0, "hash_array_refobj zero h");
     return h;
   }; /* end hash_array_refobj */
+public:
+  typedef const MomRefobj* iterator;
+  MomHash_t hash() const
+  {
+    return _hash;
+  };
+  unsigned length() const
+  {
+    return _len;
+  };
+  unsigned size() const
+  {
+    return _len;
+  };
+  SeqKind skind() const
+  {
+    return _skd;
+  };
+  bool is_tuple() const
+  {
+    return _skd == SeqKind::TupleS;
+  };
+  bool is_set() const
+  {
+    return _skd == SeqKind::SetS;
+  };
+  const MomRefobj* data() const
+  {
+    return _seq;
+  };
+  const MomRefobj* begin() const
+  {
+    return _seq;
+  };
+  const MomRefobj* end() const
+  {
+    return _seq+_len;
+  };
+  MomRefobj nth(int rk) const
+  {
+    if (rk<0) rk += _len;
+    if (rk>=0 && rk<(int)_len) return _seq[rk];
+    return nullptr;
+  }
+  MomRefobj nth(int rk, CheckTag) const
+  {
+    int origrk = 0;
+    if (rk<0) rk += _len;
+    if (rk>=0 && rk<(int)_len) return _seq[rk];
+    MOM_BACKTRACELOG("MomSequence::nth bad rk=" << origrk << " for length=" << _len);
+    throw std::runtime_error("MomSequence::nth rank out of range");
+  }
+  MomRefobj at(unsigned ix, PlainTag) const
+  {
+    if (ix<_len) return _seq[ix];
+    return nullptr;
+  }
+  MomRefobj at(unsigned ix) const
+  {
+    return at(ix,PlainTag{});
+  };
+  MomRefobj at(unsigned ix, RawTag) const
+  {
+    MOM_ASSERT(ix<_len, "MomSequence::at bad ix=" << ix << " for length=" << _len);
+    return _seq[ix];
+  }
+  MomRefobj at(unsigned ix, CheckTag) const
+  {
+    if (ix<_len) return _seq[ix];
+    MOM_BACKTRACELOG("MomSequence::at bad ix=" << ix << " for length=" << _len);
+    throw std::runtime_error("MomSequence:at index out of range");
+  }
 };        // end class MomSequence
 
 
@@ -863,7 +957,38 @@ public:
   ~MomTuple() {};
   MomTuple(std::initializer_list<MomRefobj> il, PlainTag) :
     MomSequence(SeqKind::TupleS,hash_initializer_list_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(il), il) {};
+  MomTuple(std::initializer_list<MomRefobj> il, RawTag) :
+    MomSequence(SeqKind::TupleS,hash_initializer_list_refobj<hinit,k1,k2,k3,k4>(il), il) {};
+  MomTuple(std::initializer_list<MomRefobj> il, CheckTag) :
+    MomSequence(SeqKind::TupleS,hash_initializer_list_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(il), il) {};
+  MomTuple(const std::vector<MomRefobj>&vec, PlainTag) :
+    MomSequence(SeqKind::TupleS,hash_vector_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(vec),vec) {};
+  MomTuple(const std::vector<MomRefobj>&vec, RawTag) :
+    MomSequence(SeqKind::TupleS,hash_vector_refobj<hinit,k1,k2,k3,k4>(vec),vec) {};
+  MomTuple(const std::vector<MomRefobj>&vec, CheckTag) :
+    MomSequence(SeqKind::TupleS,hash_vector_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(vec),vec) {};
+  MomTuple(const std::vector<MomRefobj>&vec) :  MomTuple(vec, CheckTag{}) {};
+  MomTuple(const MomSequence&sq) :
+    MomSequence(SeqKind::TupleS,
+                sq.is_tuple()?sq.hash()
+                :hash_array_refobj<hinit,k1,k2,k3,k4>(sq.data(),sq.size()),
+                sq.size(),sq.data())  {};
+  MomTuple(const MomSequence&sq, CheckTag) :
+    MomSequence(SeqKind::TupleS,sq.is_tuple()?sq.hash()
+                :hash_array_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(sq.data(),sq.size()),
+                sq.size(),sq.data())  {};
+  template <typename... Args> MomTuple(CheckTag tag, Args ... args)
+    : MomTuple(std::initializer_list<MomRefobj>
+  {
+    args...
+  }, tag) {};
+  template <typename... Args> MomTuple(RawTag tag, Args ... args)
+    : MomTuple(std::initializer_list<MomRefobj>
+  {
+    args...
+  }, tag) {};
 };        // end class MomTuple
+
 
 class MomVal
 {
