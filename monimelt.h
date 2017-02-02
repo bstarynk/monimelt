@@ -525,6 +525,12 @@ public:
   {
     return !equal(r);
   };
+  static std::vector<MomRefobj> reserve_vector(size_t sz)
+  {
+    std::vector<MomRefobj> vec;
+    vec.reserve(sz);
+    return vec;
+  };
   static std::vector<MomRefobj>& collect_vector(std::vector<MomRefobj>&vec)
   {
     return vec;
@@ -570,6 +576,45 @@ public:
     if (pseq) collect_vector_sequence(vec,pseq);
     really_collect_vector(vec, args...);
   };
+  static std::set<MomRefobj> make_empty_set(void)
+  {
+    return std::set<MomRefobj>();
+  };
+  static std::set<MomRefobj> make_set(void)
+  {
+    return std::set<MomRefobj>();
+  };
+  static void add_set_refobj(std::set<MomRefobj>&set,const MomRefobj rob)
+  {
+    if (rob) set.insert(rob);
+  };
+  static inline void add_set_sequence(std::set<MomRefobj>&set,const MomSequence&seq);
+  static void add_set_sequence(std::set<MomRefobj>&set,const MomSequence*pseq)
+  {
+    if (pseq) add_set_sequence(set,*pseq);
+  };
+  static void add_set(std::set<MomRefobj>&) {};
+  template<typename... Args>
+  static void add_set(std::set<MomRefobj>&set, const MomRefobj rob, Args... args)
+  {
+    add_set_refobj(set, rob);
+    add_set(set, args...);
+  };
+  template<typename... Args>
+  static void add_set(std::set<MomRefobj>&set, const MomSequence&seq, Args... args)
+  {
+    add_set_sequence(set, seq);
+    add_set(set, args...);
+  };
+  template<typename... Args>
+  static std::set<MomRefobj> make_set(Args... args)
+  {
+    auto set = make_empty_set();
+    add_set(set, args...);
+    return set;
+  }
+
+
 };    // end class MomRefobj
 static_assert(sizeof(MomRefobj)==sizeof(void*), "too wide MomRefobj");
 
@@ -1024,12 +1069,7 @@ public:
   MomTuple(const std::vector<MomRefobj>&vec) :  MomTuple(vec, CheckTag{}) {};
   template<typename... Args>
   MomTuple(AnyTag, Args... args)
-    : MomTuple(MomRefobj::collect_vector((
-  {
-    std::vector<MomRefobj> v;
-    v.reserve(2*sizeof...(args));
-    v;
-  }), args...),CheckTag{}) {};
+    : MomTuple(MomRefobj::reserve_vector(3+(2*sizeof...(args)), args...),CheckTag{}) {};
   MomTuple(const MomSequence&sq) :
     MomSequence(SeqKind::TupleS,
                 sq.is_tuple()?sq.hash()
@@ -1379,4 +1419,10 @@ MomRefobj::collect_vector_sequence(std::vector<MomRefobj>&vec, const MomSequence
       collect_vector_refobj(vec,rob);
     }
 }      // end MomRefobj::collect_vector_sequence
+
+void
+MomRefobj::add_set_sequence(std::set<MomRefobj>&set,const MomSequence&seq)
+{
+  for (auto rob : seq) if (rob) set.insert(rob);
+}      // end MomRefobj::add_set_sequence
 #endif /*MONIMELT_HEADER*/
