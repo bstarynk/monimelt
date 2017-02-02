@@ -646,33 +646,51 @@ public:
   };
 };    // end class MomObject
 
-
+////////////////////////////////////////////////////////////////
 class MomSequence:
   public std::enable_shared_from_this<MomSequence>
 {
+public:
+  struct RawTag {};
+  struct PlainTag {};
+  struct CheckTag {};
+  enum class SeqKind : std::uint8_t
+  {
+    NoneS=0,
+    TupleS= (std::uint8_t)MomVKind::TupleK,
+    SetS= (std::uint8_t)MomVKind::SetK,
+  };
+  static constexpr bool _check_sequence_ = true;
 protected:
   const MomHash_t _hash;
   const unsigned _len;
-  MomRefobj* _seq;
+  const MomRefobj* _seq;
+  const SeqKind _skd;
   ~MomSequence()
   {
+    *(const_cast<SeqKind*>(&_skd)) = SeqKind::NoneS;
     for (unsigned ix=0; ix<_len; ix++)
-      _seq[ix].clear();
+      (const_cast< MomRefobj*>(_seq))[ix].clear();
     delete _seq;
     _seq = nullptr;
     *(const_cast<MomHash_t*>(&_hash)) = 0;
     *(const_cast<unsigned*>(&_len)) = 0;
   }
-  MomSequence(MomHash_t h, unsigned ln, const MomRefobj*arr)
-    : _hash(h), _len(ln), _seq(new MomRefobj[ln])
+  MomSequence(SeqKind k, MomHash_t h, unsigned ln, const MomRefobj*arr)
+    : _hash(h), _len(ln), _seq(new MomRefobj[ln]), _skd(k)
   {
     MOM_ASSERT(ln==0 || arr!=nullptr, "missing arr");
-    for (unsigned ix=0; ix<ln; ix++) _seq[ix] = arr[ix];
+    for (unsigned ix=0; ix<ln; ix++) (const_cast< MomRefobj*>(_seq))[ix] = arr[ix];
   };
-  MomSequence(MomHash_t h, const std::vector<MomRefobj>& vec)
-    : MomSequence(h, vec.size(), vec.data()) {};
-  MomSequence(MomHash_t h, std::initializer_list<MomRefobj> il)
-    : MomSequence(h, il.size(), il.begin()) {};
+  MomSequence(SeqKind k, MomHash_t h, unsigned ln, const MomRefobj*rawarr, RawTag)
+    : _hash(h), _len(ln), _seq(rawarr), _skd(k)
+  {
+    MOM_ASSERT(ln==0 || rawarr!=nullptr, "missing rawarr");
+  }
+  MomSequence(SeqKind k, MomHash_t h, const std::vector<MomRefobj>& vec)
+    : MomSequence(k, h, vec.size(), vec.data()) {};
+  MomSequence(SeqKind k, MomHash_t h, std::initializer_list<MomRefobj> il)
+    : MomSequence(k, h, il.size(), il.begin()) {};
   static bool good_array_refobj(const MomRefobj* arr, unsigned len)
   {
     if (len>0 && !arr) return false;
@@ -680,21 +698,48 @@ protected:
       if (!arr[ix]) return false;
     return true;
   }
+  static const MomRefobj* filter_array_refobj(const MomRefobj* arr, unsigned len)
+  {
+    if (!good_array_refobj(arr, len))
+      {
+        MOM_BACKTRACELOG("MomSequence::filter_array_refobj bad array " << arr << " of length:" << len);
+        throw std::runtime_error("MomSequence::filter_array_refobj bad array");
+      }
+    return arr;
+  }
   static bool good_vector_refobj(const std::vector<MomRefobj>& vec)
   {
     for (MomRefobj ro : vec)
       if (!ro) return false;
     return true;
   };
+  static const std::vector<MomRefobj>& filter_vector_refobj(const std::vector<MomRefobj>& vec)
+  {
+    if (!good_vector_refobj(vec))
+      {
+        MOM_BACKTRACELOG("MomSequence::filter_array_refobj bad vector of size:" << vec.size());
+        throw std::runtime_error("MomSequence::filter_vector_refobj bad vector");
+      }
+    return vec;
+  }
   static bool good_initializer_list_refobj(std::initializer_list<MomRefobj> il)
   {
     for (MomRefobj ro : il)
       if (!ro) return false;
     return true;
   };
+  static std::initializer_list<MomRefobj> filter_initializer_list_refobj(std::initializer_list<MomRefobj> il)
+  {
+    if (!good_initializer_list_refobj(il))
+      {
+        MOM_BACKTRACELOG("MomSequence::filter_initializer_list_refobj bad initializer_list of size:" << il.size());
+        throw std::runtime_error("MomSequence::filter_initializer_list_refobj bad initializer_list");
+      }
+    return il;
+  }
   static std::vector<MomRefobj> vector_real_refs(const std::vector<MomRefobj>& vec);
   static std::vector<MomRefobj> vector_real_refs(const std::initializer_list<MomRefobj> il);
-  template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4>
+  template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4, bool check=false>
   static MomHash_t  hash_vector_refobj(const std::vector<MomRefobj>& vec)
   {
     MomHash_t h = hinit;
@@ -702,11 +747,20 @@ protected:
     for (unsigned rk = 0; rk<ln; rk++)
       {
         auto ro = vec[rk];
-        MOM_ASSERT(ro, "hash_vector_refobj bad refobj#" << rk << ":" << ro);
-        if (rk%2==0)
-          h = (h*k1) + k3*ro.hash();
+        if (check)
+          {
+            if (!ro)
+              {
+                MOM_BACKTRACELOG("MomSequence::hash_vector_refobj null ref#" << rk << " ln="<< ln);
+                throw std::runtime_error("MomSequence::hash_vector_refobj null ref");
+              }
+          }
         else
-          h = (h*k2) ^ k4*ro.hash();
+          MOM_ASSERT(ro, "hash_vector_refobj bad refobj#" << rk << ":" << ro);
+        if (rk%2==0)
+          h = (h*k1) + (k3*ro.hash());
+        else
+          h = (h*k2) ^ (k4*ro.hash());
       }
     if (MOM_UNLIKELY(h==0))
       {
@@ -721,7 +775,7 @@ protected:
     MOM_ASSERT(h!=0, "hash_vector_refobj zero h");
     return h;
   }; /* end hash_vector_refobj */
-  template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4>
+  template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4, bool check=false>
   static MomHash_t hash_initializer_list_refobj(const std::initializer_list<MomRefobj> il)
   {
     MomHash_t h = hinit;
@@ -729,12 +783,21 @@ protected:
     unsigned rk = 0;
     for (MomRefobj ro : il)
       {
-        MOM_ASSERT(ro, "hash_initializer_list_refobj bad refobj#" << rk << ":" << ro);
+        if (check)
+          {
+            if (!ro)
+              {
+                MOM_BACKTRACELOG("MomSequence::hash_initializer_list_refobj null ref#" << rk << " ln="<< ln);
+                throw std::runtime_error("MomSequence::hash_initializer_list_refobj null ref");
+              }
+          }
+        else
+          MOM_ASSERT(ro, "hash_initializer_list_refobj bad refobj#" << rk << ":" << ro);
         rk++;
         if (rk%2==0)
-          h = (h*k1) + k3*ro.hash();
+          h = (h*k1) + (k3*ro.hash());
         else
-          h = (h*k2) ^ k4*ro.hash();
+          h = (h*k2) ^ (k4*ro.hash());
       }
     if (MOM_UNLIKELY(h==0))
       {
@@ -749,7 +812,7 @@ protected:
     MOM_ASSERT(h!=0, "hash_initializer_list_refobj zero h");
     return h;
   }; /* end hash_initializer_list_refobj */
-  template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4>
+  template<unsigned hinit, unsigned k1, unsigned k2, unsigned k3, unsigned k4, bool check=false>
   static MomHash_t  hash_array_refobj(const MomRefobj* arr, unsigned len)
   {
     if (len == 0) return hinit;
@@ -758,11 +821,20 @@ protected:
     for (unsigned rk = 0; rk<len; rk++)
       {
         auto ro = arr[rk];
-        MOM_ASSERT(ro, "hash_array_refobj bad refobj#" << rk << ":" << ro);
-        if (rk%2==0)
-          h = (h*k1) + k3*ro.hash();
+        if (check)
+          {
+            if (!ro)
+              {
+                MOM_BACKTRACELOG("MomSequence::hash_array_refobj null ref#" << rk << " len="<< len);
+                throw std::runtime_error("MomSequence::hash_array_refobj null ref");
+              }
+          }
         else
-          h = (h*k2) ^ k4*ro.hash();
+          MOM_ASSERT(ro, "hash_array_refobj bad refobj#" << rk << ":" << ro);
+        if (rk%2==0)
+          h = (h*k1) + (k3*ro.hash());
+        else
+          h = (h*k2) ^ (k4*ro.hash());
       }
     if (MOM_UNLIKELY(h==0))
       {
@@ -780,6 +852,18 @@ protected:
 };        // end class MomSequence
 
 
+class MomTuple : public MomSequence
+{
+  static constexpr unsigned hinit = 100;
+  static constexpr unsigned k1 = 233;
+  static constexpr unsigned k2 = 1217;
+  static constexpr unsigned k3 = 2243;
+  static constexpr unsigned k4 = 139;
+public:
+  ~MomTuple() {};
+  MomTuple(std::initializer_list<MomRefobj> il, PlainTag) :
+    MomSequence(SeqKind::TupleS,hash_initializer_list_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(il), il) {};
+};        // end class MomTuple
 
 class MomVal
 {
