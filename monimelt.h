@@ -320,6 +320,12 @@ public:
   };
 }; /* end class MomSerial63 */
 
+inline std::ostream &operator<<(std::ostream &os, const MomSerial63 s)
+{
+  os << s.to_string();
+  return os;
+} // end <<
+
 typedef uint32_t MomHash_t;
 typedef Json::Value MomJson;
 
@@ -1260,7 +1266,7 @@ public:
   MomSet(void) : MomSequence(SeqKind::SetS, hinit) {};
   MomSet(std::nullptr_t) : MomSet() {};
 #warning MomSet very incomplete
-};				// end class MomSet
+};        // end class MomSet
 
 class MomVal
 {
@@ -1504,6 +1510,7 @@ MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
       throw std::runtime_error("MomSerial63 too big n");
     }
 } /* end MomSerial63::MomSerial63 */
+
 
 /// see also http://stackoverflow.com/a/28613483/841108
 void MomVal::clear()

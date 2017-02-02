@@ -205,7 +205,10 @@ main (int argc_main, char **argv_main)
   {
     unsigned bn = getpid() % MomSerial63::_maxbucket_;
     auto s = MomSerial63::make_random_of_bucket(bn);
+    auto s2 = MomSerial63::make_random_of_bucket(bn);
     MOM_ASSERT(s.bucketnum() == bn, "corrupted bucketnum");
+    MOM_VERBOSELOG("s=" << s << " s2=" << s2 << "=="
+                   << MomSerial63::make_from_cstr(s2.to_string().c_str()));
   }
 } // end main
 
@@ -301,7 +304,7 @@ std::string MomSerial63::to_string(void) const
 const MomSerial63
 MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
 {
-  ;
+#warning MomSerial63::make_from_cstr is buggy
   uint64_t n = 0;
   if (!s)
     goto failure;
