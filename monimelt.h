@@ -525,7 +525,10 @@ public:
   {
     return !equal(r);
   };
-  static void collect_vector(const std::vector<MomRefobj>&) {};
+  static std::vector<MomRefobj>& collect_vector(std::vector<MomRefobj>&vec)
+  {
+    return vec;
+  };
   static void really_collect_vector(std::vector<MomRefobj>&) {};
   static inline void collect_vector_sequence(std::vector<MomRefobj>&vec, const MomSequence&seq);
   static inline void collect_vector_refobj(std::vector<MomRefobj>&vec, const MomRefobj rob)
@@ -537,10 +540,11 @@ public:
     if (pseq) collect_vector_sequence(vec, *pseq);
   };
   template<typename... Args>
-  static void collect_vector(std::vector<MomRefobj>&vec,  Args... args)
+  static std::vector<MomRefobj>& collect_vector(std::vector<MomRefobj>&vec,  Args... args)
   {
     vec.reserve(vec.size()+ 4*sizeof...(args)/3);
     really_collect_vector(vec, args...);
+    return vec;
   };
   template<typename... Args>
   static void really_collect_vector(std::vector<MomRefobj>&vec, const MomRefobj rob, Args... args)
@@ -698,6 +702,7 @@ class MomSequence:
   public std::enable_shared_from_this<MomSequence>
 {
 public:
+  struct AnyTag {};
   struct RawTag {};
   struct PlainTag {};
   struct CheckTag {};
@@ -732,6 +737,7 @@ protected:
       }
     return ln;
   }
+  MomSequence(SeqKind k, MomHash_t h)  : _hash(h), _len(0), _seq(nullptr), _skd(k) {};
   MomSequence(SeqKind k, MomHash_t h, unsigned ln, const MomRefobj*arr)
     : _hash(h), _len( check_length(ln)), _seq(new MomRefobj[ln]), _skd(k)
   {
@@ -990,6 +996,7 @@ public:
 };        // end class MomSequence
 
 
+
 class MomTuple : public MomSequence
 {
   static constexpr unsigned hinit = 100;
@@ -999,6 +1006,9 @@ class MomTuple : public MomSequence
   static constexpr unsigned k4 = 139;
 public:
   ~MomTuple() {};
+  MomTuple(void) :
+    MomSequence(SeqKind::TupleS,hinit) {};
+  MomTuple(std::nullptr_t) : MomTuple() {};
   MomTuple(std::initializer_list<MomRefobj> il, PlainTag) :
     MomSequence(SeqKind::TupleS,hash_initializer_list_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(il), il) {};
   MomTuple(std::initializer_list<MomRefobj> il, RawTag) :
@@ -1012,6 +1022,14 @@ public:
   MomTuple(const std::vector<MomRefobj>&vec, CheckTag) :
     MomSequence(SeqKind::TupleS,hash_vector_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(vec),vec) {};
   MomTuple(const std::vector<MomRefobj>&vec) :  MomTuple(vec, CheckTag{}) {};
+  template<typename... Args>
+  MomTuple(AnyTag, Args... args)
+    : MomTuple(MomRefobj::collect_vector((
+  {
+    std::vector<MomRefobj> v;
+    v.reserve(2*sizeof...(args));
+    v;
+  }), args...),CheckTag{}) {};
   MomTuple(const MomSequence&sq) :
     MomSequence(SeqKind::TupleS,
                 sq.is_tuple()?sq.hash()
@@ -1021,6 +1039,9 @@ public:
     MomSequence(SeqKind::TupleS,sq.is_tuple()?sq.hash()
                 :hash_array_refobj<hinit,k1,k2,k3,k4,_check_sequence_>(sq.data(),sq.size()),
                 sq.size(),sq.data())  {};
+  MomTuple(CheckTag) : MomTuple() {};
+  MomTuple(RawTag) : MomTuple() {};
+  MomTuple(PlainTag) : MomTuple() {};
   template <typename... Args> MomTuple(CheckTag tag, Args ... args)
     : MomTuple(std::initializer_list<MomRefobj>
   {
