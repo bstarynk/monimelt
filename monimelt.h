@@ -1038,6 +1038,54 @@ public:
     MOM_BACKTRACELOG("MomSequence::at bad ix=" << ix << " for length=" << _len);
     throw std::runtime_error("MomSequence:at index out of range");
   }
+  bool equal(const MomSequence&r) const
+  {
+    if (hash() != r.hash()) return false;
+    if (skind() != r.skind()) return false;
+    auto sz = size();
+    if (sz != r.size()) return false;
+    for (unsigned ix=0; ix<sz; ix++)
+      if (at(ix,RawTag{}) != r.at(ix,RawTag{})) return false;
+    return true;
+  }
+  bool less(const MomSequence&r) const
+  {
+    if (skind() < r.skind()) return true;
+    if (skind() > r.skind()) return false;
+    if (hash() == r.hash() && equal(r)) return false;
+    return std::lexicographical_compare(begin(), end(), r.begin(), r.end());
+  }
+  bool less_equal(const MomSequence&r) const
+  {
+    if (skind() < r.skind()) return true;
+    if (skind() > r.skind()) return false;
+    if (hash() == r.hash() && equal(r)) return true;
+    return std::lexicographical_compare(begin(), end(), r.begin(), r.end());
+  }
+  bool operator == (const MomSequence&r) const
+  {
+    return equal(r);
+  };
+  bool operator != (const MomSequence&r) const
+  {
+    return equal(r);
+  };
+  bool operator < (const MomSequence&r) const
+  {
+    return less(r);
+  };
+  bool operator > (const MomSequence&r) const
+  {
+    return !less_equal(r);
+  };
+  bool operator <= (const MomSequence&r) const
+  {
+    return less_equal(r);
+  };
+  bool operator >= (const MomSequence&r) const
+  {
+    return !less(r);
+  };
 };        // end class MomSequence
 
 
