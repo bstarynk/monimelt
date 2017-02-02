@@ -525,8 +525,52 @@ public:
   {
     return !equal(r);
   };
+  static void collect_vector(const std::vector<MomRefobj>&) {};
+  static void really_collect_vector(std::vector<MomRefobj>&) {};
+  static inline void collect_vector_sequence(std::vector<MomRefobj>&vec, const MomSequence&seq);
+  static inline void collect_vector_refobj(std::vector<MomRefobj>&vec, const MomRefobj rob)
+  {
+    if (rob) vec.push_back(rob);
+  }
+  static inline void collect_vector_sequence(std::vector<MomRefobj>&vec, const MomSequence*pseq = nullptr)
+  {
+    if (pseq) collect_vector_sequence(vec, *pseq);
+  };
+  template<typename... Args>
+  static void collect_vector(std::vector<MomRefobj>&vec,  Args... args)
+  {
+    vec.reserve(vec.size()+ 4*sizeof...(args)/3);
+    really_collect_vector(vec, args...);
+  };
+  template<typename... Args>
+  static void really_collect_vector(std::vector<MomRefobj>&vec, const MomRefobj rob, Args... args)
+  {
+    collect_vector_refobj(vec,rob);
+    really_collect_vector(vec, args...);
+  };
+  template<typename... Args>
+  static void really_collect_vector(std::vector<MomRefobj>&vec,MomObject*pob, Args... args)
+  {
+    if (pob) collect_vector_refobj(vec,MomRefobj{pob});
+    really_collect_vector(vec, args...);
+  }
+  template<typename... Args>
+  static void really_collect_vector(std::vector<MomRefobj>&vec, const MomSequence& seq, Args... args)
+  {
+    collect_vector_sequence(vec,seq);
+    really_collect_vector(vec, args...);
+  };
+  template<typename... Args>
+  static void really_collect_vector(std::vector<MomRefobj>&vec, const MomSequence* pseq, Args... args)
+  {
+    if (pseq) collect_vector_sequence(vec,pseq);
+    really_collect_vector(vec, args...);
+  };
 };    // end class MomRefobj
 static_assert(sizeof(MomRefobj)==sizeof(void*), "too wide MomRefobj");
+
+
+
 
 struct MomHashRefobj
 {
@@ -1303,4 +1347,15 @@ MomObject::random_id_of_bucket(unsigned bucknum)
                   MomSerial63::make_random()};
 }      // end MomObject::random_id_of_bucket
 
+
+void
+MomRefobj::collect_vector_sequence(std::vector<MomRefobj>&vec, const MomSequence&seq)
+{
+  vec.reserve(vec.size()+seq.size());
+  for (auto rob : seq)
+    {
+      MOM_ASSERT(rob, "collect_vector_sequence null rob");
+      collect_vector_refobj(vec,rob);
+    }
+}      // end MomRefobj::collect_vector_sequence
 #endif /*MONIMELT_HEADER*/
