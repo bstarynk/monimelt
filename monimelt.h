@@ -223,10 +223,11 @@ public:
   };
 }; // end class MomRandom
 
-#define MOM_B62DIGITS                                                          \
-  "0123456789"                                                                 \
-  "abcdefghijklmnopqrstuvwxyz"                                                 \
+#define MOM_B62DIGITS                   \
+  "0123456789"                          \
+  "abcdefghijklmnopqrstuvwxyz"          \
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 class MomSerial63
 {
   uint64_t _serial;
@@ -674,7 +675,6 @@ public:
     return pi.first.bucketnum();
   };
   static inline const pairid_t random_id_of_bucket(unsigned bun);
-
 private:
   const pairid_t _serpair;
   static MomHash_t hash0pairid(const pairid_t pi);
@@ -769,6 +769,11 @@ public:
   };
 }; // end class MomObject
 
+inline std::ostream& operator << (std::ostream&out, const MomObject::pairid_t pi)
+{
+  out << MomObject::id_to_string(pi);
+  return out;
+}
 ////////////////////////////////////////////////////////////////
 class MomSequence : public std::enable_shared_from_this<MomSequence>
 {

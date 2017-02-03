@@ -216,6 +216,13 @@ main (int argc_main, char **argv_main)
     auto t2 = MomSerial63::make_random();
     auto t3 = MomSerial63::make_random();
     MOM_VERBOSELOG("t1=" << t1 << " t2=" << t2 << " t3=" << t3);
+    auto id1 = MomObject::random_id();
+    auto id2 = MomObject::random_id();
+    auto id3 = MomObject::random_id_of_bucket(bn);
+    MOM_VERBOSELOG("id1=" << id1 << ";h=" << MomObject::hash_id(id1)
+		   << " id2=" << id2 << " id3=" << id3);
+    MOM_VERBOSELOG("id1==" << MomObject::id_from_cstr(MomObject::id_to_string(id1).c_str()));
+    MOM_VERBOSELOG("id2==" << MomObject::id_from_cstr(MomObject::id_to_string(id2).c_str()) << ";h=" << MomObject::hash_id(id2));
   }
 } // end main
 
@@ -331,7 +338,7 @@ MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
     goto failure;
   if (n>_maxserial_)
     goto failure;
-  end = s+_nbdigits_+2;
+  end = s+_nbdigits_+1;
   return MomSerial63{n};
 failure:
   if (fail)
