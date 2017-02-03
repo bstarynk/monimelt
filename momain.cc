@@ -206,9 +206,16 @@ main (int argc_main, char **argv_main)
     unsigned bn = getpid() % MomSerial63::_maxbucket_;
     auto s = MomSerial63::make_random_of_bucket(bn);
     auto s2 = MomSerial63::make_random_of_bucket(bn);
+    auto s3 = MomSerial63::make_random_of_bucket(2*MomSerial63::_maxbucket_/3 + getpid() % (MomSerial63::_maxbucket_/4));
     MOM_ASSERT(s.bucketnum() == bn, "corrupted bucketnum");
     MOM_VERBOSELOG("s=" << s << " s2=" << s2 << "=="
-                   << MomSerial63::make_from_cstr(s2.to_string().c_str()));
+                   << MomSerial63::make_from_cstr(s2.to_string().c_str())
+		   << " s3=" << s3 << "=="
+		   << MomSerial63::make_from_cstr(s3.to_string().c_str()));
+    auto t1 = MomSerial63::make_random();
+    auto t2 = MomSerial63::make_random();
+    auto t3 = MomSerial63::make_random();
+    MOM_VERBOSELOG("t1=" << t1 << " t2=" << t2 << " t3=" << t3);
   }
 } // end main
 
@@ -287,7 +294,7 @@ std::string MomSerial63::to_string(void) const
   buf[0] = '_';
   memset (buf+1, '0', _nbdigits_);
   uint64_t n = _serial;
-  char*pc = buf+_nbdigits_+1;
+  char*pc = buf+_nbdigits_;
   while (n != 0)
     {
       unsigned d = n % _base_;
@@ -295,8 +302,8 @@ std::string MomSerial63::to_string(void) const
       *pc = _b62digstr_[d];
       pc--;
     }
-  MOM_ASSERT(pc>buf, "to_string bad pc - buffer underflow");
-  MOM_ASSERT(strlen(buf) == _nbdigits_ + 2, "to_string bad buf=" << buf);
+  MOM_ASSERT(pc>=buf, "to_string bad pc - buffer underflow");
+  MOM_ASSERT(strlen(buf) == _nbdigits_ + 1, "to_string bad buf=" << buf);
   return std::string{buf};
 } // end  MomSerial63::to_string
 
@@ -304,7 +311,6 @@ std::string MomSerial63::to_string(void) const
 const MomSerial63
 MomSerial63::make_from_cstr(const char*s, const char*&end, bool fail)
 {
-#warning MomSerial63::make_from_cstr is buggy
   uint64_t n = 0;
   if (!s)
     goto failure;

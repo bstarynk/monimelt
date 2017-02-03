@@ -234,7 +234,7 @@ class MomSerial63
 public:
   static constexpr const uint64_t _minserial_ = 1024;
   static constexpr const uint64_t _maxserial_ =
-    (uint64_t)10 * 62 * 62 * 62 * 62 * 62 * 62 * 62 * 62 * 62 * 62;
+    (uint64_t)10 * 62 * (62 * 62 * 62) * (62 * 62 * 62) * (62 * 62 * 62);
   static constexpr const uint64_t _deltaserial_ = _maxserial_ - _minserial_;
   static constexpr const char *_b62digstr_ = MOM_B62DIGITS;
   static constexpr unsigned _nbdigits_ = 11;
