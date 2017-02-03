@@ -1266,10 +1266,27 @@ class MomSet  : public MomSequence
   static constexpr unsigned k2 = 3671;
   static constexpr unsigned k3 = 1367;
   static constexpr unsigned k4 = 569;
+  MomSet(MomSet&&set, RawTag tag)
+    : MomSequence(SeqKind::SetS,
+		  set._hash,
+		  set._len,
+		  set._seq,
+		  tag) {
+    *const_cast<SeqKind*>(&set._skd) = SeqKind::NoneS;
+    *const_cast<MomRefobj**>(&set._seq) = nullptr;
+    *const_cast<unsigned*>(&set._len) = 0;
+    *const_cast<MomHash_t*>(&set._hash) = 0;
+  };
 public:
   ~MomSet() {};
   MomSet(void) : MomSequence(SeqKind::SetS, hinit) {};
   MomSet(std::nullptr_t) : MomSet() {};
+  /***
+  MomSet(const std::vector<MomRefobj>& vec, PlainTag)
+    : MomSequence(SeqKind::SetS,
+		  hash_initializer_list_refobj<hinit,k1,k2,k3,k4>
+		  unique_sorted_vector_refobj(filter_vector_refobj(vec))
+  ***/
 #warning MomSet very incomplete
 };        // end class MomSet
 
