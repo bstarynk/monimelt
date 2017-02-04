@@ -1294,6 +1294,44 @@ private:
   {
     args...
   }, tag) {};
+  static void fill_vector(std::vector<MomRefobj>&) {};
+  static void reserve_vector (std::vector<MomRefobj>&vec, size_t siz)
+  {
+    vec.reserve(vec.size() + siz);
+  };
+  static void add_to_vector(std::vector<MomRefobj>&vec, const MomVal val);
+  template  <typename... Args>
+  static void fill_vector(std::vector<MomRefobj>&vec, const MomRefobj rob, Args... args)
+  {
+    if (rob) vec.push_back(rob);
+    fill_vector(vec,args...);
+  };
+  template  <typename... Args>
+  static void fill_vector(std::vector<MomRefobj>&vec, const std::set<MomRefobj>& rset, Args... args)
+  {
+    reserve_vector(vec, rset.size()+sizeof...(args));
+    for (auto rob: rset)
+      if (rob) vec.push_back(rob);
+    fill_vector(vec,args...);
+  };
+  template  <typename... Args>
+  static void fill_vector(std::vector<MomRefobj>&vec, const std::vector<MomRefobj>& rvec, Args... args)
+  {
+    reserve_vector(vec, rvec.size()+sizeof...(args));
+    for (auto rob: rvec)
+      if (rob) vec.push_back(rob);
+    fill_vector(vec,args...);
+  };
+  template  <typename... Args>
+  static void fill_vector(std::vector<MomRefobj>&vec, const std::initializer_list<MomRefobj>& il, Args... args)
+  {
+    reserve_vector(vec, il.size()+sizeof...(args));
+    for (auto rob: il)
+      if (rob) vec.push_back(rob);
+    fill_vector(vec,args...);
+  }
+  template  <typename... Args>
+  static void inline fill_vector(std::vector<MomRefobj>&vec, const MomVal val, Args... args);
 public:
   static const MomTuple*make(const std::vector<MomRefobj> &vec)
   {
@@ -1443,6 +1481,8 @@ class MomVal
   friend class MomVSet;
   friend class MomVTuple;
   friend class MomRefobj;
+  friend class MomSet;
+  friend class MomTuple;
 
 public:
   struct TagNone {};
@@ -1462,6 +1502,7 @@ protected:
     std::shared_ptr<const MomString> _str;
     std::shared_ptr<const MomSet> _set;
     std::shared_ptr<const MomTuple> _tup;
+    std::shared_ptr<const MomSequence> _seq;
   };
   MomVal(TagNone, std::nullptr_t) : _kind(MomVKind::NoneK), _ptr(nullptr) {};
   MomVal(TagInt, intptr_t i) : _kind(MomVKind::IntK), _int(i) {};
@@ -1537,6 +1578,10 @@ public:
       return def;
     return _int;
   };
+  inline intptr_t unsafe_int() const
+  {
+    return _int;
+  };
   //
   bool is_string(void) const
   {
@@ -1548,6 +1593,7 @@ public:
   inline const MomString *get_bstring(void) const;
   inline std::string as_string(void) const;
   inline std::string to_string(const std::string &str = "") const;
+  inline const MomString* unsafe_bstring(void) const;
   //
   bool is_set(void) const
   {
@@ -1556,7 +1602,15 @@ public:
   inline std::shared_ptr<const MomSet> as_set(void) const;
   inline std::shared_ptr<const MomSet>
   to_set(const std::shared_ptr<const MomSet> def = nullptr) const;
-  inline const MomSet *get_set(void) const;
+  inline const MomSet *get_set(void) const
+  {
+    if (is_set()) return _set.get();
+    return nullptr;
+  };
+  inline const MomSet *unsafe_set(void) const
+  {
+    return _set.get();
+  };
   //
   bool is_tuple(void) const
   {
@@ -1565,7 +1619,15 @@ public:
   inline std::shared_ptr<const MomTuple> as_tuple(void) const;
   inline std::shared_ptr<const MomTuple>
   to_tuple(const std::shared_ptr<const MomTuple> def = nullptr) const;
-  inline const MomTuple *get_tuple(void) const;
+  inline const MomTuple *get_tuple(void) const
+  {
+    if (is_tuple()) return _tup.get();
+    return nullptr;
+  }
+  inline const MomTuple *unsafe_tuple(void) const
+  {
+    return _tup.get();
+  };
   //
   bool is_sequence(void) const
   {
@@ -1574,7 +1636,15 @@ public:
   inline std::shared_ptr<const MomSequence> as_sequence(void) const;
   inline std::shared_ptr<const MomSequence>
   to_sequence(const std::shared_ptr<const MomSequence> def = nullptr) const;
-  inline const MomSequence *get_sequence(void) const;
+  inline const MomSequence *get_sequence(void) const
+  {
+    if (_kind==MomVKind::TupleK||_kind==MomVKind::SetK) return _set.get();
+    return nullptr;
+  }
+  inline const MomSequence *unsafe_sequence(void) const
+  {
+    return _seq.get();
+  };
   //
   bool is_refobj(void) const
   {
@@ -1582,8 +1652,17 @@ public:
   };
   inline MomRefobj as_refobj(void) const;
   inline MomRefobj to_refobj(const MomRefobj def = nullptr) const;
-  inline const MomRefobj get_refobj(void) const;
+  inline const MomRefobj get_refobj(void) const
+  {
+    return _kind==MomVKind::RefobjK?_ref:nullptr;
+  }
+  inline const MomRefobj unsafe_refobj(void) const
+  {
+    return _ref;
+  };
 }; // end class MomVal
+
+
 
 class MomVNone : public MomVal
 {
@@ -1774,5 +1853,13 @@ void MomSet::fill_set(std::set<MomRefobj>&set, const MomVal val, Args... args)
   if (val) add_to_set(set, val);
   fill_set(set,args...);
 } /* end MomSet::fill_set */
+
+template  <typename... Args>
+void MomTuple::fill_vector(std::vector<MomRefobj>&vec, const MomVal val, Args... args)
+{
+  reserve_vector(vec,4*sizeof...(args)/3 + 2);
+  if (val) add_to_vector(vec, val);
+  fill_vector(vec,args...);
+} /* end MomTuple::fill_vector */
 
 #endif /*MONIMELT_HEADER*/
