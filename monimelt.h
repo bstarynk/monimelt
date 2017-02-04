@@ -880,6 +880,26 @@ protected:
     tmpvec.erase(last,tmpvec.end());
     return tmpvec;
   }
+  template<bool check=false>
+  static std::vector<MomRefobj> vector_from_set_refobj(const std::set<MomRefobj> &set)
+  {
+    std::vector<MomRefobj> vec;
+    vec.reserve(set.size());
+    for (auto rob : set)
+      {
+        if (check)
+          {
+            if (!rob)
+              {
+                MOM_BACKTRACELOG("MomSequence::vector_from_set_refobj null reference in set of size " << set.size());
+                throw std::runtime_error("MomSequence::vector_from_set_refobj with null reference");
+              }
+          }
+        else MOM_ASSERT(rob, "MomSequence::vector_from_set_refobj null reference in set of size " << set.size());
+        vec.push_back(rob);
+      }
+    return vec;
+  }
   static bool good_vector_refobj(const std::vector<MomRefobj> &vec)
   {
     for (MomRefobj ro : vec)
@@ -1210,6 +1230,7 @@ class MomTuple : public MomSequence
 
 public:
   ~MomTuple() {};
+private:
   MomTuple(void) : MomSequence(SeqKind::TupleS, hinit) {};
   MomTuple(std::nullptr_t) : MomTuple() {};
   MomTuple(std::initializer_list<MomRefobj> il, PlainTag)
@@ -1273,6 +1294,28 @@ public:
   {
     args...
   }, tag) {};
+public:
+  static const MomTuple*make(const std::vector<MomRefobj> &vec)
+  {
+    return new MomTuple(vec,CheckTag{});
+  };
+  static const MomTuple*make(std::initializer_list<MomRefobj> il)
+  {
+    return new MomTuple(il,CheckTag{});
+  }
+  static const MomTuple*make(const MomSequence&sq)
+  {
+    return new MomTuple(sq,CheckTag{});
+  };
+  static const MomTuple*make(const MomSequence*psq)
+  {
+    return psq?new MomTuple(*psq,CheckTag{}):new MomTuple(nullptr);
+  };
+  template <typename... Args>
+  static const MomTuple*make(Args... args)
+  {
+    return new MomTuple(CheckTag{},args...);
+  }
 }; // end class MomTuple
 
 
@@ -1305,23 +1348,51 @@ class MomSet  : public MomSequence
   {
     MOM_ASSERT(good_sorted_array_refobj(_len,_seq), "unsorted or bad MomSet of length:" << _len);
   };
-public:
   static MomSet make_from_vector(const std::vector<MomRefobj>& vec)
   {
     auto svec = unique_sorted_vector_refobj(filter_vector_refobj(vec));
     return MomSet(svec,SortedTag{});
   };
-  ~MomSet() {};
+  static MomSet make_from_set(const std::set<MomRefobj>& set)
+  {
+    auto svec = vector_from_set_refobj<_check_sequence_>(set);
+    return MomSet(svec,SortedTag{});
+  }
   MomSet(void) : MomSequence(SeqKind::SetS, hinit) {};
   MomSet(std::nullptr_t) : MomSet() {};
-  MomSet(const std::vector<MomRefobj>& vec, PlainTag) : MomSet(std::move(make_from_vector(vec))) {};
-  /***
   MomSet(const std::vector<MomRefobj>& vec, PlainTag)
-    : MomSequence(SeqKind::SetS,
-      hash_initializer_list_refobj<hinit,k1,k2,k3,k4>
-      unique_sorted_vector_refobj(filter_vector_refobj(vec))
-  ***/
-#warning MomSet very incomplete
+    : MomSet(std::move(make_from_vector(vec))) {};
+  MomSet(std::initializer_list<MomRefobj> il, PlainTag)
+    : MomSet(std::move(make_from_vector(std::vector<MomRefobj>
+  {
+    il
+  }))) {};
+  MomSet(const std::set<MomRefobj>& set, PlainTag)
+    : MomSet(std::move(make_from_set(set))) {};
+public:
+  ~MomSet() {};
+  static const MomSet*make(void)
+  {
+    return new MomSet(nullptr);
+  };
+  static const MomSet*make(const std::vector<MomRefobj>& vec)
+  {
+    return new MomSet(vec,PlainTag{});
+  };
+  static const MomSet*make(const std::set<MomRefobj>& set)
+  {
+    return new MomSet(set,PlainTag{});
+  };
+  static const MomSet*make(const std::initializer_list<MomRefobj>& il)
+  {
+    return new MomSet(il,PlainTag{});
+  };
+  template <typename... Args>
+  static const MomSet*make(Args... args)
+  {
+    return new MomSet(std::initializer_list<MomRefobj> {args...},PlainTag());
+  }
+#warning MomSet still incomplete
 };        // end class MomSet
 
 class MomVal
