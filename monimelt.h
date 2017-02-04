@@ -1476,8 +1476,146 @@ public:
     fill_set(set,args...);
     return make(set);
   }
-#warning MomSet still incomplete
 };        // end class MomSet
+
+
+class MomString : public std::enable_shared_from_this<MomString>
+{
+  const std::string _str;
+  const MomHash_t _hash;
+  static constexpr unsigned hinit = 600;
+  static constexpr unsigned k1 = 277;
+  static constexpr unsigned k2 = 631;
+  static constexpr unsigned k3 = 733;
+  static constexpr unsigned k4 = 839;
+  static constexpr unsigned kmod = 12157;
+  friend class MomVal;
+  friend class MomVString;
+  void clear(void)
+  {
+    const_cast<std::string*>(&_str)->clear();
+    *const_cast<MomHash_t*>(&_hash) = 0;
+  }
+  static unsigned normalize_length(const char*str, int len)
+  {
+    if (len<0) return str?strlen(str):0;
+    else return len;
+  };
+public:
+  size_t size() const
+  {
+    return _str.size();
+  };
+  char unsafe_at(unsigned ix) const
+  {
+    return _str[ix];
+  };
+  char nth(int ix, bool check=false) const
+  {
+    auto ln = size();
+    if (ix<0) ix+=ln;
+    if (ix>=0 && ix<ln) return _str[ix];
+    if (check)
+      {
+        MOM_BACKTRACELOG("MomString::nth invalid index " << ix);
+        throw std::runtime_error("MomString::nth invalid index");
+      }
+    return (char)0;
+  }
+  std::string to_string() const
+  {
+    return _str;
+  };
+  static MomHash_t hash_of_cstr(const char*str, int len= -1)
+  {
+    if (!str) return 0;
+    if (len<0) len = strlen(str);
+    MomHash_t h1 = hinit, h2 = 0;
+    for (unsigned ix=0; ix<len; ix++)
+      {
+        if (ix %2 == 0) h1 = (k1 * h1 + h2 % kmod) ^ (k2 * str[ix]);
+        else h2 = ((k3 * h2 - h1 % kmod) ^ (k4 * str[ix])) + k1;
+      }
+    MomHash_t h = (11*h1) ^ (7*h2);
+    if (MOM_UNLIKELY(h==0))
+      h = (h1 & 0xffff) + (h2 & 0xffff) + (3*len&0xff) + hinit + 10;
+    return h;
+  };
+  static MomHash_t hash_of_string(const std::string&s)
+  {
+    return hash_of_cstr(s.c_str(), s.size());
+  };
+  MomString(const std::string& s) : std::enable_shared_from_this<MomString>(),
+    _str{s}, _hash(hash_of_string(s)) {};
+  MomString(const MomString&ms): std::enable_shared_from_this<MomString>(),
+    _str(ms._str), _hash(ms._hash) {};
+  MomString(MomString&&ms): std::enable_shared_from_this<MomString>(),
+    _str(std::move(ms._str)), _hash(ms._hash)
+  {
+    ms.clear();
+  };
+  MomString(const char*str, int len= -1)
+    : std::enable_shared_from_this<MomString>(),
+      _str{str,normalize_length(str,len)}, _hash(hash_of_string(_str)) {};
+  MomHash_t hash() const
+  {
+    return _hash;
+  };
+  bool equal(const MomString&r) const
+  {
+    if (&r == this) return true;
+    return _hash==r._hash && _str==r._str;
+  };
+  bool equal(const std::string& s) const
+  {
+    return _str==s;
+  };
+  bool equal(const char*cs) const
+  {
+    return cs && !strcmp(_str.c_str(),cs);
+  };
+  bool less(const MomString&r) const
+  {
+    return _str<r._str;
+  };
+  bool less(const std::string&rs) const
+  {
+    return _str<rs;
+  };
+  bool less_equal(const std::string&rs) const
+  {
+    return _str<=rs;
+  };
+  bool less_equal(const MomString&r) const
+  {
+    return _str<=r._str;
+  };
+  bool operator == (const MomString&r) const
+  {
+    return equal(r);
+  };
+  bool operator != (const MomString&r) const
+  {
+    return !equal(r);
+  };
+  bool operator < (const MomString&r) const
+  {
+    return less(r);
+  };
+  bool operator <= (const MomString&r) const
+  {
+    return less_equal(r);
+  };
+  bool operator > (const MomString&r) const
+  {
+    return !less_equal(r);
+  };
+  bool operator >= (const MomString&r) const
+  {
+    return !less(r);
+  };
+};        // end class MomString
+
 
 class MomVal
 {
@@ -1686,17 +1824,27 @@ public:
   ~MomVInt() = default;
 }; // end MomVInt
 
+
+
 class MomVString : public MomVal
 {
 public:
-  MomVString(const MomString &);
-  MomVString(const char *s, int l = -1);
-  MomVString(const std::string &str);
+  MomVString(const char *s, int l = -1)
+    : MomVal(TagString{},new MomString(std::string{s,MomString::normalize_length(s,l)})) {};
+  MomVString(const MomString &ms)
+    : MomVal(TagString{},&ms) {};
+  MomVString(const std::string &str)
+    : MomVal(TagString{},new MomString(str)) {};
   ~MomVString() = default;
 }; // end MomVString
 
+
+
 class MomVSet : public MomVal
 {
+  friend class MomVal;
+  friend class MomSet;
+  friend class MomSequence;
 public:
   ~MomVSet() = default;
   inline MomVSet(void);
@@ -1721,8 +1869,12 @@ public:
   // }) {};
 }; // end MomVSet
 
+
 class MomVTuple : public MomVal
 {
+  friend class MomVal;
+  friend class MomTuple;
+  friend class MomSequence;
 public:
   ~MomVTuple() = default;
   inline MomVTuple(const MomTuple &);
