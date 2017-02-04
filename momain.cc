@@ -210,8 +210,8 @@ main (int argc_main, char **argv_main)
     MOM_ASSERT(s.bucketnum() == bn, "corrupted bucketnum");
     MOM_VERBOSELOG("s=" << s << " s2=" << s2 << "=="
                    << MomSerial63::make_from_cstr(s2.to_string().c_str())
-		   << " s3=" << s3 << "=="
-		   << MomSerial63::make_from_cstr(s3.to_string().c_str()));
+                   << " s3=" << s3 << "=="
+                   << MomSerial63::make_from_cstr(s3.to_string().c_str()));
     auto t1 = MomSerial63::make_random();
     auto t2 = MomSerial63::make_random();
     auto t3 = MomSerial63::make_random();
@@ -220,7 +220,7 @@ main (int argc_main, char **argv_main)
     auto id2 = MomObject::random_id();
     auto id3 = MomObject::random_id_of_bucket(bn);
     MOM_VERBOSELOG("id1=" << id1 << ";h=" << MomObject::hash_id(id1)
-		   << " id2=" << id2 << " id3=" << id3);
+                   << " id2=" << id2 << " id3=" << id3);
     MOM_VERBOSELOG("id1==" << MomObject::id_from_cstr(MomObject::id_to_string(id1).c_str()));
     MOM_VERBOSELOG("id2==" << MomObject::id_from_cstr(MomObject::id_to_string(id2).c_str()) << ";h=" << MomObject::hash_id(id2));
   }

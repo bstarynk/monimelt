@@ -162,11 +162,10 @@ extern "C" bool mom_verboseflag;
 #define MOM_VERBOSELOG_AT_BIS(Fil, Lin, Log) MOM_VERBOSELOG_AT(Fil, Lin, Log)
 #define MOM_VERBOSELOG(Log) MOM_VERBOSELOG_AT_BIS(__FILE__, __LINE__, Log)
 
-#define MOM_NEVERLOG_AT(Fil, Lin, Log)                                         \
-  do {                                                                         \
-    if (false && mom_verboseflag)                                              \
-      std::clog << "*MOM @" << Fil << ":" << Lin << " /" << __FUNCTION__       \
-                << ": " << Log << std::endl;                                   \
+#define MOM_NEVERLOG_AT(Fil, Lin, Log)    \
+  do {            \
+    if (false && mom_verboseflag)   \
+      std::clog  << "@-: " << Log << std::endl; \
   } while (0)
 #define MOM_NEVERLOG_AT_BIS(Fil, Lin, Log) MOM_NEVERLOG_AT(Fil, Lin, Log)
 #define MOM_NEVERLOG(Log) MOM_NEVERLOG_AT_BIS(__FILE__, __LINE__, Log)
@@ -774,6 +773,10 @@ inline std::ostream& operator << (std::ostream&out, const MomObject::pairid_t pi
   out << MomObject::id_to_string(pi);
   return out;
 }
+
+
+
+
 ////////////////////////////////////////////////////////////////
 class MomSequence : public std::enable_shared_from_this<MomSequence>
 {
@@ -798,10 +801,13 @@ protected:
   ~MomSequence()
   {
     *(const_cast<SeqKind *>(&_skd)) = SeqKind::NoneS;
-    for (unsigned ix = 0; ix < _len; ix++)
-      (const_cast<MomRefobj *>(_seq))[ix].clear();
-    delete[] _seq;
-    _seq = nullptr;
+    if (_seq)
+      {
+        for (unsigned ix = 0; ix < _len; ix++)
+          (const_cast<MomRefobj *>(_seq))[ix].clear();
+        delete[] _seq;
+        _seq = nullptr;
+      }
     *(const_cast<MomHash_t *>(&_hash)) = 0;
     *(const_cast<unsigned *>(&_len)) = 0;
   }
@@ -881,6 +887,18 @@ protected:
         return false;
     return true;
   };
+  static bool good_sorted_array_refobj(unsigned len, const MomRefobj*arr)
+  {
+    if (len==0) return true;
+    if (!arr) return false;
+    if (!arr[0]) return false;
+    for (unsigned ix=1; ix<len; ix++)
+      {
+        if (!arr[ix]) return false;
+        if (arr[ix] <= arr[ix-1]) return false;
+      }
+    return true;
+  }
   static const std::vector<MomRefobj> &
   filter_vector_refobj(const std::vector<MomRefobj> &vec)
   {
@@ -1181,7 +1199,7 @@ public:
 }; // end class MomSequence
 
 
-
+////////////////
 class MomTuple : public MomSequence
 {
   static constexpr unsigned hinit = 100;
@@ -1258,7 +1276,7 @@ public:
 }; // end class MomTuple
 
 
-
+////////////////
 class MomSet  : public MomSequence
 {
   static constexpr unsigned hinit = 301;
@@ -1268,24 +1286,40 @@ class MomSet  : public MomSequence
   static constexpr unsigned k4 = 569;
   MomSet(MomSet&&set, RawTag tag)
     : MomSequence(SeqKind::SetS,
-		  set._hash,
-		  set._len,
-		  set._seq,
-		  tag) {
+                  set._hash,
+                  set._len,
+                  set._seq,
+                  tag)
+  {
     *const_cast<SeqKind*>(&set._skd) = SeqKind::NoneS;
     *const_cast<MomRefobj**>(&set._seq) = nullptr;
     *const_cast<unsigned*>(&set._len) = 0;
     *const_cast<MomHash_t*>(&set._hash) = 0;
   };
+  MomSet(MomSet&&set) : MomSet(std::move(set),RawTag{}) {};
+  struct SortedTag {};
+  MomSet(const std::vector<MomRefobj>& vec, SortedTag)
+    : MomSequence(SeqKind::SetS,
+                  hash_vector_refobj<hinit,k1,k2,k3,k4>(vec),
+                  vec)
+  {
+    MOM_ASSERT(good_sorted_array_refobj(_len,_seq), "unsorted or bad MomSet of length:" << _len);
+  };
 public:
+  static MomSet make_from_vector(const std::vector<MomRefobj>& vec)
+  {
+    auto svec = unique_sorted_vector_refobj(filter_vector_refobj(vec));
+    return MomSet(svec,SortedTag{});
+  };
   ~MomSet() {};
   MomSet(void) : MomSequence(SeqKind::SetS, hinit) {};
   MomSet(std::nullptr_t) : MomSet() {};
+  MomSet(const std::vector<MomRefobj>& vec, PlainTag) : MomSet(std::move(make_from_vector(vec))) {};
   /***
   MomSet(const std::vector<MomRefobj>& vec, PlainTag)
     : MomSequence(SeqKind::SetS,
-		  hash_initializer_list_refobj<hinit,k1,k2,k3,k4>
-		  unique_sorted_vector_refobj(filter_vector_refobj(vec))
+      hash_initializer_list_refobj<hinit,k1,k2,k3,k4>
+      unique_sorted_vector_refobj(filter_vector_refobj(vec))
   ***/
 #warning MomSet very incomplete
 };        // end class MomSet
