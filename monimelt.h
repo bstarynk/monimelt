@@ -1354,6 +1354,14 @@ public:
   {
     return new MomTuple(CheckTag{},args...);
   }
+  template <typename... Args>
+  static const MomTuple*make_any(Args... args)
+  {
+    std::vector<MomRefobj> vec;
+    vec.reserve(4*sizeof...(args)/3+3);
+    fill_vector(vec,args...);
+    return make(vec);
+  }
 }; // end class MomTuple
 
 
