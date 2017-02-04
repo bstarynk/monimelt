@@ -1369,6 +1369,37 @@ class MomSet  : public MomSequence
   }))) {};
   MomSet(const std::set<MomRefobj>& set, PlainTag)
     : MomSet(std::move(make_from_set(set))) {};
+  static void fill_set(std::set<MomRefobj>&);
+  static void add_to_set(std::set<MomRefobj>&set, const MomVal val);
+  template  <typename... Args>
+  static void fill_set(std::set<MomRefobj>&set, const MomRefobj rob, Args... args)
+  {
+    if (rob) set.insert(rob);
+    fill_set(set,args...);
+  };
+  template  <typename... Args>
+  static void fill_set(std::set<MomRefobj>&set, const std::set<MomRefobj>& rset, Args... args)
+  {
+    for (auto rob: rset)
+      if (rob) set.insert(rob);
+    fill_set(set,args...);
+  };
+  template  <typename... Args>
+  static void fill_set(std::set<MomRefobj>&set, const std::vector<MomRefobj>& rvec, Args... args)
+  {
+    for (auto rob: rvec)
+      if (rob) set.insert(rob);
+    fill_set(set,args...);
+  };
+  template  <typename... Args>
+  static void fill_set(std::set<MomRefobj>&set, const std::initializer_list<MomRefobj>& il, Args... args)
+  {
+    for (auto rob: il)
+      if (rob) set.insert(rob);
+    fill_set(set,args...);
+  }
+  template  <typename... Args>
+  static void inline fill_set(std::set<MomRefobj>&set, const MomVal val, Args... args);
 public:
   ~MomSet() {};
   static const MomSet*make(void)
@@ -1391,6 +1422,13 @@ public:
   static const MomSet*make(Args... args)
   {
     return new MomSet(std::initializer_list<MomRefobj> {args...},PlainTag());
+  };
+  template <typename... Args>
+  static const MomSet*make_any(Args... args)
+  {
+    std::set<MomRefobj> set;
+    fill_set(set,args...);
+    return make(set);
   }
 #warning MomSet still incomplete
 };        // end class MomSet
@@ -1729,4 +1767,12 @@ void MomRefobj::add_set_sequence(std::set<MomRefobj> &set,
     if (rob)
       set.insert(rob);
 } // end MomRefobj::add_set_sequence
+
+template  <typename... Args>
+void MomSet::fill_set(std::set<MomRefobj>&set, const MomVal val, Args... args)
+{
+  if (val) add_to_set(set, val);
+  fill_set(set,args...);
+} /* end MomSet::fill_set */
+
 #endif /*MONIMELT_HEADER*/
