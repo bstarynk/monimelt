@@ -1645,6 +1645,7 @@ public:
   struct TagRefobj {};
   struct TagSet {};
   struct TagTuple {};
+  struct TagCheck {};
 
 protected:
   const MomVKind _kind;
@@ -1660,23 +1661,55 @@ protected:
   };
   MomVal(TagNone, std::nullptr_t) : _kind(MomVKind::NoneK), _ptr(nullptr) {};
   MomVal(TagInt, intptr_t i) : _kind(MomVKind::IntK), _int(i) {};
-  MomVal(TagString, const MomString *s) : _kind(MomVKind::StringK), _str(s)
+  MomVal(TagString, const MomString *s) : _kind(s?MomVKind::StringK:MomVKind::NoneK), _str(s)
   {
-    MOM_ASSERT(s!=nullptr, "MomVal:: null s");
   };
+  MomVal(TagString, const MomString *s, TagCheck) : _kind(MomVKind::StringK), _str(s)
+  {
+    if (!s)
+      {
+        MOM_BACKTRACELOG("MomVal no MomString");
+        throw std::runtime_error("MomVal no MomString");
+      }
+  };
+  MomVal(TagString, const MomString&s): _kind(MomVKind::StringK), _str(&s) {};
   inline MomVal(TagString, const std::string &s);
-  MomVal(TagRefobj, const MomRefobj ro) : _kind(MomVKind::RefobjK), _ref(ro)
+  MomVal(TagRefobj, const MomRefobj ro) : _kind(ro?MomVKind::RefobjK:MomVKind::NoneK), _ref(ro)
   {
-    MOM_ASSERT(ro, "MomVal:: null ro");
   };
-  MomVal(TagSet, const MomSet *pset)  : _kind(MomVKind::SetK), _set(pset)
+  MomVal(TagRefobj, const MomRefobj ro, TagCheck) : _kind(MomVKind::RefobjK), _ref(ro)
   {
-    MOM_ASSERT(pset!=nullptr, "MomVal:: null pset");
-  }
-  MomVal(TagTuple, const MomTuple *ptup) : _kind(MomVKind::TupleK), _tup(ptup)
+    if (!ro)
+      {
+        MOM_BACKTRACELOG("MomVal no MomRefobj");
+        throw std::runtime_error("MomVal no MomRefobj");
+      }
+  };
+  MomVal(TagRefobj,  MomObject& ob) : _kind(MomVKind::RefobjK), _ref(&ob) {};
+  MomVal(TagSet, const MomSet *pset)  : _kind(pset?MomVKind::SetK:MomVKind::NoneK), _set(pset)
   {
-    MOM_ASSERT(ptup!=nullptr, "MomVal:: null ptup");
   }
+  MomVal(TagSet, const MomSet *pset, TagCheck) : _kind(MomVKind::SetK), _set(pset)
+  {
+    if (!pset)
+      {
+        MOM_BACKTRACELOG("MomVal no MomSet");
+        throw std::runtime_error("MomVal no MomSet");
+      }
+  }
+  MomVal(TagSet, const MomSet& set) : _kind(MomVKind::SetK), _set(&set) {};
+  MomVal(TagTuple, const MomTuple *ptup) : _kind(ptup?MomVKind::TupleK:MomVKind::NoneK), _tup(ptup)
+  {
+  }
+  MomVal(TagTuple, const MomTuple *ptup, TagCheck) : _kind(MomVKind::TupleK), _tup(ptup)
+  {
+    if (!ptup)
+      {
+        MOM_BACKTRACELOG("MomVal no MomTuple");
+        throw std::runtime_error("MomVal no MomTuple");
+      }
+  }
+  MomVal(TagTuple, const MomTuple& tup) : _kind(MomVKind::SetK), _tup(&tup) {};
 public:
   MomVKind kind() const
   {
@@ -1848,14 +1881,40 @@ public:
 
 class MomVString : public MomVal
 {
+  static std::ostringstream& out(std::ostringstream&o)
+  {
+    return o;
+  };
+  static void output(std::ostringstream&) {};
+  template <typename T>
+  static void output(std::ostringstream&o, const T x)
+  {
+    o << x;
+  };
+  template <typename T, typename... Args>
+  static void output(std::ostringstream&o, const T x, Args... args)
+  {
+    output(o,x);
+    output(o,args...);
+  };
 public:
+  MomVString() : MomVal(nullptr) {};
   MomVString(const char *s, int l = -1)
     : MomVal(TagString{},new MomString(std::string{s,MomString::normalize_length(s,l)})) {};
   MomVString(const MomString &ms)
     : MomVal(TagString{},&ms) {};
   MomVString(const std::string &str)
     : MomVal(TagString{},new MomString(str)) {};
+  MomVString(const std::ostringstream&os)
+    : MomVal(TagString{},new MomString(os.str())) {};
   ~MomVString() = default;
+  template <typename... Args>
+  static MomVString make(Args... args)
+  {
+    std::ostringstream os;
+    output(os,args...);
+    return MomVString(os);
+  };
 }; // end MomVString
 
 
