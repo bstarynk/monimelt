@@ -2,6 +2,85 @@
 #include "monimelt.h"
 
 
+bool
+MomVal::less(const MomVal&r) const
+{
+  if (this==&r) return false;
+  auto k = kind();
+  auto rk = r.kind();
+  if (k<rk) return true;
+  if (k>rk) return false;
+  switch(k)
+    {
+    case MomVKind::NoneK:
+      return false;
+    case MomVKind::IntK:
+      return _int < r._int;
+    case MomVKind::RefobjK:
+      return _ref < r._ref;
+    case MomVKind::StringK:
+    {
+      MOM_ASSERT (_str, "MomVal::less bad _str");
+      MOM_ASSERT (r._str, "MomVal::less bad r._str");
+      return _str->less(*r._str);
+    }
+    case MomVKind::TupleK:
+    {
+      MOM_ASSERT(_tup, "MomVal::less bad tup");
+      MOM_ASSERT(r._tup, "MomVal::less bad r._tup");
+      return _tup->less(*r._tup);
+    }
+    case MomVKind::SetK:
+    {
+      MOM_ASSERT(_set, "MomVal::less bad set");
+      MOM_ASSERT(r._set, "MomVal::less bad r._set");
+      return _set->less(*r._set);
+    }
+    }
+  MOM_BACKTRACELOG("MomVal::less impossible case");
+  throw std::runtime_error("MomVal::less impossible case");
+} // end MomVal::less
+
+bool
+MomVal::less_equal(const MomVal&r) const
+{
+  if (this==&r) return true;
+  auto k = kind();
+  auto rk = r.kind();
+  if (k<rk) return true;
+  if (k>rk) return false;
+  switch(k)
+    {
+    case MomVKind::NoneK:
+      return true;
+    case MomVKind::IntK:
+      return _int <= r._int;
+    case MomVKind::RefobjK:
+      return _ref <= r._ref;
+    case MomVKind::StringK:
+    {
+      MOM_ASSERT (_str, "MomVal::less_equal bad _str");
+      MOM_ASSERT (r._str, "MomVal::less_equal bad r._str");
+      return _str->less_equal(*r._str);
+    }
+    case MomVKind::TupleK:
+    {
+      MOM_ASSERT(_tup, "MomVal::less_equal bad tup");
+      MOM_ASSERT(r._tup, "MomVal::less_equal bad r._tup");
+      return _tup->less_equal(*r._tup);
+    }
+    case MomVKind::SetK:
+    {
+      MOM_ASSERT(_set, "MomVal::less_equal bad set");
+      MOM_ASSERT(r._set, "MomVal::less_equal bad r._set");
+      return _set->less_equal(*r._set);
+    }
+    }
+  MOM_BACKTRACELOG("MomVal::less_equal impossible case");
+  throw std::runtime_error("MomVal::less_equal impossible case");
+} // end MomVal::less_equal
+
+
 std::vector<MomRefobj>
 MomSequence::vector_real_refs(const std::vector<MomRefobj>& vec)
 {
