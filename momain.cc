@@ -223,6 +223,17 @@ main (int argc_main, char **argv_main)
                    << " id2=" << id2 << " id3=" << id3);
     MOM_VERBOSELOG("id1==" << MomObject::id_from_cstr(MomObject::id_to_string(id1).c_str()));
     MOM_VERBOSELOG("id2==" << MomObject::id_from_cstr(MomObject::id_to_string(id2).c_str()) << ";h=" << MomObject::hash_id(id2));
+    MOM_VERBOSELOG("sizeof(MomObject)==" << sizeof(MomObject)
+                   << " align:" << alignof(MomObject));
+    MOM_VERBOSELOG("sizeof(MomRefobj)==" << sizeof(MomRefobj)
+                   << " align:" << alignof(MomRefobj));
+    MOM_VERBOSELOG("sizeof(MomVal)==" << sizeof(MomVal)
+                   << " align:" << alignof(MomVal));
+    MOM_VERBOSELOG("sizeof(MomSequence)==" << sizeof(MomSequence)
+                   << " align:" << alignof(MomSequence));
+    MOM_VERBOSELOG("sizeof(std::shared_ptr<MomTuple>)=="
+                   << sizeof(std::shared_ptr<MomTuple>)
+                   << " align:" << alignof(std::shared_ptr<MomTuple>));
   }
 } // end main
 
