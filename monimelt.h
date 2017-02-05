@@ -1514,7 +1514,7 @@ public:
   {
     auto ln = size();
     if (ix<0) ix+=ln;
-    if (ix>=0 && ix<ln) return _str[ix];
+    if (ix>=0 && ix<(int)ln) return _str[ix];
     if (check)
       {
         MOM_BACKTRACELOG("MomString::nth invalid index " << ix);
@@ -1522,16 +1522,24 @@ public:
       }
     return (char)0;
   }
-  std::string to_string() const
+  const std::string to_string() const
   {
     return _str;
+  };
+  operator const std::string () const
+  {
+    return to_string();
+  };
+  const char* to_cstr() const
+  {
+    return _str.c_str();
   };
   static MomHash_t hash_of_cstr(const char*str, int len= -1)
   {
     if (!str) return 0;
     if (len<0) len = strlen(str);
     MomHash_t h1 = hinit, h2 = 0;
-    for (unsigned ix=0; ix<len; ix++)
+    for (unsigned ix=0; ix<(unsigned)len; ix++)
       {
         if (ix %2 == 0) h1 = (k1 * h1 + h2 % kmod) ^ (k2 * str[ix]);
         else h2 = ((k3 * h2 - h1 % kmod) ^ (k4 * str[ix])) + k1;
@@ -1652,12 +1660,23 @@ protected:
   };
   MomVal(TagNone, std::nullptr_t) : _kind(MomVKind::NoneK), _ptr(nullptr) {};
   MomVal(TagInt, intptr_t i) : _kind(MomVKind::IntK), _int(i) {};
+  MomVal(TagString, const MomString *s) : _kind(MomVKind::StringK), _str(s)
+  {
+    MOM_ASSERT(s!=nullptr, "MomVal:: null s");
+  };
   inline MomVal(TagString, const std::string &s);
-  inline MomVal(TagString, const MomString *);
-  inline MomVal(TagRefobj, const MomRefobj);
-  inline MomVal(TagSet, const MomSet *pset);
-  inline MomVal(TagTuple, const MomTuple *ptup);
-
+  MomVal(TagRefobj, const MomRefobj ro) : _kind(MomVKind::RefobjK), _ref(ro)
+  {
+    MOM_ASSERT(ro, "MomVal:: null ro");
+  };
+  MomVal(TagSet, const MomSet *pset)  : _kind(MomVKind::SetK), _set(pset)
+  {
+    MOM_ASSERT(pset!=nullptr, "MomVal:: null pset");
+  }
+  MomVal(TagTuple, const MomTuple *ptup) : _kind(MomVKind::TupleK), _tup(ptup)
+  {
+    MOM_ASSERT(ptup!=nullptr, "MomVal:: null ptup");
+  }
 public:
   MomVKind kind() const
   {
@@ -1737,8 +1756,9 @@ public:
   inline std::shared_ptr<const MomString>
   to_bstring(const std::shared_ptr<const MomString> &def = nullptr) const;
   inline const MomString *get_bstring(void) const;
-  inline std::string as_string(void) const;
-  inline std::string to_string(const std::string &str = "") const;
+  inline const std::string as_string(void) const;
+  inline const std::string to_string(const std::string &str = "") const;
+  inline const char* to_cstr(const char*defcstr = nullptr) const;
   inline const MomString* unsafe_bstring(void) const;
   //
   bool is_set(void) const
@@ -2022,4 +2042,90 @@ void MomTuple::fill_vector(std::vector<MomRefobj>&vec, const MomVal val, Args...
   fill_vector(vec,args...);
 } /* end MomTuple::fill_vector */
 
+intptr_t MomVal::as_int(void) const
+{
+  if (!is_int())
+    {
+      MOM_BACKTRACELOG("MomVal::as_int not an int");
+      throw std::runtime_error("MomVal::as_int not an int");
+    };
+  return unsafe_int();
+}      // end MomVal::as_int
+
+std::shared_ptr<const MomString>
+MomVal::as_bstring(void) const
+{
+  if (!is_string())
+    {
+      MOM_BACKTRACELOG("MomVal::as_bstring not a string");
+      throw std::runtime_error("MomVal::as_bstring is not a string");
+    };
+  return _str;
+} // end MomVal::as_bstring
+
+std::shared_ptr<const MomString>
+MomVal::to_bstring(const std::shared_ptr<const MomString> &pbs) const
+{
+  if (!is_string()) return pbs;
+  return _str;
+} // end MomVal::to_bstring
+
+const std::string
+MomVal::as_string(void) const
+{
+  if (!is_string()) return nullptr;
+  MOM_ASSERT(_str, "corrupted string value");
+  return _str->to_string();
+} // end MomVal::as_string
+
+const std::string
+MomVal::to_string(const std::string &str) const
+{
+  if (!is_string()) return str;
+  MOM_ASSERT(_str, "corrupted string value");
+  return _str->to_string();
+} // end MomVal::to_string
+
+const char*
+MomVal::to_cstr(const char*defcstr) const
+{
+  if (!is_string()) return defcstr;
+  MOM_ASSERT(_str, "corrupted string value");
+  return _str->to_cstr();
+} // end MomVal::to_cstr
+
+bool
+MomVal::equal(const MomVal&r) const
+{
+  if (this==&r) return true;
+  auto k = kind();
+  if (k != r.kind()) return false;
+  switch (k)
+    {
+    case MomVKind::NoneK:
+      return true;
+    case MomVKind::IntK:
+      return _int == r._int;
+    case MomVKind::RefobjK:
+      return _ref == r._ref;
+    case MomVKind::StringK:
+    {
+      MOM_ASSERT (_str, "MomVal::equal bad _str");
+      MOM_ASSERT (r._str, "MomVal::equal bad r._str");
+      return _str->equal(*r._str);
+    }
+    case MomVKind::TupleK:
+    {
+      MOM_ASSERT(_tup, "MomVal::equal bad tup");
+      MOM_ASSERT(r._tup, "MomVal::equal bad r._tup");
+      return _tup->equal(*r._tup);
+    }
+    case MomVKind::SetK:
+    {
+      MOM_ASSERT(_set, "MomVal::equal bad set");
+      MOM_ASSERT(r._set, "MomVal::equal bad r._set");
+      return _set->equal(*r._set);
+    }
+    }
+}      // end MomVal::equal
 #endif /*MONIMELT_HEADER*/
