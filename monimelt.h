@@ -232,8 +232,8 @@ class MomSerial63
   uint64_t _serial;
 
 public:
-  static constexpr const uint64_t _minserial_ = 1024;
-  static constexpr const uint64_t _maxserial_ =
+  static constexpr const uint64_t _minserial_ = 62*62; /// 3884
+  static constexpr const uint64_t _maxserial_ = /// 8392993658683402240, about 8.392994e+18
     (uint64_t)10 * 62 * (62 * 62 * 62) * (62 * 62 * 62) * (62 * 62 * 62);
   static constexpr const uint64_t _deltaserial_ = _maxserial_ - _minserial_;
   static constexpr const char *_b62digstr_ = MOM_B62DIGITS;
@@ -379,6 +379,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomUtf8Out &bo)
   return os;
 };
 
+class MomAllocObj;    // object allocator
 class MomObject;
 class MomVal;
 class MomString;
@@ -1646,6 +1647,7 @@ public:
   struct TagSet {};
   struct TagTuple {};
   struct TagCheck {};
+  struct TagJson {};
 
 protected:
   const MomVKind _kind;
@@ -1710,6 +1712,7 @@ protected:
       }
   }
   MomVal(TagTuple, const MomTuple& tup) : _kind(MomVKind::SetK), _tup(&tup) {};
+  MomVal(TagJson, const MomJson&, MomAllocObj&);
 public:
   MomVKind kind() const
   {
@@ -1928,24 +1931,22 @@ public:
   ~MomVSet() = default;
   inline MomVSet(void);
   inline MomVSet(const MomSet &bs);
-  inline MomVSet(const std::set<const MomRefobj, MomLessRefobj> &);
-  inline MomVSet(const std::unordered_set<const MomRefobj, MomHashRefobj> &);
-  inline MomVSet(const std::vector<MomRefobj> &);
-  inline MomVSet(const std::vector<MomObject *> &);
-  // MomVSet(const std::initializer_list<MomRefobj> il)
-  //   : MomVSet(std::vector<MomRefobj>(il)) {};
-  // MomVSet(const std::initializer_list<MomObject*>il)
-  //   : MomVSet(std::vector<MomObject*>(il)) {};
-  // template <typename... Args> MomVSet(MomObject*obp, Args ... args)
-  //   : MomVSet(std::initializer_list<MomObject*>
-  // {
-  //   obp, args...
-  // }) {};
-  // template <typename... Args> MomVSet(MomRefobj ref, Args ... args)
-  //   : MomVSet(std::initializer_list<const MomRefobj>
-  // {
-  //   ref, args...
-  // }) {};
+  inline MomVSet(const std::set<const MomRefobj> &);
+  inline MomVSet(const std::unordered_set<const MomRefobj> &);
+  MomVSet(const std::vector<MomRefobj> &vec)
+    : MomVal(TagSet{}, MomSet::make(vec)) {};
+  MomVSet(const std::initializer_list<MomRefobj> &il)
+    :  MomVal(TagSet{}, MomSet::make(il)) {};
+  template <typename... Args>
+  static MomVSet make_obj(Args... args)
+  {
+    return MomVSet(std::initializer_list<MomRefobj>(args...));
+  };
+  template <typename... Args>
+  static MomVSet make_any(Args... args)
+  {
+    return MomVSet(MomSet::make_any(args...));
+  };
 }; // end MomVSet
 
 
@@ -2187,4 +2188,5 @@ MomVal::equal(const MomVal&r) const
     }
     }
 }      // end MomVal::equal
+
 #endif /*MONIMELT_HEADER*/
