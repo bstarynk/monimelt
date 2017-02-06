@@ -118,34 +118,34 @@ __attribute__((format(strftime, 3, 0)));
 extern "C" void mom_backtracestr_at(const char *fil, int lin,
                                     const std::string &msg);
 
-#define MOM_BACKTRACELOG_AT(Fil, Lin, Log)                                     \
-  do {                                                                         \
-    std::ostringstream _out_##Lin;                                             \
-    _out_##Lin << Log << std::flush;                                           \
-    mom_backtracestr_at((Fil), (Lin), _out_##Lin.str());                       \
+#define MOM_BACKTRACELOG_AT(Fil, Lin, Log)                     \
+  do {                                                         \
+    std::ostringstream _out_##Lin;                             \
+    _out_##Lin << Log << std::flush;                           \
+    mom_backtracestr_at((Fil), (Lin), _out_##Lin.str());       \
   } while (0)
-#define MOM_BACKTRACELOG_AT_BIS(Fil, Lin, Log)                                 \
+#define MOM_BACKTRACELOG_AT_BIS(Fil, Lin, Log)   \
   MOM_BACKTRACELOG_AT(Fil, Lin, Log)
 #define MOM_BACKTRACELOG(Log) MOM_BACKTRACELOG_AT_BIS(__FILE__, __LINE__, Log)
 
 extern "C" void mom_abort(void) __attribute__((noreturn));
 #ifndef NDEBUG
-#define MOM_ASSERT_AT(Fil, Lin, Prop, Log)                                     \
-  do {                                                                         \
-    if (MOM_UNLIKELY(!(Prop))) {                                               \
-      MOM_BACKTRACELOG_AT(Fil, Lin,                                            \
-                          "**MOM_ASSERT FAILED** " #Prop ":"                   \
-                          " @ "                                                \
-                              << __PRETTY_FUNCTION__ << std::endl              \
-                              << "::" << Log);                                 \
-      mom_abort();                                                             \
-    }                                                                          \
+#define MOM_ASSERT_AT(Fil, Lin, Prop, Log)                         \
+  do {                                                             \
+    if (MOM_UNLIKELY(!(Prop))) {                                   \
+      MOM_BACKTRACELOG_AT(Fil, Lin,                                \
+                          "**MOM_ASSERT FAILED** " #Prop ":"       \
+                          " @ "                                    \
+                          << __PRETTY_FUNCTION__                   \
+        << std::endl  << "::" << Log);           \
+      mom_abort();                                                 \
+    }                                                              \
   } while (0)
 #else
-#define MOM_ASSERT_AT(Fil, Lin, Prop, Log)                                     \
-  do {                                                                         \
-    if (false && !(Prop))                                                      \
-      MOM_BACKTRACELOG_AT(Fil, Lin, Log);                                      \
+#define MOM_ASSERT_AT(Fil, Lin, Prop, Log)         \
+  do {                                             \
+    if (false && !(Prop))                          \
+      MOM_BACKTRACELOG_AT(Fil, Lin, Log);          \
   } while (0)
 #endif // NDEBUG
 #define MOM_ASSERT_AT_BIS(Fil, Lin, Prop, Log)                                 \
