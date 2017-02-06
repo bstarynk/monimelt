@@ -89,6 +89,62 @@ MomVal::less_equal(const MomVal&r) const
 } // end MomVal::less_equal
 
 
+MomHash_t
+MomVal::hash() const
+{
+  auto k = kind();
+  switch (k)
+    {
+    case MomVKind::NoneK:
+      return 0;
+    case MomVKind::IntK:
+    {
+      auto h = (MomHash_t)((1663L*_int) ^ (17L*(_int >> 28)));
+      if (MOM_UNLIKELY(h==0))
+        h=(MomHash_t(_int % 521363) & 0xfffff) + 310;
+      MOM_ASSERT(h!=0, "MomVal::hash zero-hashed integer");
+      return h;
+    }
+    case MomVKind::RefobjK:
+    {
+      MOM_ASSERT(_ref, "MomVal::hash null refobj");
+      return _ref->hash();
+    }
+    case MomVKind::StringK:
+    {
+      MOM_ASSERT(_str, "MomVal::hash null str");
+      return _str->hash();
+    }
+    case MomVKind::TupleK:
+    {
+      MOM_ASSERT(_tup, "MomVal::hash null tuple");
+      return _tup->hash();
+    }
+    case MomVKind::SetK:
+    {
+      MOM_ASSERT(_set, "MomVal::hash null set");
+      return _set->hash();
+    }
+    case MomVKind::ColoRefK:
+    {
+      auto cref = _coloref._cobref;
+      auto colob = _coloref._colorob;
+      MOM_ASSERT(cref, "MomVal::hash null cref");
+      MOM_ASSERT(colob, "MomVal::hash null colob");
+      MomHash_t href = cref->hash();
+      MomHash_t h = href ^ MomHash_t(colob->lo_serial());
+      if (MOM_UNLIKELY(h==0))
+        {
+          h = href;
+          MOM_ASSERT(h!=0, "MomVal::hash zero coloref");
+        }
+      return h;
+    }
+    }
+} // end of MomVal::hash
+
+
+
 std::vector<MomRefobj>
 MomSequence::vector_real_refs(const std::vector<MomRefobj>& vec)
 {
