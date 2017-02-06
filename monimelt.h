@@ -381,6 +381,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomUtf8Out &bo)
 
 class MomAllocObj;    // object allocator
 class MomJsonParser;  // Json Parser
+class MomJsonEmitter;  // Json Emitter
 class MomObject;
 class MomVal;
 class MomString;
@@ -1898,6 +1899,27 @@ public:
   {
     return _ref;
   };
+  //
+  bool is_coloref(void) const
+  {
+    return _kind == MomVKind::ColoRefK;
+  }
+  inline const MomRefobj get_colorefobj(void) const
+  {
+    return _kind == MomVKind::ColoRefK?_coloref._cobref:nullptr;
+  }
+  inline const MomRefobj get_colorob(void) const
+  {
+    return _kind == MomVKind::ColoRefK?_coloref._colorob:nullptr;
+  };
+  inline const MomRefobj unsafe_colorefobj(void) const
+  {
+    return _coloref._cobref;
+  };
+  inline const MomRefobj unsafe_colorob(void) const
+  {
+    return _coloref._colorob;
+  };
 }; // end class MomVal
 
 
@@ -1995,22 +2017,20 @@ public:
   ~MomVTuple() = default;
   inline MomVTuple(const MomTuple &);
   inline MomVTuple(void);
-  MomVTuple(const std::vector<MomRefobj> &);
-  MomVTuple(const std::vector<MomObject *> &);
-  // MomVTuple(std::initializer_list<MomRefobj> il)
-  //   : MomVTuple(std::vector<MomRefobj>(il)) {};
-  // MomVTuple(std::initializer_list<MomObject*>il)
-  //   : MomVTuple(std::vector<MomObject*>(il)) {};
-  // template <typename... Args> MomVTuple(MomRefobj pob,Args ... args)
-  //   : MomVTuple(std::initializer_list<MomRefobj>
-  // {
-  //   pob,args...
-  // }) {};
-  // template <typename... Args> MomVTuple(MomObject*obp,Args ... args)
-  //   : MomVTuple(std::initializer_list<MomObject*>
-  // {
-  //   obp,args...
-  // }) {};
+  MomVTuple(const std::vector<MomRefobj> &vec)
+    : MomVal(TagTuple{}, MomTuple::make(vec)) {};
+  MomVTuple(const std::initializer_list<MomRefobj>&il)
+    : MomVal(TagTuple{}, MomTuple::make(il)) {};
+  template <typename... Args>
+  static MomVTuple make_obj(Args... args)
+  {
+    return MomVTuple(std::initializer_list<MomRefobj>(args...));
+  };
+  template <typename... Args>
+  static MomVTuple make_any(Args... args)
+  {
+    return MomVTuple(MomTuple::make_any(args...));
+  };
 }; // end MomVTuple
 
 ////////////////////////////////////////////////////////////////

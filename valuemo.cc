@@ -141,6 +141,8 @@ MomVal::hash() const
       return h;
     }
     }
+  MOM_BACKTRACELOG("MomVal::hash impossible case");
+  throw std::runtime_error("MomVal::hash impossible case");
 } // end of MomVal::hash
 
 
@@ -190,6 +192,13 @@ MomSet::add_to_set(std::set<MomRefobj>&set, const MomVal val)
       set.insert(rob);
     }
     return;
+    case MomVKind::ColoRefK:
+    {
+      auto rob = val.unsafe_colorefobj();
+      MOM_ASSERT (rob, "add_to_set no rob");
+      set.insert(rob);
+    }
+    return;
     case MomVKind::SetK:
     case MomVKind::TupleK:
     {
@@ -202,7 +211,6 @@ MomSet::add_to_set(std::set<MomRefobj>&set, const MomVal val)
         }
     }
     return;
-#warning missing MomSet::add_to_set for coloref
     }
 } // end MomSet::add_to_set
 
@@ -222,6 +230,13 @@ MomTuple::add_to_vector(std::vector<MomRefobj>&vec, const MomVal val)
       vec.push_back(rob);
     }
     return;
+    case MomVKind::ColoRefK:
+    {
+      auto colorob = val.unsafe_colorefobj();
+      MOM_ASSERT (colorob, "add_to_vector no colorob");
+      vec.push_back(colorob);
+    }
+    return;
     case MomVKind::SetK:
     case MomVKind::TupleK:
     {
@@ -235,6 +250,5 @@ MomTuple::add_to_vector(std::vector<MomRefobj>&vec, const MomVal val)
         }
     }
     return;
-#warning missing MomSet::add_to_vector for coloref
     }
 } // end MomTuple::add_to_vector
