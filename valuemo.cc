@@ -36,7 +36,11 @@ MomVal::less(const MomVal&r) const
       MOM_ASSERT(r._set, "MomVal::less bad r._set");
       return _set->less(*r._set);
     }
-    }
+    case MomVKind::ColoRefK:
+      if (_coloref._colorob == r._coloref._colorob)
+        return _coloref._cobref < r._coloref._colorob;
+      else return _coloref._colorob < r._coloref._colorob;
+    };
   MOM_BACKTRACELOG("MomVal::less impossible case");
   throw std::runtime_error("MomVal::less impossible case");
 } // end MomVal::less
@@ -75,6 +79,10 @@ MomVal::less_equal(const MomVal&r) const
       MOM_ASSERT(r._set, "MomVal::less_equal bad r._set");
       return _set->less_equal(*r._set);
     }
+    case MomVKind::ColoRefK:
+      if (_coloref._colorob == r._coloref._colorob)
+        return _coloref._cobref <= r._coloref._colorob;
+      else return _coloref._colorob < r._coloref._colorob;
     }
   MOM_BACKTRACELOG("MomVal::less_equal impossible case");
   throw std::runtime_error("MomVal::less_equal impossible case");
@@ -138,6 +146,7 @@ MomSet::add_to_set(std::set<MomRefobj>&set, const MomVal val)
         }
     }
     return;
+#warning missing MomSet::add_to_set for coloref
     }
 } // end MomSet::add_to_set
 
@@ -170,5 +179,6 @@ MomTuple::add_to_vector(std::vector<MomRefobj>&vec, const MomVal val)
         }
     }
     return;
+#warning missing MomSet::add_to_vector for coloref
     }
 } // end MomTuple::add_to_vector

@@ -380,6 +380,7 @@ inline std::ostream &operator<<(std::ostream &os, const MomUtf8Out &bo)
 };
 
 class MomAllocObj;    // object allocator
+class MomJsonParser;  // Json Parser
 class MomObject;
 class MomVal;
 class MomString;
@@ -399,6 +400,7 @@ MomVKind : std::
   // DoubleK,
   StringK,
   RefobjK,
+  ColoRefK,
   SetK,
   TupleK,
   /* we don't need mix (of scalar values, e.g. ints, doubles, strings,
@@ -1635,6 +1637,7 @@ class MomVal
   friend class MomVRef;
   friend class MomVSet;
   friend class MomVTuple;
+  friend class MomVColoRef;
   friend class MomRefobj;
   friend class MomSet;
   friend class MomTuple;
@@ -1644,11 +1647,17 @@ public:
   struct TagInt {};
   struct TagString {};
   struct TagRefobj {};
+  struct TagColoRef {};
   struct TagSet {};
   struct TagTuple {};
   struct TagCheck {};
+  struct TagRaw {};
   struct TagJson {};
-
+  struct ColoRefObj
+  {
+    const MomRefobj _cobref;
+    const MomRefobj _colorob;
+  };
 protected:
   const MomVKind _kind;
   union
@@ -1656,6 +1665,7 @@ protected:
     void *_ptr;
     intptr_t _int;
     MomRefobj _ref;
+    ColoRefObj _coloref;
     std::shared_ptr<const MomString> _str;
     std::shared_ptr<const MomSet> _set;
     std::shared_ptr<const MomTuple> _tup;
@@ -1687,7 +1697,33 @@ protected:
         throw std::runtime_error("MomVal no MomRefobj");
       }
   };
-  MomVal(TagRefobj,  MomObject& ob) : _kind(MomVKind::RefobjK), _ref(&ob) {};
+  MomVal(TagColoRef,  MomObject& ob, MomObject& colorob) :
+    _kind(MomVKind::ColoRefK), _coloref{&ob,&colorob} {};
+  MomVal(TagColoRef, const ColoRefObj& col) :
+    _kind(MomVKind::ColoRefK), _coloref{col} {};
+  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob):
+    _kind(ob?(colorob?MomVKind::ColoRefK:MomVKind::RefobjK):MomVKind::NoneK),
+    _coloref{ob,colorob} {};
+  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob, TagRaw)
+    : _kind(MomVKind::ColoRefK), _coloref{ob,colorob}
+  {
+    MOM_ASSERT(ob, "MomVal missing ob for TagColoRef");
+    MOM_ASSERT(colorob, "MomVal missing colorob for TagColoRef");
+  };
+  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob, TagCheck)
+    : _kind(MomVKind::ColoRefK), _coloref{ob,colorob}
+  {
+    if (!ob)
+      {
+        MOM_BACKTRACELOG("MomVal without ob for TagColoRef");
+        throw std::runtime_error("MomVal without ob for TagColoRef");
+      }
+    if (!colorob)
+      {
+        MOM_BACKTRACELOG("MomVal without colorob for TagColoRef");
+        throw std::runtime_error("MomVal without colorob for TagColoRef");
+      }
+  };
   MomVal(TagSet, const MomSet *pset)  : _kind(pset?MomVKind::SetK:MomVKind::NoneK), _set(pset)
   {
   }
@@ -1711,9 +1747,9 @@ protected:
         throw std::runtime_error("MomVal no MomTuple");
       }
   }
-  MomVal(TagTuple, const MomTuple& tup) : _kind(MomVKind::SetK), _tup(&tup) {};
-  MomVal(TagJson, const MomJson&, MomAllocObj&);
+  MomVal(TagTuple, const MomTuple& tup) : _kind(MomVKind::TupleK), _tup(&tup) {};
 public:
+  MomVal(TagJson, const MomJson&, MomJsonParser&);
   MomVKind kind() const
   {
     return _kind;
@@ -2020,6 +2056,10 @@ void MomVal::clear()
     case MomVKind::TupleK:
       _tup.~shared_ptr<const MomTuple>();
       break;
+    case MomVKind::ColoRefK:
+      *const_cast<MomRefobj*>(&_coloref._cobref) = nullptr;
+      *const_cast<MomRefobj*>(&_coloref._colorob) = nullptr;
+      break;
     }
   _ptr = nullptr;
 } // end MomVal::clear()
@@ -2168,6 +2208,8 @@ MomVal::equal(const MomVal&r) const
       return _int == r._int;
     case MomVKind::RefobjK:
       return _ref == r._ref;
+    case MomVKind::ColoRefK:
+      return _coloref._cobref == r._coloref._cobref &&  _coloref._colorob == r._coloref._colorob;
     case MomVKind::StringK:
     {
       MOM_ASSERT (_str, "MomVal::equal bad _str");
