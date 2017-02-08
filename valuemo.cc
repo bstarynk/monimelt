@@ -161,8 +161,8 @@ MomVal::parse_json(const MomJson&js, MomJsonParser&jp)
         {
           auto id = MomObject::id_from_cstr(jcomp.asCString(),true);
           auto pob = MomObject::find_object_of_id(id);
-	  if (!pob)
-	    pob = jp.idstr_to_refobj(jcomp.asCString());
+          if (!pob)
+            pob = jp.idstr_to_refobj(jcomp.asCString());
           if (!pob)
             {
               MOM_BACKTRACELOG("parse_json bad id:" << id);
@@ -171,28 +171,73 @@ MomVal::parse_json(const MomJson&js, MomJsonParser&jp)
           return MomVRef{pob};
         }
       else if ((jcomp = js["cref"]).isString() && (jcolor= js["color"]).isString())
-	{
-	  auto cid = MomObject::id_from_cstr(jcomp.asCString(),true);
+        {
+          auto cid = MomObject::id_from_cstr(jcomp.asCString(),true);
           auto prob = MomObject::find_object_of_id(cid);
-	  if (!prob)
-	    prob = jp.idstr_to_refobj(jcomp.asCString());
-	  if (!prob)
+          if (!prob)
+            prob = jp.idstr_to_refobj(jcomp.asCString());
+          if (!prob)
             {
               MOM_BACKTRACELOG("parse_json bad cref:" << cid << " in:" << js);
               throw std::runtime_error("parse_json bad cref");
             };
-	  auto colorid = MomObject::id_from_cstr(jcolor.asCString(),true);
+          auto colorid = MomObject::id_from_cstr(jcolor.asCString(),true);
           auto pobcolor = MomObject::find_object_of_id(colorid);
-	  if (!pobcolor)
-	    pobcolor = jp.idstr_to_refobj(jcolor.asCString());
-	  if (!pobcolor)
+          if (!pobcolor)
+            pobcolor = jp.idstr_to_refobj(jcolor.asCString());
+          if (!pobcolor)
             {
               MOM_BACKTRACELOG("parse_json bad color:" << colorid << " in:" << js);
               throw std::runtime_error("parse_json bad color");
             };
-	  return MomVColoRef{prob,pobcolor};
-	}
-#warning MomVal::parse_json incomplete
+          return MomVColoRef{prob,pobcolor};
+        } // end when "cref" && "color"
+      else if ((jcomp = js["set"]).isArray())
+        {
+          auto ln = jcomp.size();
+          MomSetRefobj setr;
+          for (unsigned ix=0; ix<ln; ix++)
+            {
+              auto jid = jcomp[ix];
+              if (jid.isString())
+                {
+                  auto cid = MomObject::id_from_cstr(jid.asCString(),true);
+                  auto elrob = MomObject::find_object_of_id(cid);
+                  if (!elrob)
+                    elrob = jp.idstr_to_refobj(jid.asCString());
+                  if (!elrob)
+                    {
+                      MOM_BACKTRACELOG("parse_json bad element id:" << jid << " in:" << js);
+                      throw std::runtime_error("parse_json bad element id");
+                    }
+                  setr.insert(elrob);
+                }
+            }
+          return MomVSet(setr);
+        } // end when "set"
+      else if ((jcomp = js["tup"]).isArray())
+        {
+          auto ln = jcomp.size();
+          std::vector<MomRefobj> vec;
+          for (unsigned ix=0; ix<ln; ix++)
+            {
+              auto jid = jcomp[ix];
+              if (jid.isString())
+                {
+                  auto cid = MomObject::id_from_cstr(jid.asCString(),true);
+                  auto comprob = MomObject::find_object_of_id(cid);
+                  if (!comprob)
+                    comprob = jp.idstr_to_refobj(jid.asCString());
+                  if (!comprob)
+                    {
+                      MOM_BACKTRACELOG("parse_json bad component id:" << jid << " in:" << js);
+                      throw std::runtime_error("parse_json bad component id");
+                    }
+                  vec.push_back(comprob);
+                }
+            }
+          return MomVTuple(vec);
+        } // end when "tup"
     }
   MOM_BACKTRACELOG("parse_json bad js:" << js);
   throw std::runtime_error("MomVal::parse_json bad js");
@@ -224,18 +269,49 @@ MomVal::emit_json(MomJsonEmitter&jem) const
         return nullptr;
     }
     case MomVKind::ColoRefK:
-      {
-	auto cref = _coloref._cobref;
-	auto colorob = _coloref._colorob;
-	if (jem.emittable_refobj(colorob) && jem.emittable_refobj(cref)) {
-	  auto job = MomJson{Json::objectValue};
-	  job["cref"] = cref->idstr();
-	  job["color"] = colorob->idstr();
-	  return job;
-	}
-      }
-#warning incomplete MomVal::emit_json
+    {
+      auto cref = _coloref._cobref;
+      auto colorob = _coloref._colorob;
+      MOM_ASSERT(cref, "bad colored reference to emit_json");
+      MOM_ASSERT(colorob, "bad color to emit_json");
+      if (jem.emittable_refobj(colorob) && jem.emittable_refobj(cref))
+        {
+          auto job = MomJson{Json::objectValue};
+          job["cref"] = cref->idstr();
+          job["color"] = colorob->idstr();
+          return job;
+        }
     }
+    case MomVKind::SetK:
+    {
+      MOM_ASSERT(_set, "bad set to emit_json");
+      auto job = MomJson{Json::objectValue};
+      auto jseq = MomJson{Json::arrayValue};
+      for (auto elrob : *_set)
+        {
+          MOM_ASSERT(elrob, "bad element in set to emit_json");
+          if (jem.emittable_refobj(elrob))
+            jseq.append(elrob->idstr());
+        }
+      job["set"] = jseq;
+      return job;
+    }
+    case MomVKind::TupleK:
+    {
+      MOM_ASSERT(_tup, "bad tuple to emit_json");
+      auto job = MomJson{Json::objectValue};
+      auto jseq = MomJson{Json::arrayValue};
+      for (auto comprob : *_tup)
+        {
+          MOM_ASSERT(comprob, "bad component in tuple to emit_json");
+          if (jem.emittable_refobj(comprob))
+            jseq.append(comprob->idstr());
+        }
+      job["tup"] = jseq;
+      return job;
+    }
+    }
+  MOM_ASSERT(false,"impossible value to emit_json:" << *this);
 } // end MomVal::emit_json
 
 

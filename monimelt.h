@@ -643,20 +643,28 @@ public:
     add_set(set, args...);
     return set;
   }
-
+  inline std::size_t longhash() const;
 }; // end class MomRefobj
 static_assert(sizeof(MomRefobj) == sizeof(void *), "too wide MomRefobj");
 
 struct MomHashRefobj
 {
-  inline size_t operator()(MomRefobj) const;
+  size_t operator()(MomRefobj ro) const
+  {
+    return ro.longhash();
+  };
 };
+
+typedef std::unordered_set<MomRefobj, MomHashRefobj> MomUnorderedSetRefobj;
 
 struct MomLessRefobj
 {
-  inline bool operator()(MomRefobj l, MomRefobj r) const;
+  bool operator()(MomRefobj l, MomRefobj r) const
+  {
+    return l<r;
+  };
 };
-
+typedef std::set<MomRefobj, MomLessRefobj> MomSetRefobj;
 
 typedef std::pair<const MomSerial63, const MomSerial63> MomPairid;
 inline bool operator ! (const MomPairid pi)
@@ -813,9 +821,20 @@ public:
   {
     return !less(r);
   };
+  inline std::size_t longhash() const;
 }; // end class MomObject
 
 
+namespace std
+{
+template<> struct hash<MomObject>
+{
+  std::size_t operator() (const MomObject& ob) const
+  {
+    return ob.longhash();
+  }
+};
+};
 
 
 ////////////////////////////////////////////////////////////////
@@ -922,7 +941,7 @@ protected:
     return tmpvec;
   }
   template<bool check=false>
-  static std::vector<MomRefobj> vector_from_set_refobj(const std::set<MomRefobj> &set)
+  static std::vector<MomRefobj> vector_from_set_refobj(const MomSetRefobj &set)
   {
     std::vector<MomRefobj> vec;
     vec.reserve(set.size());
@@ -1409,6 +1428,7 @@ public:
 ////////////////
 class MomSet  : public MomSequence
 {
+  friend class MomVSet;
   static constexpr unsigned hinit = 301;
   static constexpr unsigned k1 = 467;
   static constexpr unsigned k2 = 3671;
@@ -1440,7 +1460,7 @@ class MomSet  : public MomSequence
     auto svec = unique_sorted_vector_refobj(filter_vector_refobj(vec));
     return MomSet(svec,SortedTag{});
   };
-  static MomSet make_from_set(const std::set<MomRefobj>& set)
+  static MomSet make_from_set(const MomSetRefobj& set)
   {
     auto svec = vector_from_set_refobj<_check_sequence_>(set);
     return MomSet(svec,SortedTag{});
@@ -1454,7 +1474,7 @@ class MomSet  : public MomSequence
   {
     il
   }))) {};
-  MomSet(const std::set<MomRefobj>& set, PlainTag)
+  MomSet(const MomSetRefobj& set, PlainTag)
     : MomSet(std::move(make_from_set(set))) {};
   static void fill_set(std::set<MomRefobj>&);
   static void add_to_set(std::set<MomRefobj>&set, const MomVal val);
@@ -1497,7 +1517,7 @@ public:
   {
     return new MomSet(vec,PlainTag{});
   };
-  static const MomSet*make(const std::set<MomRefobj>& set)
+  static const MomSet*make(const MomSetRefobj& set)
   {
     return new MomSet(set,PlainTag{});
   };
@@ -2023,7 +2043,8 @@ public:
 class MomVRef : public MomVal
 {
 public:
-  MomVRef(const MomRefobj ro) : MomVal(TagRefobj{},ro) {
+  MomVRef(const MomRefobj ro) : MomVal(TagRefobj{},ro)
+  {
   };
   ~MomVRef() = default;
 };        // end MomVRef
@@ -2045,9 +2066,11 @@ class MomVSet : public MomVal
 public:
   ~MomVSet() = default;
   inline MomVSet(void);
-  inline MomVSet(const MomSet &bs);
-  inline MomVSet(const std::set<const MomRefobj> &);
-  inline MomVSet(const std::unordered_set<const MomRefobj> &);
+  inline MomVSet(const MomSet &bs)
+    : MomVal(TagSet{},&bs) {};
+  inline MomVSet(const MomSetRefobj&setr)
+    : MomVal(TagSet{}, MomSet::make_from_set(setr)) {};
+  inline MomVSet(const MomUnorderedSetRefobj&);
   MomVSet(const std::vector<MomRefobj> &vec)
     : MomVal(TagSet{}, MomSet::make(vec)) {};
   MomVSet(const std::initializer_list<MomRefobj> &il)
@@ -2316,6 +2339,19 @@ void MomRefobj::collect_vector_sequence(std::vector<MomRefobj> &vec,
       collect_vector_refobj(vec, rob);
     }
 } // end MomRefobj::collect_vector_sequence
+
+std::size_t
+MomRefobj::longhash() const
+{
+  if (_ptrobj) return _ptrobj->longhash();
+  return 0;
+}
+
+std::size_t
+MomObject::longhash() const
+{
+  return std::hash<MomPairid>()(_serpair);
+}
 
 void MomRefobj::add_set_sequence(std::set<MomRefobj> &set,
                                  const MomSequence &seq)
