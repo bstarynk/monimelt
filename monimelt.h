@@ -2020,6 +2020,14 @@ public:
 }; // end MomVString
 
 
+class MomVRef : public MomVal
+{
+public:
+  MomVRef(const MomRefobj ro) : MomVal(TagRefobj{},ro) {};
+  ~MomVRef() = default;
+};        // end MomVRef
+
+
 
 class MomVSet : public MomVal
 {
