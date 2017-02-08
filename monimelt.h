@@ -694,6 +694,10 @@ public:
       return hash0pairid(pi);
     return h;
   };
+  std::string idstr() const
+  {
+    return id_to_string(_serpair);
+  };
   const pairid_t ident() const
   {
     return _serpair;
@@ -1750,8 +1754,11 @@ protected:
       }
   }
   MomVal(TagTuple, const MomTuple& tup) : _kind(MomVKind::TupleK), _tup(&tup) {};
+  static MomVal parse_json(const MomJson&js, MomJsonParser&jp);
 public:
-  MomVal(TagJson, const MomJson&, MomJsonParser&);
+  MomJson emit_json(MomJsonEmitter&je) const;
+  MomVal(TagJson, const MomJson&js, MomJsonParser&jp)
+    : MomVal(std::move(parse_json(js,jp))) {};
   MomVKind kind() const
   {
     return _kind;
@@ -2034,6 +2041,29 @@ public:
   };
 }; // end MomVTuple
 
+
+class MomJsonParser
+{
+protected:
+  MomJsonParser() {};
+public:
+  virtual ~MomJsonParser();
+  virtual MomRefobj idstr_to_refobj(const std::string&) =0;
+};        // end class MomJsonParser
+
+class MomJsonEmitter
+{
+protected:
+  MomJsonEmitter() {};
+public:
+  virtual ~MomJsonEmitter();
+  virtual bool emittable_refobj(MomRefobj) =0;
+};        // end class MomJsonEmitter
+
+
+
+
+////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
 /***************** INLINE FUNCTIONS ****************/
 MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)

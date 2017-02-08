@@ -146,6 +146,36 @@ MomVal::hash() const
 } // end of MomVal::hash
 
 
+MomVal
+MomVal::parse_json(const MomJson&js, MomJsonParser&jp)
+{
+#warning missing body of MomVal::parse_json
+} // end MomVal::parse_json
+
+MomJson
+MomVal::emit_json(MomJsonEmitter&jem) const
+{
+  switch (_kind)
+    {
+    case MomVKind::NoneK:
+      return nullptr;
+    case MomVKind::IntK:
+      return MomJson::Value::Int64(_int);
+    case MomVKind::StringK:
+      MOM_ASSERT(_str, "bad string to emit_json");
+      return _str->to_string();
+    case MomVKind::RefobjK:
+    {
+      MOM_ASSERT(_ref, "bad reference to emit_json");
+      if (jem.emittable_refobj(_ref))
+        return _ref->idstr();
+      else
+        return nullptr;
+    }
+#warning incomplete MomVal::emit_json
+    }
+} // end MomVal::emit_json
+
 
 std::vector<MomRefobj>
 MomSequence::vector_real_refs(const std::vector<MomRefobj>& vec)
