@@ -149,7 +149,18 @@ MomVal::hash() const
 MomVal
 MomVal::parse_json(const MomJson&js, MomJsonParser&jp)
 {
-#warning missing body of MomVal::parse_json
+  if (js.isNull()) return nullptr;
+  else if (js.isInt()) return MomVInt(js.asInt64());
+  else if (js.isString()) return MomVString(js.asString());
+  else if (js.isObject())
+    {
+      MomJson jcomp;
+      if ((jcomp= js["ref"]).isString())
+        {
+        }
+    }
+  MOM_BACKTRACELOG("parse_json bad js:" << js);
+  throw std::runtime_error("MomVal::parse_json bad js");
 } // end MomVal::parse_json
 
 MomJson
@@ -168,7 +179,11 @@ MomVal::emit_json(MomJsonEmitter&jem) const
     {
       MOM_ASSERT(_ref, "bad reference to emit_json");
       if (jem.emittable_refobj(_ref))
-        return _ref->idstr();
+        {
+          auto job = MomJson{Json::objectValue};
+          job["ref"]= _ref->idstr();
+          return job;
+        }
       else
         return nullptr;
     }

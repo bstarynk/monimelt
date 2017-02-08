@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <mutex>
 
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
@@ -656,34 +657,72 @@ struct MomLessRefobj
   inline bool operator()(MomRefobj l, MomRefobj r) const;
 };
 
-class MomObject
+
+typedef std::pair<const MomSerial63, const MomSerial63> MomPairid;
+inline bool operator ! (const MomPairid pi)
+{
+  return !pi.first && !pi.second;
+};
+
+inline std::ostream&operator << (std::ostream&, const MomPairid);
+namespace std
+{
+template<> struct hash<MomPairid>
+{
+  std::size_t operator() (const MomPairid& p) const
+  {
+    return (std::size_t)((11*p.first) ^ (p.second >> 3));
+  }
+};
+};
+////////////////
+class MomObject ///
 {
 public:
-  typedef std::pair<const MomSerial63, const MomSerial63> pairid_t;
-  static bool id_is_null(const pairid_t pi)
+  static bool id_is_null(const MomPairid pi)
   {
     return pi.first.serial() == 0 && pi.second.serial() == 0;
   };
-  static std::string id_to_string(const pairid_t);
-  static const pairid_t id_from_cstr(const char *s, const char *&end,
-                                     bool fail = false);
-  static const pairid_t id_from_cstr(const char *s, bool fail = false)
+  static std::string id_to_string(const MomPairid);
+  static const MomPairid id_from_cstr(const char *s, const char *&end,
+                                      bool fail = false);
+  static const MomPairid id_from_cstr(const char *s, bool fail = false)
   {
     const char *end = nullptr;
     return id_from_cstr(s, end, fail);
   };
-  static inline const pairid_t random_id(void);
-  static unsigned id_bucketnum(const pairid_t pi)
+  static inline const MomPairid random_id(void);
+  static unsigned id_bucketnum(const MomPairid pi)
   {
     return pi.first.bucketnum();
   };
-  static inline const pairid_t random_id_of_bucket(unsigned bun);
+  static inline const MomPairid random_id_of_bucket(unsigned bun);
 private:
-  const pairid_t _serpair;
-  static MomHash_t hash0pairid(const pairid_t pi);
-
+  const MomPairid _serpair;
+  class ObjBucket
+  {
+    mutable std::mutex _bumtx;
+    std::unordered_map<MomPairid,MomObject*> _bumap;
+  public:
+    MomObject*find_object_in_bucket(const MomPairid id) const;
+    void register_object_in_bucket(MomObject*ob);
+    void unregister_object_in_bucket(MomObject*ob);
+    ObjBucket() : _bumtx(), _bumap() {};
+    ~ObjBucket()
+    {
+      _bumap.clear();
+    };
+    ObjBucket(ObjBucket&&) = default;
+  };
+  static MomHash_t hash0pairid(const MomPairid pi);
+  static std::array<ObjBucket,MomSerial63::_maxbucket_> _buckarr_;
 public:
-  static MomHash_t hash_id(const pairid_t pi)
+  static MomObject* find_object_of_id(const MomPairid pi)
+  {
+    if (!pi) return nullptr;
+    return _buckarr_[id_bucketnum(pi)].find_object_in_bucket(pi);
+  }
+  static MomHash_t hash_id(const MomPairid pi)
   {
     if (MOM_UNLIKELY(id_is_null(pi)))
       return 0;
@@ -698,7 +737,7 @@ public:
   {
     return id_to_string(_serpair);
   };
-  const pairid_t ident() const
+  const MomPairid ident() const
   {
     return _serpair;
   };
@@ -775,12 +814,6 @@ public:
     return !less(r);
   };
 }; // end class MomObject
-
-inline std::ostream& operator << (std::ostream&out, const MomObject::pairid_t pi)
-{
-  out << MomObject::id_to_string(pi);
-  return out;
-}
 
 
 
@@ -2246,15 +2279,15 @@ bool MomRefobj::equal(const MomRefobj r) const
   return (unsafe_get_const() == r.unsafe_get_const());
 } // end MomRefobj::equal
 
-const MomObject::pairid_t MomObject::random_id(void)
+const MomPairid MomObject::random_id(void)
 {
-  return pairid_t{MomSerial63::make_random(), MomSerial63::make_random()};
+  return MomPairid{MomSerial63::make_random(), MomSerial63::make_random()};
 } // end MomObject::random_id
 
-const MomObject::pairid_t MomObject::random_id_of_bucket(unsigned bucknum)
+const MomPairid MomObject::random_id_of_bucket(unsigned bucknum)
 {
-  return pairid_t{MomSerial63::make_random_of_bucket(bucknum),
-                  MomSerial63::make_random()};
+  return MomPairid{MomSerial63::make_random_of_bucket(bucknum),
+                   MomSerial63::make_random()};
 } // end MomObject::random_id_of_bucket
 
 void MomRefobj::collect_vector_sequence(std::vector<MomRefobj> &vec,
@@ -2380,4 +2413,10 @@ MomVal::equal(const MomVal&r) const
     }
 }      // end MomVal::equal
 
+inline std::ostream&operator << (std::ostream&os, const MomPairid pi)
+{
+  if (!pi) os << "__";
+  else os << pi.first << pi.second;
+  return os;
+}
 #endif /*MONIMELT_HEADER*/
