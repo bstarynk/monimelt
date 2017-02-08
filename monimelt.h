@@ -2023,10 +2023,18 @@ public:
 class MomVRef : public MomVal
 {
 public:
-  MomVRef(const MomRefobj ro) : MomVal(TagRefobj{},ro) {};
+  MomVRef(const MomRefobj ro) : MomVal(TagRefobj{},ro) {
+  };
   ~MomVRef() = default;
 };        // end MomVRef
 
+class MomVColoRef : public MomVal
+{
+public:
+  MomVColoRef(const MomRefobj ob, const MomRefobj colorob)
+    : MomVal(TagColoRef{},ob,colorob) {};
+  ~MomVColoRef() = default;
+}; // end MomVColoRef
 
 
 class MomVSet : public MomVal

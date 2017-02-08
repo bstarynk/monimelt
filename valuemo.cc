@@ -156,10 +156,13 @@ MomVal::parse_json(const MomJson&js, MomJsonParser&jp)
   else if (js.isObject())
     {
       MomJson jcomp;
+      MomJson jcolor;
       if ((jcomp= js["ref"]).isString())
         {
           auto id = MomObject::id_from_cstr(jcomp.asCString(),true);
           auto pob = MomObject::find_object_of_id(id);
+	  if (!pob)
+	    pob = jp.idstr_to_refobj(jcomp.asCString());
           if (!pob)
             {
               MOM_BACKTRACELOG("parse_json bad id:" << id);
@@ -167,6 +170,28 @@ MomVal::parse_json(const MomJson&js, MomJsonParser&jp)
             }
           return MomVRef{pob};
         }
+      else if ((jcomp = js["cref"]).isString() && (jcolor= js["color"]).isString())
+	{
+	  auto cid = MomObject::id_from_cstr(jcomp.asCString(),true);
+          auto prob = MomObject::find_object_of_id(cid);
+	  if (!prob)
+	    prob = jp.idstr_to_refobj(jcomp.asCString());
+	  if (!prob)
+            {
+              MOM_BACKTRACELOG("parse_json bad cref:" << cid << " in:" << js);
+              throw std::runtime_error("parse_json bad cref");
+            };
+	  auto colorid = MomObject::id_from_cstr(jcolor.asCString(),true);
+          auto pobcolor = MomObject::find_object_of_id(colorid);
+	  if (!pobcolor)
+	    pobcolor = jp.idstr_to_refobj(jcolor.asCString());
+	  if (!pobcolor)
+            {
+              MOM_BACKTRACELOG("parse_json bad color:" << colorid << " in:" << js);
+              throw std::runtime_error("parse_json bad color");
+            };
+	  return MomVColoRef{prob,pobcolor};
+	}
 #warning MomVal::parse_json incomplete
     }
   MOM_BACKTRACELOG("parse_json bad js:" << js);
@@ -198,6 +223,17 @@ MomVal::emit_json(MomJsonEmitter&jem) const
       else
         return nullptr;
     }
+    case MomVKind::ColoRefK:
+      {
+	auto cref = _coloref._cobref;
+	auto colorob = _coloref._colorob;
+	if (jem.emittable_refobj(colorob) && jem.emittable_refobj(cref)) {
+	  auto job = MomJson{Json::objectValue};
+	  job["cref"] = cref->idstr();
+	  job["color"] = colorob->idstr();
+	  return job;
+	}
+      }
 #warning incomplete MomVal::emit_json
     }
 } // end MomVal::emit_json
