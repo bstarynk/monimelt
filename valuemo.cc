@@ -146,6 +146,7 @@ MomVal::hash() const
 } // end of MomVal::hash
 
 
+
 MomVal
 MomVal::parse_json(const MomJson&js, MomJsonParser&jp)
 {
@@ -157,11 +158,21 @@ MomVal::parse_json(const MomJson&js, MomJsonParser&jp)
       MomJson jcomp;
       if ((jcomp= js["ref"]).isString())
         {
+          auto id = MomObject::id_from_cstr(jcomp.asCString(),true);
+          auto pob = MomObject::find_object_of_id(id);
+          if (!pob)
+            {
+              MOM_BACKTRACELOG("parse_json bad id:" << id);
+              throw std::runtime_error("parse_json bad id");
+            }
+          return MomVRef{pob};
         }
+#warning MomVal::parse_json incomplete
     }
   MOM_BACKTRACELOG("parse_json bad js:" << js);
   throw std::runtime_error("MomVal::parse_json bad js");
 } // end MomVal::parse_json
+
 
 MomJson
 MomVal::emit_json(MomJsonEmitter&jem) const
@@ -190,6 +201,7 @@ MomVal::emit_json(MomJsonEmitter&jem) const
 #warning incomplete MomVal::emit_json
     }
 } // end MomVal::emit_json
+
 
 
 std::vector<MomRefobj>
