@@ -1656,14 +1656,15 @@ public:
   struct TagJson {};
   struct ColoRefObj
   {
-    const MomRefobj _cobref;
-    const MomRefobj _colorob;
+    MomRefobj _cobref;
+    MomRefobj _colorob;
   };
 protected:
-  const MomVKind _kind;
+  MomVKind _kind;
   union
   {
     void *_ptr;
+    void *_bothptr [2];
     intptr_t _int;
     MomRefobj _ref;
     ColoRefObj _coloref;
@@ -2081,10 +2082,108 @@ void MomVal::clear()
       *const_cast<MomRefobj*>(&_coloref._colorob) = nullptr;
       break;
     }
-  _ptr = nullptr;
+  _bothptr[0] = nullptr;
+  _bothptr[1] = nullptr;
 } // end MomVal::clear()
 
-bool MomRefobj::less(const MomRefobj r) const
+MomVal&
+MomVal::operator =(const MomVal&sv)
+{
+  auto k = sv._kind;
+  switch (k)
+    {
+    case MomVKind::NoneK:
+      _ptr = nullptr;
+      break;
+    case MomVKind::IntK:
+      _int = sv._int;
+      break;
+    case MomVKind::StringK:
+      _str = (sv._str);
+      break;
+    case MomVKind::RefobjK:
+      _ref = (sv._ref);
+      break;
+    case MomVKind::ColoRefK:
+      _coloref = (sv._coloref);
+      break;
+    case MomVKind::SetK:
+      _set = (sv._set);
+      break;
+    case MomVKind::TupleK:
+      _tup = (sv._tup);
+      break;
+    }
+  return *this;
+} // end MomVal::operator =(const MomVal&sv)
+
+MomVal::MomVal(MomVal&&sv) : _kind(sv._kind)
+{
+  switch (_kind)
+    {
+    case MomVKind::NoneK:
+      _ptr = nullptr;
+      break;
+    case MomVKind::IntK:
+      _int = sv._int;
+      break;
+    case MomVKind::StringK:
+      _str = std::move(sv._str);
+      break;
+    case MomVKind::RefobjK:
+      _ref = std::move(sv._ref);
+      break;
+    case MomVKind::ColoRefK:
+      _coloref = std::move(sv._coloref);
+      break;
+    case MomVKind::SetK:
+      _set = std::move(sv._set);
+      break;
+    case MomVKind::TupleK:
+      _tup = std::move(sv._tup);
+      break;
+    }
+  sv._bothptr[0] = nullptr;
+  sv._bothptr[1] = nullptr;
+  *const_cast<MomVKind *>(&sv._kind) =MomVKind::NoneK;
+} // end MomVal::Momval(MomVal&&sv)
+
+MomVal&
+MomVal::operator=(MomVal&&sv)
+{
+  switch (_kind)
+    {
+    case MomVKind::NoneK:
+      _ptr = nullptr;
+      break;
+    case MomVKind::IntK:
+      _int = sv._int;
+      break;
+    case MomVKind::StringK:
+      _str = std::move(sv._str);
+      break;
+    case MomVKind::RefobjK:
+      _ref = std::move(sv._ref);
+      break;
+    case MomVKind::ColoRefK:
+      _coloref = std::move(sv._coloref);
+      break;
+    case MomVKind::SetK:
+      _set = std::move(sv._set);
+      break;
+    case MomVKind::TupleK:
+      _tup = std::move(sv._tup);
+      break;
+    }
+  sv._bothptr[0] = nullptr;
+  sv._bothptr[1] = nullptr;
+  *const_cast<MomVKind *>(&sv._kind) =MomVKind::NoneK;
+  return *this;
+}// end MomVal::operator=(MomVal&&sv)
+
+
+bool
+MomRefobj::less(const MomRefobj r) const
 {
   if (!r)
     return false;
