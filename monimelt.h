@@ -2,13 +2,13 @@
 #ifndef MOMIMELT_HEADER
 #define MONIMELT_HEADER "monimelt.h"
 
+#include <features.h> // GNU things
 #include <algorithm>
 #include <climits>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <deque>
-#include <features.h> // GNU things
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
@@ -23,6 +23,7 @@
 #include <unordered_set>
 #include <vector>
 #include <mutex>
+#include <shared_mutex>
 
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
@@ -659,7 +660,7 @@ typedef std::unordered_set<MomRefobj, MomHashRefobj> MomUnorderedSetRefobj;
 
 struct MomLessRefobj
 {
-  bool operator()(MomRefobj l, MomRefobj r) const
+  bool operator() (MomRefobj l, MomRefobj r) const
   {
     return l<r;
   };
@@ -683,9 +684,318 @@ template<> struct hash<MomPairid>
   }
 };
 };
+
+
 ////////////////
+
+class MomVal
+{
+  /// these classes are subclasses of MomVal
+  friend class MomVNone;
+  friend class MomVInt;
+  friend class MomVString;
+  friend class MomVRef;
+  friend class MomVSet;
+  friend class MomVTuple;
+  friend class MomVColoRef;
+  friend class MomRefobj;
+  friend class MomSet;
+  friend class MomTuple;
+
+public:
+  struct TagNone {};
+  struct TagInt {};
+  struct TagString {};
+  struct TagRefobj {};
+  struct TagColoRef {};
+  struct TagSet {};
+  struct TagTuple {};
+  struct TagCheck {};
+  struct TagRaw {};
+  struct TagJson {};
+  struct ColoRefObj
+  {
+    MomRefobj _cobref;
+    MomRefobj _colorob;
+  };
+protected:
+  MomVKind _kind;
+  union
+  {
+    void *_ptr;
+    void *_bothptr [2];
+    intptr_t _int;
+    MomRefobj _ref;
+    ColoRefObj _coloref;
+    std::shared_ptr<const MomString> _str;
+    std::shared_ptr<const MomSet> _set;
+    std::shared_ptr<const MomTuple> _tup;
+    std::shared_ptr<const MomSequence> _seq;
+  };
+  MomVal(TagNone, std::nullptr_t) : _kind(MomVKind::NoneK), _ptr(nullptr) {};
+  MomVal(TagInt, intptr_t i) : _kind(MomVKind::IntK), _int(i) {};
+  MomVal(TagString, const MomString *s) : _kind(s?MomVKind::StringK:MomVKind::NoneK), _str(s)
+  {
+  };
+  MomVal(TagString, const MomString *s, TagCheck) : _kind(MomVKind::StringK), _str(s)
+  {
+    if (!s)
+      {
+        MOM_BACKTRACELOG("MomVal no MomString");
+        throw std::runtime_error("MomVal no MomString");
+      }
+  };
+  MomVal(TagString, const MomString&s): _kind(MomVKind::StringK), _str(&s) {};
+  inline MomVal(TagString, const std::string &s);
+  MomVal(TagRefobj, const MomRefobj ro) : _kind(ro?MomVKind::RefobjK:MomVKind::NoneK), _ref(ro)
+  {
+  };
+  MomVal(TagRefobj, const MomRefobj ro, TagCheck) : _kind(MomVKind::RefobjK), _ref(ro)
+  {
+    if (!ro)
+      {
+        MOM_BACKTRACELOG("MomVal no MomRefobj");
+        throw std::runtime_error("MomVal no MomRefobj");
+      }
+  };
+  MomVal(TagColoRef,  MomObject& ob, MomObject& colorob) :
+    _kind(MomVKind::ColoRefK), _coloref{&ob,&colorob} {};
+  MomVal(TagColoRef, const ColoRefObj& col) :
+    _kind(MomVKind::ColoRefK), _coloref{col} {};
+  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob):
+    _kind(ob?(colorob?MomVKind::ColoRefK:MomVKind::RefobjK):MomVKind::NoneK),
+    _coloref{ob,colorob} {};
+  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob, TagRaw)
+    : _kind(MomVKind::ColoRefK), _coloref{ob,colorob}
+  {
+    MOM_ASSERT(ob, "MomVal missing ob for TagColoRef");
+    MOM_ASSERT(colorob, "MomVal missing colorob for TagColoRef");
+  };
+  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob, TagCheck)
+    : _kind(MomVKind::ColoRefK), _coloref{ob,colorob}
+  {
+    if (!ob)
+      {
+        MOM_BACKTRACELOG("MomVal without ob for TagColoRef");
+        throw std::runtime_error("MomVal without ob for TagColoRef");
+      }
+    if (!colorob)
+      {
+        MOM_BACKTRACELOG("MomVal without colorob for TagColoRef");
+        throw std::runtime_error("MomVal without colorob for TagColoRef");
+      }
+  };
+  MomVal(TagSet, const MomSet *pset)  : _kind(pset?MomVKind::SetK:MomVKind::NoneK), _set(pset)
+  {
+  }
+  MomVal(TagSet, const MomSet *pset, TagCheck) : _kind(MomVKind::SetK), _set(pset)
+  {
+    if (!pset)
+      {
+        MOM_BACKTRACELOG("MomVal no MomSet");
+        throw std::runtime_error("MomVal no MomSet");
+      }
+  }
+  MomVal(TagSet, const MomSet& set) : _kind(MomVKind::SetK), _set(&set) {};
+  MomVal(TagTuple, const MomTuple *ptup) : _kind(ptup?MomVKind::TupleK:MomVKind::NoneK), _tup(ptup)
+  {
+  }
+  MomVal(TagTuple, const MomTuple *ptup, TagCheck) : _kind(MomVKind::TupleK), _tup(ptup)
+  {
+    if (!ptup)
+      {
+        MOM_BACKTRACELOG("MomVal no MomTuple");
+        throw std::runtime_error("MomVal no MomTuple");
+      }
+  }
+  MomVal(TagTuple, const MomTuple& tup) : _kind(MomVKind::TupleK), _tup(&tup) {};
+  static MomVal parse_json(const MomJson&js, MomJsonParser&jp);
+public:
+  MomJson emit_json(MomJsonEmitter&je) const;
+  MomVal(TagJson, const MomJson&js, MomJsonParser&jp)
+    : MomVal(std::move(parse_json(js,jp))) {};
+  MomVKind kind() const
+  {
+    return _kind;
+  };
+  MomVal() : MomVal(TagNone{}, nullptr) {};
+  MomVal(std::nullptr_t) : MomVal(TagNone{}, nullptr) {};
+  inline MomVal(const MomVal &v);
+  inline MomVal(MomVal &&v);
+  inline MomVal &operator=(const MomVal &);
+  inline MomVal &operator=(MomVal &&);
+  inline void clear();
+  void reset(void)
+  {
+    clear();
+  };
+  ~MomVal()
+  {
+    reset();
+  };
+  inline bool equal(const MomVal &) const;
+  bool operator==(const MomVal &r) const
+  {
+    return equal(r);
+  };
+  bool less(const MomVal &) const;
+  bool less_equal(const MomVal &) const;
+  bool operator<(const MomVal &v) const
+  {
+    return less(v);
+  };
+  bool operator<=(const MomVal &v) const
+  {
+    return less_equal(v);
+  };
+  inline MomHash_t hash() const;
+  void out(std::ostream &os) const;
+  /// the is_XXX methods are testing the kind
+  /// the as_XXX methods may throw an exception
+  /// the get_XXX methods may throw an exception or gives a raw non-null ptr
+  /// the to_XXX methods make return a default
+  bool is_null(void) const
+  {
+    return _kind == MomVKind::NoneK;
+  };
+  bool operator!(void)const
+  {
+    return is_null();
+  };
+  operator bool(void) const
+  {
+    return !is_null();
+  };
+  inline std::nullptr_t as_null(void) const;
+  //
+  bool is_int(void) const
+  {
+    return _kind == MomVKind::IntK;
+  };
+  inline intptr_t as_int(void) const;
+  inline intptr_t to_int(intptr_t def = 0) const
+  {
+    if (_kind != MomVKind::IntK)
+      return def;
+    return _int;
+  };
+  inline intptr_t unsafe_int() const
+  {
+    return _int;
+  };
+  //
+  bool is_string(void) const
+  {
+    return _kind == MomVKind::StringK;
+  };
+  inline std::shared_ptr<const MomString> as_bstring(void) const;
+  inline std::shared_ptr<const MomString>
+  to_bstring(const std::shared_ptr<const MomString> &def = nullptr) const;
+  inline const MomString *get_bstring(void) const;
+  inline const std::string as_string(void) const;
+  inline const std::string to_string(const std::string &str = "") const;
+  inline const char* to_cstr(const char*defcstr = nullptr) const;
+  inline const MomString* unsafe_bstring(void) const;
+  //
+  bool is_set(void) const
+  {
+    return _kind == MomVKind::SetK;
+  };
+  inline std::shared_ptr<const MomSet> as_set(void) const;
+  inline std::shared_ptr<const MomSet>
+  to_set(const std::shared_ptr<const MomSet> def = nullptr) const;
+  inline const MomSet *get_set(void) const
+  {
+    if (is_set()) return _set.get();
+    return nullptr;
+  };
+  inline const MomSet *unsafe_set(void) const
+  {
+    return _set.get();
+  };
+  //
+  bool is_tuple(void) const
+  {
+    return _kind == MomVKind::TupleK;
+  };
+  inline std::shared_ptr<const MomTuple> as_tuple(void) const;
+  inline std::shared_ptr<const MomTuple>
+  to_tuple(const std::shared_ptr<const MomTuple> def = nullptr) const;
+  inline const MomTuple *get_tuple(void) const
+  {
+    if (is_tuple()) return _tup.get();
+    return nullptr;
+  }
+  inline const MomTuple *unsafe_tuple(void) const
+  {
+    return _tup.get();
+  };
+  //
+  bool is_sequence(void) const
+  {
+    return _kind == MomVKind::SetK || _kind == MomVKind::TupleK;
+  };
+  inline std::shared_ptr<const MomSequence> as_sequence(void) const;
+  inline std::shared_ptr<const MomSequence>
+  to_sequence(const std::shared_ptr<const MomSequence> def = nullptr) const;
+  inline const MomSequence *get_sequence(void) const
+  {
+    if (_kind==MomVKind::TupleK||_kind==MomVKind::SetK) return _seq.get();
+    return nullptr;
+  }
+  inline const MomSequence *unsafe_sequence(void) const
+  {
+    return _seq.get();
+  };
+  //
+  bool is_refobj(void) const
+  {
+    return _kind == MomVKind::RefobjK;
+  };
+  inline MomRefobj as_refobj(void) const;
+  inline MomRefobj to_refobj(const MomRefobj def = nullptr) const;
+  inline const MomRefobj get_refobj(void) const
+  {
+    return _kind==MomVKind::RefobjK?_ref:nullptr;
+  }
+  inline const MomRefobj unsafe_refobj(void) const
+  {
+    return _ref;
+  };
+  //
+  bool is_coloref(void) const
+  {
+    return _kind == MomVKind::ColoRefK;
+  }
+  inline const MomRefobj get_colorefobj(void) const
+  {
+    return _kind == MomVKind::ColoRefK?_coloref._cobref:nullptr;
+  }
+  inline const MomRefobj get_colorob(void) const
+  {
+    return _kind == MomVKind::ColoRefK?_coloref._colorob:nullptr;
+  };
+  inline const MomRefobj unsafe_colorefobj(void) const
+  {
+    return _coloref._cobref;
+  };
+  inline const MomRefobj unsafe_colorob(void) const
+  {
+    return _coloref._colorob;
+  };
+}; // end class MomVal
+
+
+////////////////
+class MomPayload;
 class MomObject ///
 {
+private:
+  const MomPairid _obserpair;
+  std::shared_timed_mutex _obmtx;
+  std::unordered_map<MomRefobj,MomVal,MomHashRefobj> _obattrmap;
+  std::vector<MomVal> _obcompvec;
+  std::unique_ptr<MomPayload> _obpayload;
 public:
   static bool id_is_null(const MomPairid pi)
   {
@@ -706,7 +1016,6 @@ public:
   };
   static inline const MomPairid random_id_of_bucket(unsigned bun);
 private:
-  const MomPairid _serpair;
   class ObjBucket
   {
     mutable std::mutex _bumtx;
@@ -743,31 +1052,31 @@ public:
   };
   std::string idstr() const
   {
-    return id_to_string(_serpair);
+    return id_to_string(_obserpair);
   };
   const MomPairid ident() const
   {
-    return _serpair;
+    return _obserpair;
   };
   const MomSerial63 hi_ident() const
   {
-    return _serpair.first;
+    return _obserpair.first;
   };
   const MomSerial63 lo_ident() const
   {
-    return _serpair.second;
+    return _obserpair.second;
   };
   uint64_t hi_serial() const
   {
-    return _serpair.first.serial();
+    return _obserpair.first.serial();
   };
   uint64_t lo_serial() const
   {
-    return _serpair.second.serial();
+    return _obserpair.second.serial();
   };
   MomHash_t hash() const
   {
-    return hash_id(_serpair);
+    return hash_id(_obserpair);
   };
   bool equal(const MomObject *r) const
   {
@@ -783,7 +1092,7 @@ public:
       return false;
     if (this == r)
       return false;
-    return _serpair < r->_serpair;
+    return _obserpair < r->_obserpair;
   };
   bool less_equal(const MomObject *r) const
   {
@@ -791,7 +1100,7 @@ public:
       return false;
     if (r == this)
       return true;
-    return _serpair <= r->_serpair;
+    return _obserpair <= r->_obserpair;
   };
   bool less_equal(const MomRefobj rf) const
   {
@@ -1686,304 +1995,6 @@ public:
 };        // end class MomString
 
 
-class MomVal
-{
-  /// these classes are subclasses of MomVal
-  friend class MomVNone;
-  friend class MomVInt;
-  friend class MomVString;
-  friend class MomVRef;
-  friend class MomVSet;
-  friend class MomVTuple;
-  friend class MomVColoRef;
-  friend class MomRefobj;
-  friend class MomSet;
-  friend class MomTuple;
-
-public:
-  struct TagNone {};
-  struct TagInt {};
-  struct TagString {};
-  struct TagRefobj {};
-  struct TagColoRef {};
-  struct TagSet {};
-  struct TagTuple {};
-  struct TagCheck {};
-  struct TagRaw {};
-  struct TagJson {};
-  struct ColoRefObj
-  {
-    MomRefobj _cobref;
-    MomRefobj _colorob;
-  };
-protected:
-  MomVKind _kind;
-  union
-  {
-    void *_ptr;
-    void *_bothptr [2];
-    intptr_t _int;
-    MomRefobj _ref;
-    ColoRefObj _coloref;
-    std::shared_ptr<const MomString> _str;
-    std::shared_ptr<const MomSet> _set;
-    std::shared_ptr<const MomTuple> _tup;
-    std::shared_ptr<const MomSequence> _seq;
-  };
-  MomVal(TagNone, std::nullptr_t) : _kind(MomVKind::NoneK), _ptr(nullptr) {};
-  MomVal(TagInt, intptr_t i) : _kind(MomVKind::IntK), _int(i) {};
-  MomVal(TagString, const MomString *s) : _kind(s?MomVKind::StringK:MomVKind::NoneK), _str(s)
-  {
-  };
-  MomVal(TagString, const MomString *s, TagCheck) : _kind(MomVKind::StringK), _str(s)
-  {
-    if (!s)
-      {
-        MOM_BACKTRACELOG("MomVal no MomString");
-        throw std::runtime_error("MomVal no MomString");
-      }
-  };
-  MomVal(TagString, const MomString&s): _kind(MomVKind::StringK), _str(&s) {};
-  inline MomVal(TagString, const std::string &s);
-  MomVal(TagRefobj, const MomRefobj ro) : _kind(ro?MomVKind::RefobjK:MomVKind::NoneK), _ref(ro)
-  {
-  };
-  MomVal(TagRefobj, const MomRefobj ro, TagCheck) : _kind(MomVKind::RefobjK), _ref(ro)
-  {
-    if (!ro)
-      {
-        MOM_BACKTRACELOG("MomVal no MomRefobj");
-        throw std::runtime_error("MomVal no MomRefobj");
-      }
-  };
-  MomVal(TagColoRef,  MomObject& ob, MomObject& colorob) :
-    _kind(MomVKind::ColoRefK), _coloref{&ob,&colorob} {};
-  MomVal(TagColoRef, const ColoRefObj& col) :
-    _kind(MomVKind::ColoRefK), _coloref{col} {};
-  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob):
-    _kind(ob?(colorob?MomVKind::ColoRefK:MomVKind::RefobjK):MomVKind::NoneK),
-    _coloref{ob,colorob} {};
-  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob, TagRaw)
-    : _kind(MomVKind::ColoRefK), _coloref{ob,colorob}
-  {
-    MOM_ASSERT(ob, "MomVal missing ob for TagColoRef");
-    MOM_ASSERT(colorob, "MomVal missing colorob for TagColoRef");
-  };
-  MomVal(TagColoRef, const MomRefobj ob, const MomRefobj colorob, TagCheck)
-    : _kind(MomVKind::ColoRefK), _coloref{ob,colorob}
-  {
-    if (!ob)
-      {
-        MOM_BACKTRACELOG("MomVal without ob for TagColoRef");
-        throw std::runtime_error("MomVal without ob for TagColoRef");
-      }
-    if (!colorob)
-      {
-        MOM_BACKTRACELOG("MomVal without colorob for TagColoRef");
-        throw std::runtime_error("MomVal without colorob for TagColoRef");
-      }
-  };
-  MomVal(TagSet, const MomSet *pset)  : _kind(pset?MomVKind::SetK:MomVKind::NoneK), _set(pset)
-  {
-  }
-  MomVal(TagSet, const MomSet *pset, TagCheck) : _kind(MomVKind::SetK), _set(pset)
-  {
-    if (!pset)
-      {
-        MOM_BACKTRACELOG("MomVal no MomSet");
-        throw std::runtime_error("MomVal no MomSet");
-      }
-  }
-  MomVal(TagSet, const MomSet& set) : _kind(MomVKind::SetK), _set(&set) {};
-  MomVal(TagTuple, const MomTuple *ptup) : _kind(ptup?MomVKind::TupleK:MomVKind::NoneK), _tup(ptup)
-  {
-  }
-  MomVal(TagTuple, const MomTuple *ptup, TagCheck) : _kind(MomVKind::TupleK), _tup(ptup)
-  {
-    if (!ptup)
-      {
-        MOM_BACKTRACELOG("MomVal no MomTuple");
-        throw std::runtime_error("MomVal no MomTuple");
-      }
-  }
-  MomVal(TagTuple, const MomTuple& tup) : _kind(MomVKind::TupleK), _tup(&tup) {};
-  static MomVal parse_json(const MomJson&js, MomJsonParser&jp);
-public:
-  MomJson emit_json(MomJsonEmitter&je) const;
-  MomVal(TagJson, const MomJson&js, MomJsonParser&jp)
-    : MomVal(std::move(parse_json(js,jp))) {};
-  MomVKind kind() const
-  {
-    return _kind;
-  };
-  MomVal() : MomVal(TagNone{}, nullptr) {};
-  MomVal(std::nullptr_t) : MomVal(TagNone{}, nullptr) {};
-  inline MomVal(const MomVal &v);
-  inline MomVal(MomVal &&v);
-  inline MomVal &operator=(const MomVal &);
-  inline MomVal &operator=(MomVal &&);
-  inline void clear();
-  void reset(void)
-  {
-    clear();
-  };
-  ~MomVal()
-  {
-    reset();
-  };
-  inline bool equal(const MomVal &) const;
-  bool operator==(const MomVal &r) const
-  {
-    return equal(r);
-  };
-  bool less(const MomVal &) const;
-  bool less_equal(const MomVal &) const;
-  bool operator<(const MomVal &v) const
-  {
-    return less(v);
-  };
-  bool operator<=(const MomVal &v) const
-  {
-    return less_equal(v);
-  };
-  inline MomHash_t hash() const;
-  void out(std::ostream &os) const;
-  /// the is_XXX methods are testing the kind
-  /// the as_XXX methods may throw an exception
-  /// the get_XXX methods may throw an exception or gives a raw non-null ptr
-  /// the to_XXX methods make return a default
-  bool is_null(void) const
-  {
-    return _kind == MomVKind::NoneK;
-  };
-  bool operator!(void)const
-  {
-    return is_null();
-  };
-  operator bool(void) const
-  {
-    return !is_null();
-  };
-  inline std::nullptr_t as_null(void) const;
-  //
-  bool is_int(void) const
-  {
-    return _kind == MomVKind::IntK;
-  };
-  inline intptr_t as_int(void) const;
-  inline intptr_t to_int(intptr_t def = 0) const
-  {
-    if (_kind != MomVKind::IntK)
-      return def;
-    return _int;
-  };
-  inline intptr_t unsafe_int() const
-  {
-    return _int;
-  };
-  //
-  bool is_string(void) const
-  {
-    return _kind == MomVKind::StringK;
-  };
-  inline std::shared_ptr<const MomString> as_bstring(void) const;
-  inline std::shared_ptr<const MomString>
-  to_bstring(const std::shared_ptr<const MomString> &def = nullptr) const;
-  inline const MomString *get_bstring(void) const;
-  inline const std::string as_string(void) const;
-  inline const std::string to_string(const std::string &str = "") const;
-  inline const char* to_cstr(const char*defcstr = nullptr) const;
-  inline const MomString* unsafe_bstring(void) const;
-  //
-  bool is_set(void) const
-  {
-    return _kind == MomVKind::SetK;
-  };
-  inline std::shared_ptr<const MomSet> as_set(void) const;
-  inline std::shared_ptr<const MomSet>
-  to_set(const std::shared_ptr<const MomSet> def = nullptr) const;
-  inline const MomSet *get_set(void) const
-  {
-    if (is_set()) return _set.get();
-    return nullptr;
-  };
-  inline const MomSet *unsafe_set(void) const
-  {
-    return _set.get();
-  };
-  //
-  bool is_tuple(void) const
-  {
-    return _kind == MomVKind::TupleK;
-  };
-  inline std::shared_ptr<const MomTuple> as_tuple(void) const;
-  inline std::shared_ptr<const MomTuple>
-  to_tuple(const std::shared_ptr<const MomTuple> def = nullptr) const;
-  inline const MomTuple *get_tuple(void) const
-  {
-    if (is_tuple()) return _tup.get();
-    return nullptr;
-  }
-  inline const MomTuple *unsafe_tuple(void) const
-  {
-    return _tup.get();
-  };
-  //
-  bool is_sequence(void) const
-  {
-    return _kind == MomVKind::SetK || _kind == MomVKind::TupleK;
-  };
-  inline std::shared_ptr<const MomSequence> as_sequence(void) const;
-  inline std::shared_ptr<const MomSequence>
-  to_sequence(const std::shared_ptr<const MomSequence> def = nullptr) const;
-  inline const MomSequence *get_sequence(void) const
-  {
-    if (_kind==MomVKind::TupleK||_kind==MomVKind::SetK) return _set.get();
-    return nullptr;
-  }
-  inline const MomSequence *unsafe_sequence(void) const
-  {
-    return _seq.get();
-  };
-  //
-  bool is_refobj(void) const
-  {
-    return _kind == MomVKind::RefobjK;
-  };
-  inline MomRefobj as_refobj(void) const;
-  inline MomRefobj to_refobj(const MomRefobj def = nullptr) const;
-  inline const MomRefobj get_refobj(void) const
-  {
-    return _kind==MomVKind::RefobjK?_ref:nullptr;
-  }
-  inline const MomRefobj unsafe_refobj(void) const
-  {
-    return _ref;
-  };
-  //
-  bool is_coloref(void) const
-  {
-    return _kind == MomVKind::ColoRefK;
-  }
-  inline const MomRefobj get_colorefobj(void) const
-  {
-    return _kind == MomVKind::ColoRefK?_coloref._cobref:nullptr;
-  }
-  inline const MomRefobj get_colorob(void) const
-  {
-    return _kind == MomVKind::ColoRefK?_coloref._colorob:nullptr;
-  };
-  inline const MomRefobj unsafe_colorefobj(void) const
-  {
-    return _coloref._cobref;
-  };
-  inline const MomRefobj unsafe_colorob(void) const
-  {
-    return _coloref._colorob;
-  };
-}; // end class MomVal
-
-
 
 class MomVNone : public MomVal
 {
@@ -2350,7 +2361,7 @@ MomRefobj::longhash() const
 std::size_t
 MomObject::longhash() const
 {
-  return std::hash<MomPairid>()(_serpair);
+  return std::hash<MomPairid>()(_obserpair);
 }
 
 void MomRefobj::add_set_sequence(std::set<MomRefobj> &set,
