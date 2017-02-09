@@ -3,7 +3,7 @@
 
 std::array<MomObject::ObjBucket,MomSerial63::_maxbucket_> MomObject::_buckarr_;
 
-std::set<MomRefobj> MomObject::_predefined_set_;
+MomSetRefobj MomObject::_predefined_set_;
 std::mutex MomObject::_predefined_mtx_;
 
 MomObject*
@@ -92,6 +92,7 @@ MomObject::hash0pairid(const MomPairid pi)
   return h;
 } // end MomObject::hash0pairid
 
+
 bool
 MomObject::scan_inside_objects(const std::function<bool(MomRefobj)>&f) const
 {
@@ -125,6 +126,14 @@ MomObject::remove_predefined(MomRefobj ob)
   std::lock_guard<std::mutex> _gu(_predefined_mtx_);
   _predefined_set_.erase(ob);
 } // end of MomObject::remove_predefined
+
+
+MomVal
+MomObject::set_of_predefined(void)
+{
+  std::lock_guard<std::mutex> _gu(_predefined_mtx_);
+  return MomVSet( _predefined_set_);
+} // end  MomObject::set_of_predefined
 
 void
 MomObject::set_space(MomSpace sp)

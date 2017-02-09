@@ -1050,12 +1050,13 @@ private:
   };
   static MomHash_t hash0pairid(const MomPairid pi);
   static std::array<ObjBucket,MomSerial63::_maxbucket_> _buckarr_;
-  static std::set<MomRefobj> _predefined_set_;
+  static MomSetRefobj _predefined_set_;
   static std::mutex _predefined_mtx_;
   static void add_predefined(MomRefobj);
   static void remove_predefined(MomRefobj);
 public:
   bool scan_inside_objects(const std::function<bool(MomRefobj)>&f) const;
+  static MomVal set_of_predefined(void);
   void set_space(MomSpace);
   MomObject& put_space(MomSpace sp)
   {
