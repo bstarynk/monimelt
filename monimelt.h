@@ -1050,8 +1050,22 @@ private:
   };
   static MomHash_t hash0pairid(const MomPairid pi);
   static std::array<ObjBucket,MomSerial63::_maxbucket_> _buckarr_;
+  static std::set<MomRefobj> _predefined_set_;
+  static std::mutex _predefined_mtx_;
+  static void add_predefined(MomRefobj);
+  static void remove_predefined(MomRefobj);
 public:
-  bool unsync_scan_inside_objects(const std::function<bool(MomRefobj)>&f) const;
+  bool scan_inside_objects(const std::function<bool(MomRefobj)>&f) const;
+  void set_space(MomSpace);
+  MomObject& put_space(MomSpace sp)
+  {
+    set_space(sp);
+    return *this;
+  };
+  MomSpace space(void) const
+  {
+    return _obspace;
+  };
   MomPayload*get_payload_ptr(void) const
   {
     return _obpayload.get();

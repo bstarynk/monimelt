@@ -3,6 +3,9 @@
 
 std::array<MomObject::ObjBucket,MomSerial63::_maxbucket_> MomObject::_buckarr_;
 
+std::set<MomRefobj> MomObject::_predefined_set_;
+std::mutex MomObject::_predefined_mtx_;
+
 MomObject*
 MomObject::ObjBucket::find_object_in_bucket(const MomPairid id) const
 {
@@ -90,7 +93,7 @@ MomObject::hash0pairid(const MomPairid pi)
 } // end MomObject::hash0pairid
 
 bool
-MomObject::unsync_scan_inside_objects(const std::function<bool(MomRefobj)>&f) const
+MomObject::scan_inside_objects(const std::function<bool(MomRefobj)>&f) const
 {
   for (auto p : _obattrmap)
     {
@@ -107,4 +110,27 @@ MomObject::unsync_scan_inside_objects(const std::function<bool(MomRefobj)>&f) co
   if (py && !py->scan_objects(f))
     return false;
   return true;
-} // end MomObject::unsync_scan_inside_objects
+} // end MomObject::scan_inside_objects
+
+void
+MomObject::add_predefined(MomRefobj ob)
+{
+  std::lock_guard<std::mutex> _gu(_predefined_mtx_);
+  _predefined_set_.insert(ob);
+} // end of MomObject::add_predefined
+
+void
+MomObject::remove_predefined(MomRefobj ob)
+{
+  std::lock_guard<std::mutex> _gu(_predefined_mtx_);
+  _predefined_set_.erase(ob);
+} // end of MomObject::remove_predefined
+
+void
+MomObject::set_space(MomSpace sp)
+{
+  if (sp == _obspace) return;
+  if (_obspace == MomSpace::PredefinedSp) remove_predefined(this);
+  if (sp == MomSpace::PredefinedSp) add_predefined(this);
+  _obspace = sp;
+} // end of MomObject::set_space
