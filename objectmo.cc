@@ -37,6 +37,29 @@ MomObject::ObjBucket::unregister_object_in_bucket(MomObject*ob)
   _bumap.erase(it);
 }
 
+MomObject::MomObject(TagNewObject, MomPairid id, MomSpace sp)
+  : _obserpair(id), _obmtx{}, _obspace(sp), _obattrmap{}, _obcompvec{}, _obpayload(nullptr)
+{
+  _buckarr_[id_bucketnum(id)].register_object_in_bucket(this);
+};
+
+void
+MomObject::initialize_predefined(void)
+{
+  static bool inited;
+  MOM_ASSERT(inited==false, "already inited");
+  inited=true;
+#define MOM_HAS_PREDEF(Id,S1,S2,H) do {       \
+  mompredef##Id =           \
+    new MomObject(TagNewObject{},       \
+      MomPairid{S1,S2},       \
+      MomSpace::PredefinedSp);      \
+  MOM_ASSERT(mompredef##Id->hash() == (H),      \
+       "corrupted hash for predefined");      \
+  } while(0);
+#include "_mompredef.h"
+} // end MomObject::initialize_predefined
+
 std::string
 MomObject::id_to_string(const MomPairid pi)
 {
@@ -143,3 +166,6 @@ MomObject::set_space(MomSpace sp)
   if (sp == MomSpace::PredefinedSp) add_predefined(this);
   _obspace = sp;
 } // end of MomObject::set_space
+
+#define MOM_HAS_PREDEF(Id,S1,S2,H) MomRefobj mompredef##Id;
+#include "_mompredef.h"

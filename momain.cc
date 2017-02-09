@@ -199,7 +199,9 @@ static void show_size_mom(void)
     MOM_VERBOSELOG("id1=" << id1 << ";h=" << MomObject::hash_id(id1)
                    << " id2=" << id2 << " id3=" << id3);
     MOM_VERBOSELOG("id1==" << MomObject::id_from_cstr(MomObject::id_to_string(id1).c_str()));
-    MOM_VERBOSELOG("id2==" << MomObject::id_from_cstr(MomObject::id_to_string(id2).c_str()) << ";h=" << MomObject::hash_id(id2));
+    MOM_VERBOSELOG("id2==" << MomObject::id_from_cstr(MomObject::id_to_string(id2).c_str())
+                   << "(" << id2.first.serial() << "," << id2.second.serial() << ") "
+                   << ";h=" << MomObject::hash_id(id2));
   }
 } // end show_size_mom
 
@@ -242,6 +244,7 @@ main (int argc_main, char **argv_main)
   sqlite3_config (SQLITE_CONFIG_LOG, mom_sqlite_errorlog, NULL);
   if (showsize)
     show_size_mom();
+  MomObject::initialize_predefined();
 } // end main
 
 

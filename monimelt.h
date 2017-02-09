@@ -494,6 +494,7 @@ public:
                          << (void *)this);
         throw std::runtime_error("MomRefobj::put_non_nil with nil pointer");
       }
+    _ptrobj = pob;
     return *this;
   }
   MomRefobj &operator=(MomObject *pob)
@@ -1007,13 +1008,16 @@ class MomObject ///
 {
   friend class MomPayload;
 private:
+  struct TagNewObject {};
   const MomPairid _obserpair;
   std::shared_timed_mutex _obmtx;
   MomSpace _obspace;
   std::unordered_map<MomRefobj,MomVal,MomHashRefobj> _obattrmap;
   std::vector<MomVal> _obcompvec;
   std::unique_ptr<MomPayload> _obpayload;
+  MomObject(TagNewObject, MomPairid id, MomSpace sp);
 public:
+  static void initialize_predefined(void);
   static bool id_is_null(const MomPairid pi)
   {
     return pi.first.serial() == 0 && pi.second.serial() == 0;
@@ -2613,4 +2617,8 @@ std::ostream&operator << (std::ostream&os, const MomPairid pi)
     os << pi.first << pi.second;
   return os;
 }
+
+#define MOM_HAS_PREDEF(Id,S1,S2,H) extern "C" MomRefobj mompredef##Id;
+#include "_mompredef.h"
+
 #endif /*MONIMELT_HEADER*/
