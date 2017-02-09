@@ -162,46 +162,23 @@ check_updated_binary_mom(void)
     }
 } // end check_updated_binary_mom
 
+
 static void show_size_mom(void)
 {
-  printf("sizeof intptr_t : %zd (align %zd)\n",
-         sizeof(intptr_t), alignof(intptr_t));
-} // end show_size_mom
-
-
-
-
-
-// for SQLITE_CONFIG_LOG
-static void
-mom_sqlite_errorlog (void *pdata MOM_UNUSED, int errcode, const char *msg)
-{
-  MOM_BACKTRACELOG("Sqlite Error errcode="<< errcode << " msg=" << msg);
-} // end mom_sqlite_errorlog
-
-
-
-int
-main (int argc_main, char **argv_main)
-{
-  clock_gettime (CLOCK_REALTIME, &start_realtime_ts_mom);
-  check_updated_binary_mom();
-  mom_dlh = dlopen(nullptr, RTLD_NOW|RTLD_GLOBAL);
-  if (!mom_dlh)
-    {
-      fprintf(stderr, "%s failed to dlopen main program (%s)\n",
-              argv_main[0], dlerror());
-      exit(EXIT_FAILURE);
-    }
-  bool nogui = false;
-  for (int ix=1; ix<argc_main; ix++)
-    {
-      if (!strcmp("--no-gui", argv_main[ix]) || !strcmp("-N", argv_main[ix]) || !strcmp("--batch", argv_main[ix]))
-        nogui = true;
-      if (!strcmp("-V", argv_main[ix]) || !strcmp("--verbose",argv_main[ix]))
-        mom_verboseflag = true;
-    }
-  sqlite3_config (SQLITE_CONFIG_LOG, mom_sqlite_errorlog, NULL);
+#define SHOW_SIZE_MOM(T) do {       \
+  std::cout << "sizeof(" #T ")==" << sizeof(T)    \
+      << " align:" << alignof(T) << std::endl;  \
+} while(0)
+  SHOW_SIZE_MOM(void*);
+  SHOW_SIZE_MOM(MomObject);
+  SHOW_SIZE_MOM(MomRefobj);
+  SHOW_SIZE_MOM(MomVal);
+  SHOW_SIZE_MOM(MomSequence);
+  SHOW_SIZE_MOM(std::shared_ptr<MomTuple>);
+  SHOW_SIZE_MOM(std::shared_timed_mutex);
+  SHOW_SIZE_MOM(std::mutex);
+  SHOW_SIZE_MOM(std::function<int(void*)>);
+#undef SHOW_SIZE_MOM
   {
     unsigned bn = getpid() % MomSerial63::_maxbucket_;
     auto s = MomSerial63::make_random_of_bucket(bn);
@@ -223,19 +200,51 @@ main (int argc_main, char **argv_main)
                    << " id2=" << id2 << " id3=" << id3);
     MOM_VERBOSELOG("id1==" << MomObject::id_from_cstr(MomObject::id_to_string(id1).c_str()));
     MOM_VERBOSELOG("id2==" << MomObject::id_from_cstr(MomObject::id_to_string(id2).c_str()) << ";h=" << MomObject::hash_id(id2));
-    MOM_VERBOSELOG("sizeof(MomObject)==" << sizeof(MomObject)
-                   << " align:" << alignof(MomObject));
-    MOM_VERBOSELOG("sizeof(MomRefobj)==" << sizeof(MomRefobj)
-                   << " align:" << alignof(MomRefobj));
-    MOM_VERBOSELOG("sizeof(MomVal)==" << sizeof(MomVal)
-                   << " align:" << alignof(MomVal));
-    MOM_VERBOSELOG("sizeof(MomSequence)==" << sizeof(MomSequence)
-                   << " align:" << alignof(MomSequence));
-    MOM_VERBOSELOG("sizeof(std::shared_ptr<MomTuple>)=="
-                   << sizeof(std::shared_ptr<MomTuple>)
-                   << " align:" << alignof(std::shared_ptr<MomTuple>));
   }
+} // end show_size_mom
+
+
+
+
+
+// for SQLITE_CONFIG_LOG
+static void
+mom_sqlite_errorlog (void *pdata MOM_UNUSED, int errcode, const char *msg)
+{
+  MOM_BACKTRACELOG("Sqlite Error errcode="<< errcode << " msg=" << msg);
+} // end mom_sqlite_errorlog
+
+
+
+int
+main (int argc_main, char **argv_main)
+{
+  bool showsize=false;
+  clock_gettime (CLOCK_REALTIME, &start_realtime_ts_mom);
+  check_updated_binary_mom();
+  mom_dlh = dlopen(nullptr, RTLD_NOW|RTLD_GLOBAL);
+  if (!mom_dlh)
+    {
+      fprintf(stderr, "%s failed to dlopen main program (%s)\n",
+              argv_main[0], dlerror());
+      exit(EXIT_FAILURE);
+    }
+  bool nogui = false;
+  for (int ix=1; ix<argc_main; ix++)
+    {
+      if (!strcmp("--no-gui", argv_main[ix]) || !strcmp("-N", argv_main[ix]) || !strcmp("--batch", argv_main[ix]))
+        nogui = true;
+      if (!strcmp("-V", argv_main[ix]) || !strcmp("--verbose",argv_main[ix]))
+        mom_verboseflag = true;
+      if (!strcmp("-S", argv_main[ix]) || !strcmp("--show-size",argv_main[ix]))
+        showsize = true;
+    }
+  sqlite3_config (SQLITE_CONFIG_LOG, mom_sqlite_errorlog, NULL);
+  if (showsize)
+    show_size_mom();
 } // end main
+
+
 
 double
 mom_elapsed_real_time (void)

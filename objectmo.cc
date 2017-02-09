@@ -88,3 +88,23 @@ MomObject::hash0pairid(const MomPairid pi)
   MOM_ASSERT(h!=0, "hash0pairid zero h");
   return h;
 } // end MomObject::hash0pairid
+
+bool
+MomObject::unsync_scan_inside_objects(const std::function<bool(MomRefobj)>&f) const
+{
+  for (auto p : _obattrmap)
+    {
+      const MomRefobj atob = p.first;
+      MomVal aval = p.second;
+      if (!f(atob))
+        if (!aval.scan_objects(f))
+          return false;
+    }
+  for (auto cval : _obcompvec)
+    if (!cval.scan_objects(f))
+      return false;
+  auto py = get_payload_ptr();
+  if (py && !py->scan_objects(f))
+    return false;
+  return true;
+} // end MomObject::unsync_scan_inside_objects

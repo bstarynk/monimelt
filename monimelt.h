@@ -176,6 +176,8 @@ extern "C" bool mom_verboseflag;
 #define MOM_DO_NOT_LOG(Log) MOM_NEVERLOG(Log)
 //      MOM_VERBOSELOG has the same width
 
+std::string mom_demangled_typename(const std::type_info &ti);
+
 class MomRandom
 {
   static thread_local MomRandom _rand_thr_;
@@ -393,8 +395,7 @@ class MomTuple;
 
 #define MOM_SIZE_MAX (INT32_MAX / 3)
 enum class
-MomVKind : std::
-  uint8_t
+MomVKind : std::uint8_t
 {
   NoneK,
   IntK,
@@ -732,7 +733,10 @@ protected:
     std::shared_ptr<const MomTuple> _tup;
     std::shared_ptr<const MomSequence> _seq;
   };
-  MomVal(TagNone, std::nullptr_t) : _kind(MomVKind::NoneK), _ptr(nullptr) {};
+  MomVal(TagNone, std::nullptr_t) : _kind(MomVKind::NoneK), _ptr(nullptr)
+  {
+    _bothptr[1] = nullptr;
+  };
   MomVal(TagInt, intptr_t i) : _kind(MomVKind::IntK), _int(i) {};
   MomVal(TagString, const MomString *s) : _kind(s?MomVKind::StringK:MomVKind::NoneK), _str(s)
   {
@@ -812,6 +816,8 @@ protected:
   static MomVal parse_json(const MomJson&js, MomJsonParser&jp);
 public:
   MomJson emit_json(MomJsonEmitter&je) const;
+  // the scanning stops as soon as f returns true; the result is true if the value has been fully scanned
+  bool scan_objects(const std::function<bool(MomRefobj)>&f) const;
   MomVal(TagJson, const MomJson&js, MomJsonParser&jp)
     : MomVal(std::move(parse_json(js,jp))) {};
   MomVKind kind() const
@@ -988,11 +994,22 @@ public:
 
 ////////////////
 class MomPayload;
+
+enum class MomSpace : std::uint8_t
+{
+  NoneSp,
+  PredefinedSp,
+  GlobalSp
+};
+
+inline std::ostream&operator << (std::ostream&os, const MomObject& ob);
 class MomObject ///
 {
+  friend class MomPayload;
 private:
   const MomPairid _obserpair;
   std::shared_timed_mutex _obmtx;
+  MomSpace _obspace;
   std::unordered_map<MomRefobj,MomVal,MomHashRefobj> _obattrmap;
   std::vector<MomVal> _obcompvec;
   std::unique_ptr<MomPayload> _obpayload;
@@ -1034,6 +1051,44 @@ private:
   static MomHash_t hash0pairid(const MomPairid pi);
   static std::array<ObjBucket,MomSerial63::_maxbucket_> _buckarr_;
 public:
+  bool unsync_scan_inside_objects(const std::function<bool(MomRefobj)>&f) const;
+  MomPayload*get_payload_ptr(void) const
+  {
+    return _obpayload.get();
+  };
+  template<class PayloadClass>
+  PayloadClass* dyncast_payload_ptr(void) const
+  {
+    return dynamic_cast<PayloadClass*>(_obpayload.get());
+  }
+  template<class PayloadClass>
+  PayloadClass* checkcast_payload_ptr(void) const
+  {
+    auto py = _obpayload.get();
+    if (!py)
+      {
+        MOM_BACKTRACELOG("checkcast_payload_ptr no payload in " << *this);
+        throw std::runtime_error("checkcast_payload_ptr no payload");
+      }
+    auto p = dynamic_cast<PayloadClass*>(py);
+    if (!p)
+      {
+        MOM_BACKTRACELOG("checkcast_payload_ptr fail on " << *this << " for "
+                         << typeid(PayloadClass).name());
+        throw std::runtime_error("checkcast_payload_ptr fail");
+      }
+    return p;
+  }
+  template <class PaylClass, typename... Args> PaylClass* put_payload(Args... args)
+  {
+    auto py = new PaylClass(this, args...);
+    _obpayload.reset(py);
+    return py;
+  }
+  void reset_payload()
+  {
+    _obpayload.reset();
+  };
   static MomObject* find_object_of_id(const MomPairid pi)
   {
     if (!pi) return nullptr;
@@ -1145,6 +1200,22 @@ template<> struct hash<MomObject>
 };
 };
 
+class MomPayload ////
+{
+  friend class MomObject;
+  MomObject* _pyowner;
+protected:
+  MomPayload(MomObject&ob): _pyowner(&ob) {};
+  MomPayload(MomObject*pob): _pyowner(pob)
+  {
+    MOM_ASSERT(pob != nullptr, "null pob for MomPayload");
+  };
+public:
+  virtual ~MomPayload();
+  virtual const char*payload_name() const =0;
+  // the scanning stops as soon as f returns true; the result is true if the value has been fully scanned
+  virtual bool scan_objects(const std::function<bool(MomRefobj)>&f) const =0;
+};    // end class MomPayload
 
 ////////////////////////////////////////////////////////////////
 class MomSequence : public std::enable_shared_from_this<MomSequence>
@@ -1161,6 +1232,8 @@ public:
     SetS = (std::uint8_t)MomVKind::SetK,
   };
   static constexpr bool _check_sequence_ = true;
+  // the scanning stops as soon as f returns true; the result is true if the value has been fully scanned
+  bool scan_objects(const std::function<bool(MomRefobj)>&f) const;
 
 protected:
   const MomHash_t _hash;
@@ -2476,10 +2549,53 @@ MomVal::equal(const MomVal&r) const
     }
 }      // end MomVal::equal
 
-inline std::ostream&operator << (std::ostream&os, const MomPairid pi)
+MomVal::MomVal(const MomVal&sv) : MomVal()
+{
+  auto k = sv.kind();
+  switch (k)
+    {
+    case MomVKind::NoneK:
+      return;
+    case MomVKind::IntK:
+      _int = sv._int;
+      break;
+    case MomVKind::RefobjK:
+      MOM_ASSERT(sv._ref, "bad source for MomVal");
+      _ref = sv._ref;
+      break;
+    case MomVKind::ColoRefK:
+      MOM_ASSERT(sv._coloref._cobref, "bad source coloref for MomVal");
+      MOM_ASSERT(sv._coloref._colorob, "bad source colorob for MomVal");
+      _coloref = sv._coloref;
+      break;
+    case MomVKind::StringK:
+      MOM_ASSERT (sv._str, "bad source _str for MomVal");
+      _str = sv._str;
+      break;
+    case MomVKind::SetK:
+      MOM_ASSERT(sv._set, "bad source _set for MomVal");
+      _set = sv._set;
+      break;
+    case MomVKind::TupleK:
+      MOM_ASSERT(sv._tup, "bad source _tup for MomVal");
+      _tup = sv._tup;
+      break;
+    }
+  _kind = k;
+} // end MomVal::MomVal(const MomVal&sv)
+
+
+std::ostream&operator << (std::ostream&os, const MomObject& ob)
+{
+  os << ob.ident();
+  return os;
+}
+
+std::ostream&operator << (std::ostream&os, const MomPairid pi)
 {
   if (!pi) os << "__";
-  else os << pi.first << pi.second;
+  else
+    os << pi.first << pi.second;
   return os;
 }
 #endif /*MONIMELT_HEADER*/

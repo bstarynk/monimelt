@@ -345,6 +345,15 @@ MomSequence::vector_real_refs(const std::initializer_list<MomRefobj> il)
 } // end of MomSequence::vector_real_refs
 
 
+bool
+MomSequence::scan_objects(const std::function<bool(MomRefobj)>&f) const
+{
+  for (MomRefobj ro : *this)
+    if (f(ro)) return false;
+  return true;
+} // end MomSequence::scan_objects
+
+
 void
 MomSet::add_to_set(std::set<MomRefobj>&set, const MomVal val)
 {
@@ -421,3 +430,35 @@ MomTuple::add_to_vector(std::vector<MomRefobj>&vec, const MomVal val)
     return;
     }
 } // end MomTuple::add_to_vector
+
+bool
+MomVal::scan_objects(const std::function<bool(MomRefobj)>&f) const
+{
+  switch(kind())
+    {
+    case MomVKind::NoneK:
+    case MomVKind::IntK:
+    case MomVKind::StringK:
+      return true;
+    case MomVKind::RefobjK:
+    {
+      auto po = unsafe_refobj();
+      MOM_ASSERT(po, "nil refobj in MomVal::scan_objects");
+      return !f(po);
+    }
+    case MomVKind::TupleK:
+    case MomVKind::SetK:
+      MOM_ASSERT(_seq, "nil sequence in MomVal::scan_objects");
+      return _seq->scan_objects(f);
+    case MomVKind::ColoRefK:
+    {
+      auto cref = unsafe_colorefobj();
+      MOM_ASSERT(cref, "nil coloref in  MomVal::scan_objects");
+      auto colorob = unsafe_colorob();
+      MOM_ASSERT(colorob, "nil colorob in MomVal::scan_objects");
+      return !f(cref) && !f(colorob);
+    }
+    }
+  MOM_BACKTRACELOG("MomVal::scan_objects unexpected value");
+  throw std::runtime_error("MomVal::scan_objects unexpected value");
+} // end MomVal::scan_objects
