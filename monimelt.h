@@ -1038,7 +1038,7 @@ public:
   MomUniqueWriteObjLock(MomUniqueWriteObjLock&&) = delete;
   MomUniqueWriteObjLock& operator = (const MomUniqueWriteObjLock&) = delete;
   MomUniqueWriteObjLock& operator = (MomUniqueWriteObjLock&&) = delete;
-  inline MomUniqueWriteObjLock(MomObject*ob);
+  inline MomUniqueWriteObjLock(MomObject*ob, bool touched=false);
   inline ~MomUniqueWriteObjLock();
 };        // end  MomUniqueWriteObjLock
 
@@ -1055,6 +1055,7 @@ private:
   struct TagNewObject {};
   const MomPairid _obserpair;
   mutable std::shared_timed_mutex _obmtx;
+  time_t _obmtime;
   MomSpace _obspace;
   std::unordered_map<MomRefobj,MomVal,MomHashRefobj> _obattrmap;
   std::vector<MomVal> _obcompvec;
@@ -1110,11 +1111,25 @@ public:
     return true;
   }) const;
   static MomVal set_of_predefined(void);
+  MomJson json_for_content(MomJsonEmitter&) const;
+  void fill_content_from_json(const MomJson&, MomJsonParser&);
   void set_space(MomSpace);
   MomObject& put_space(MomSpace sp)
   {
     set_space(sp);
     return *this;
+  };
+  void touch()
+  {
+    _obmtime = time(0);
+  }
+  void touch(time_t t)
+  {
+    _obmtime = t;
+  };
+  time_t mtime() const
+  {
+    return _obmtime;
   };
   MomSpace space(void) const
   {
@@ -2287,8 +2302,19 @@ public:
 };        // end class MomJsonEmitter
 
 
+class QSqlQuery;
+class QSqlDatabase;
+
 class MomDumper final : public MomJsonEmitter ////
 {
+  static constexpr const char* _insert_object_sql_ =
+    "INSERT INTO t_objects "
+    " (ob_id, ob_mtime, ob_jsoncont, ob_paylkid, ob_paylcont)"
+    " VALUES (?, ?, ?, ?, ?)";
+  enum { InsobIdIx, InsobMtimIx, InsobJsoncontIx,
+         InsobPaylkindIx, InsobPaylcontIx,
+         Insob_LastIx
+       };
 public:
   enum DumpState { IdleDu, ScanDu, EmitDu };
 private:
@@ -2296,6 +2322,8 @@ private:
   std::string _dudir;
   MomUnorderedSetRefobj _duobjset;
   std::deque<MomRefobj> _duqueue;
+  QSqlDatabase* _dusqldb;
+  QSqlQuery* _duqueryinsobj;
 public:
   MomDumper(const std::string&dir);
   ~MomDumper();
@@ -2308,6 +2336,8 @@ public:
   void scan_refobj(const MomRefobj);
   void scan_inside_dumped_object(const MomObject*);
   void scan_loop();
+  void emit_loop();
+  void emit_dumped_object(const MomObject*);
 };        // end class MomDumper
 
 
@@ -2708,10 +2738,12 @@ MomSharedReadObjLock::~MomSharedReadObjLock()
   _oblk = nullptr;
 } // end MomSharedReadObjLock::~MomSharedReadObjLock
 
-MomUniqueWriteObjLock::MomUniqueWriteObjLock(MomObject*ob)
+MomUniqueWriteObjLock::MomUniqueWriteObjLock(MomObject*ob, bool touched)
   : _oblk(checked_unique_object(ob))
 {
   ob->_obmtx.lock();
+  if (touched)
+    ob->touch();
 } // end MomUniqueWriteObjLock::MomUniqueWriteObjLock
 
 MomUniqueWriteObjLock::~MomUniqueWriteObjLock()

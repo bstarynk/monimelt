@@ -23,7 +23,7 @@ public:
 };    // end class MomLoader
 
 MomDumper::MomDumper(const std::string&dir)
-  : _dustate(IdleDu), _dudir(dir), _duobjset(), _duqueue()
+  : _dustate(IdleDu), _dudir(dir), _duobjset(), _duqueue(), _duqueryinsobj(nullptr)
 {
   if (dir.empty()) _dudir = ".";
   struct stat ds = {};
@@ -124,7 +124,40 @@ MomDumper::begin_scan(void)
   scan_value(MomObject::set_of_predefined());
 } // end MomDumper::scan_loop
 
+void
+MomDumper::emit_loop(void)
+{
+  MOM_ASSERT(_dustate == ScanDu, "MomDumper is not scanning when emit_loop");
+  MOM_ASSERT(_duqueryinsobj == nullptr, "MomDumper with non-nil _duqueryinsobj");
+  _dustate = EmitDu;
+  _duqueryinsobj = new QSqlQuery(*_dusqldb);
+  _duqueryinsobj->prepare(_insert_object_sql_);
+  unsigned long nbemit = 0;
+  for (auto rob : _duobjset)
+    {
+      emit_dumped_object(rob);
+      nbemit++;
+    }
+  delete _duqueryinsobj;
+  _duqueryinsobj = nullptr;
+  MOM_VERBOSELOG("emit_loop emitted " << nbemit << " objects");
+} // end MomDumper::emit_loop
 
+void
+MomDumper::emit_dumped_object(const MomObject*pob)
+{
+  MOM_ASSERT(_dustate == ScanDu, "MomDumper is not scanning when emit_dumped_object");
+  MOM_ASSERT(pob, "MomDumper nil emitted dumped object");
+  MOM_ASSERT(_duqueryinsobj, "MomDumper nil queryinsobj");
+  MomSharedReadObjLock _gu(pob);
+  _duqueryinsobj->bindValue((int)InsobIdIx, pob->idstr().c_str());
+  _duqueryinsobj->bindValue((int)InsobMtimIx, (qlonglong) pob->mtime());
+  {
+    const MomJson& jcont= pob->json_for_content(*this);
+    Json::StyledWriter jwr;
+    _duqueryinsobj->bindValue((int)InsobJsoncontIx, jwr.write(jcont).c_str());
+  }
+} // end MomDumper::emit_dumped_object
 ////////////////////////////////////////////////////////////////
 
 MomLoader::MomLoader(std::string dir)
@@ -217,10 +250,13 @@ MomLoader::make_object_of_idstr(const std::string&ids)
   return pob;
 } // end MomLoader::make_object_of_idstr
 
+
+
 ////////////////
 void mom_initial_load(const std::string&dir)
 {
   MomLoader ld(dir);
+  ld.create_objects();
 } // end mom_initial_load
 
 ////////////////
