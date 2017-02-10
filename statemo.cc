@@ -57,5 +57,27 @@ MomDumper::scan_inside_dumped_object(const MomObject*pob)
   {
     thisdumper->scan_refobj(ro);
     return false;
+  },
+  [=](MomRefobj insiderob, MomRefobj rob)
+  {
+    MOM_ASSERT(insiderob, "no insiderob");
+    return dumpable_refobj(rob);
   });
 } // end MomDumper::scan_inside_object
+
+void
+MomDumper::scan_loop(void)
+{
+  MOM_ASSERT(_dustate == ScanDu, "MomDumper is not scanning");
+  unsigned long nbscan = 0;
+  while (!_duqueue.empty())
+    {
+      MomRefobj curob = _duqueue.front();
+      _duqueue.pop_front();
+      MOM_ASSERT(curob, "MomDumper nil curob");
+      MOM_ASSERT(dumpable_refobj(curob),"MomDumper non dumpable curob=" << curob);
+      scan_inside_dumped_object(curob);
+      nbscan++;
+    }
+  MOM_VERBOSEFLAG("MomDumper::scan_loop nbscan=" << nbdump);
+} // end MomDumper::scan_loop

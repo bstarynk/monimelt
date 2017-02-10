@@ -1063,7 +1063,12 @@ private:
   static void add_predefined(MomRefobj);
   static void remove_predefined(MomRefobj);
 public:
-  bool scan_inside_object(const std::function<bool(MomRefobj)>&f) const;
+  // the filterf(insideobj,refobj) may return false to ignore, while scanning inside insideobj, some refobj
+  bool scan_inside_object(const std::function<bool(MomRefobj)>&f,
+                          const std::function<bool(MomRefobj,MomRefobj)>&filterf= [=](MomRefobj,MomRefobj)
+  {
+    return true;
+  }) const;
   static MomVal set_of_predefined(void);
   void set_space(MomSpace);
   MomObject& put_space(MomSpace sp)
@@ -2262,6 +2267,7 @@ public:
   void scan_value(const MomVal);
   void scan_refobj(const MomRefobj);
   void scan_inside_dumped_object(const MomObject*);
+  void scan_loop();
 };        // end class MomDumper
 
 

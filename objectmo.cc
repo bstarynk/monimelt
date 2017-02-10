@@ -117,12 +117,14 @@ MomObject::hash0pairid(const MomPairid pi)
 
 
 bool
-MomObject::scan_inside_object(const std::function<bool(MomRefobj)>&f) const
+MomObject::scan_inside_object(const std::function<bool(MomRefobj)>&f,
+                              const std::function<bool(MomRefobj,MomRefobj)>&filterf) const
 {
   for (auto p : _obattrmap)
     {
       const MomRefobj atob = p.first;
       MomVal aval = p.second;
+      if (!filterf(this,atob)) continue;
       if (!f(atob))
         if (!aval.scan_objects(f))
           return false;
