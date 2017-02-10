@@ -2312,16 +2312,7 @@ public:
 
 
 ////////////////
-class MomLoader final : public MomJsonParser ////
-{
-  std::string _lddir;
-  MomUnorderedSetRefobj _ldobjset;
-public:
-  MomLoader(std::string dir);
-  ~MomLoader();
-  MomRefobj idstr_to_refobj(const std::string&);
-};    // end class MomLoader
-
+void mom_initial_load(const std::string&dir);
 
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
