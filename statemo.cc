@@ -2,7 +2,7 @@
 #include "monimelt.h"
 
 MomDumper::MomDumper(const std::string&dir)
-  : _dustate(NoneDu), _dudir(dir), _duobjset(), _duqueue()
+  : _dustate(IdleDu), _dudir(dir), _duobjset(), _duqueue()
 {
   if (dir.empty()) _dudir = ".";
   struct stat ds = {};
@@ -16,7 +16,7 @@ MomDumper::MomDumper(const std::string&dir)
 
 MomDumper::~MomDumper()
 {
-  MOM_ASSERT(_dustate == NoneDu,"MomDumper in " << _dudir
+  MOM_ASSERT(_dustate == IdleDu,"MomDumper in " << _dudir
              << " still active when destroyed");
   _duobjset.clear();
   _duqueue.clear();
@@ -79,5 +79,14 @@ MomDumper::scan_loop(void)
       scan_inside_dumped_object(curob);
       nbscan++;
     }
-  MOM_VERBOSEFLAG("MomDumper::scan_loop nbscan=" << nbdump);
+  MOM_VERBOSELOG("MomDumper::scan_loop nbscan=" << nbscan);
+} // end MomDumper::scan_loop
+
+
+void
+MomDumper::begin_scan(void)
+{
+  MOM_ASSERT(_dustate == IdleDu, "MomDumper is not idle when begin_scan");
+  _dustate = ScanDu;
+  scan_value(MomObject::set_of_predefined());
 } // end MomDumper::scan_loop

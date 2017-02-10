@@ -2250,7 +2250,7 @@ public:
 class MomDumper final : public MomJsonEmitter ////
 {
 public:
-  enum DumpState { NoneDu, ScanDu, EmitDu };
+  enum DumpState { IdleDu, ScanDu, EmitDu };
 private:
   DumpState _dustate;
   std::string _dudir;
