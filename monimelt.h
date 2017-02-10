@@ -416,10 +416,13 @@ MomVKind : std::uint8_t
 class MomRefobj
 {
   MomObject *_ptrobj;
-
 public:
+  MomRefobj(): MomRefobj(nullptr) {};
   MomRefobj(MomObject &ob) : _ptrobj(&ob) {};
-  MomRefobj(MomObject *pob = nullptr) : _ptrobj(pob) {};
+  MomRefobj(std::nullptr_t) : _ptrobj(nullptr) {};
+  MomRefobj(MomObject *pob) : _ptrobj(pob) {};
+  MomRefobj(const MomObject *pob)
+    : _ptrobj(const_cast<MomObject*>(pob)) {};
   ~MomRefobj()
   {
     _ptrobj = nullptr;
@@ -1060,7 +1063,7 @@ private:
   static void add_predefined(MomRefobj);
   static void remove_predefined(MomRefobj);
 public:
-  bool scan_inside_objects(const std::function<bool(MomRefobj)>&f) const;
+  bool scan_inside_object(const std::function<bool(MomRefobj)>&f) const;
   static MomVal set_of_predefined(void);
   void set_space(MomSpace);
   MomObject& put_space(MomSpace sp)
@@ -2251,9 +2254,14 @@ private:
 public:
   MomDumper(const std::string&dir);
   ~MomDumper();
+  bool dumpable_refobj(const MomRefobj ro) const
+  {
+    return _duobjset.find(ro) != _duobjset.end();
+  };
   void begin_scan();
   void scan_value(const MomVal);
   void scan_refobj(const MomRefobj);
+  void scan_inside_dumped_object(const MomObject*);
 };        // end class MomDumper
 
 

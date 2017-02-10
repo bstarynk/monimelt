@@ -117,7 +117,7 @@ MomObject::hash0pairid(const MomPairid pi)
 
 
 bool
-MomObject::scan_inside_objects(const std::function<bool(MomRefobj)>&f) const
+MomObject::scan_inside_object(const std::function<bool(MomRefobj)>&f) const
 {
   for (auto p : _obattrmap)
     {

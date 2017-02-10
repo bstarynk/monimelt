@@ -45,3 +45,17 @@ MomDumper::scan_value(const MomVal val)
     return false;
   });
 } // end MomDumper::scan_value
+
+void
+MomDumper::scan_inside_dumped_object(const MomObject*pob)
+{
+  MOM_ASSERT(_dustate == ScanDu, "MomDumper is not scanning");
+  if (!pob) return;
+  if (!dumpable_refobj(pob)) return;
+  auto thisdumper = this;
+  pob->scan_inside_object([=](MomRefobj ro)
+  {
+    thisdumper->scan_refobj(ro);
+    return false;
+  });
+} // end MomDumper::scan_inside_object
