@@ -1007,14 +1007,53 @@ enum class MomSpace : std::uint8_t
   GlobalSp
 };
 
+class MomSharedReadObjLock    // shared read-only locking of object
+{
+  const MomObject* _oblk;
+  static const MomObject* checked_shared_object(const MomObject*ob)
+  {
+    MOM_ASSERT (ob, "MomSharedReadObjLock::checked_shared_object");
+    return ob;
+  };
+public:
+  MomSharedReadObjLock(const MomSharedReadObjLock&) = delete;
+  MomSharedReadObjLock(MomSharedReadObjLock&&) = delete;
+  MomSharedReadObjLock& operator = (const MomSharedReadObjLock&) = delete;
+  MomSharedReadObjLock& operator = (MomSharedReadObjLock&&) = delete;
+  inline MomSharedReadObjLock(const MomObject*ob);
+  inline ~MomSharedReadObjLock();
+};        // end MomSharedReadObjLock
+
+
+class MomUniqueWriteObjLock    // unique read-write locking of object
+{
+  MomObject* _oblk;
+  static MomObject* checked_unique_object(MomObject*ob)
+  {
+    MOM_ASSERT (ob, "MomUniqueWriteObjLock::checked_unique_object");
+    return ob;
+  };
+public:
+  MomUniqueWriteObjLock(const MomUniqueWriteObjLock&) = delete;
+  MomUniqueWriteObjLock(MomUniqueWriteObjLock&&) = delete;
+  MomUniqueWriteObjLock& operator = (const MomUniqueWriteObjLock&) = delete;
+  MomUniqueWriteObjLock& operator = (MomUniqueWriteObjLock&&) = delete;
+  inline MomUniqueWriteObjLock(MomObject*ob);
+  inline ~MomUniqueWriteObjLock();
+};        // end  MomUniqueWriteObjLock
+
+
 inline std::ostream&operator << (std::ostream&os, const MomObject& ob);
+
 class MomObject ///
 {
   friend class MomPayload;
+  friend class MomSharedReadObjLock;
+  friend class MomUniqueWriteObjLock;
 private:
   struct TagNewObject {};
   const MomPairid _obserpair;
-  std::shared_timed_mutex _obmtx;
+  mutable std::shared_timed_mutex _obmtx;
   MomSpace _obspace;
   std::unordered_map<MomRefobj,MomVal,MomHashRefobj> _obattrmap;
   std::vector<MomVal> _obcompvec;
@@ -2650,6 +2689,33 @@ std::ostream&operator << (std::ostream&os, const MomPairid pi)
     os << pi.first << pi.second;
   return os;
 }
+
+
+MomSharedReadObjLock::MomSharedReadObjLock(const MomObject*ob)
+  :  _oblk(checked_shared_object(ob))
+{
+  ob->_obmtx.lock_shared();
+} // end MomSharedReadObjLock::MomSharedReadObjLock
+
+MomSharedReadObjLock::~MomSharedReadObjLock()
+{
+  MOM_ASSERT(_oblk, "~MomSharedReadObjLock no _oblk");
+  _oblk->_obmtx.unlock_shared();
+  _oblk = nullptr;
+} // end MomSharedReadObjLock::~MomSharedReadObjLock
+
+MomUniqueWriteObjLock::MomUniqueWriteObjLock(MomObject*ob)
+  : _oblk(checked_unique_object(ob))
+{
+  ob->_obmtx.lock();
+} // end MomUniqueWriteObjLock::MomUniqueWriteObjLock
+
+MomUniqueWriteObjLock::~MomUniqueWriteObjLock()
+{
+  MOM_ASSERT(_oblk, "~MomUniqueWriteObjLock no _oblk");
+  _oblk->_obmtx.unlock();
+  _oblk = nullptr;
+} // end MomUniqueWriteObjLock::~MomUniqueWriteObjLock
 
 #define MOM_HAS_PREDEF(Id,S1,S2,H) extern "C" MomRefobj mompredef##Id;
 #include "_mompredef.h"

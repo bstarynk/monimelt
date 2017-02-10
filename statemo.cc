@@ -53,6 +53,7 @@ MomDumper::scan_inside_dumped_object(const MomObject*pob)
   if (!pob) return;
   if (!dumpable_refobj(pob)) return;
   auto thisdumper = this;
+  MomSharedReadObjLock _gu(pob);
   pob->scan_inside_object([=](MomRefobj ro)
   {
     thisdumper->scan_refobj(ro);
@@ -63,7 +64,7 @@ MomDumper::scan_inside_dumped_object(const MomObject*pob)
     MOM_ASSERT(insiderob, "no insiderob");
     return dumpable_refobj(rob);
   });
-} // end MomDumper::scan_inside_object
+} // end MomDumper::scan_inside_dumped_object
 
 void
 MomDumper::scan_loop(void)
