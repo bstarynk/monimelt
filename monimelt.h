@@ -33,6 +33,7 @@
 #include <sched.h>
 #include <stdlib.h>
 #include <sys/syscall.h>
+#include <sys/stat.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -2226,16 +2227,34 @@ public:
   virtual MomRefobj idstr_to_refobj(const std::string&) =0;
 };        // end class MomJsonParser
 
-class MomJsonEmitter
+
+
+class MomJsonEmitter ////
 {
 protected:
   MomJsonEmitter() {};
 public:
-  virtual ~MomJsonEmitter();
+  virtual ~MomJsonEmitter() {};
   virtual bool emittable_refobj(MomRefobj) =0;
 };        // end class MomJsonEmitter
 
 
+class MomDumper final : public MomJsonEmitter ////
+{
+public:
+  enum DumpState { NoneDu, ScanDu, EmitDu };
+private:
+  DumpState _dustate;
+  std::string _dudir;
+  MomUnorderedSetRefobj _duobjset;
+  std::deque<MomRefobj> _duqueue;
+public:
+  MomDumper(const std::string&dir);
+  ~MomDumper();
+  void begin_scan();
+  void scan_value(const MomVal);
+  void scan_refobj(const MomRefobj);
+};        // end class MomDumper
 
 
 ////////////////////////////////////////////////////////////////
