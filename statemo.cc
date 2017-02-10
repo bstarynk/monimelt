@@ -7,6 +7,17 @@ MomDumper::MomDumper(const std::string&dir)
   if (dir.empty()) _dudir = ".";
   struct stat ds = {};
   errno = 0;
+  if (access(_dudir.c_str(), F_OK) && errno == ENOENT)
+    {
+      errno = 0;
+      if (mkdir(_dudir.c_str(), 0750))
+        {
+          MOM_BACKTRACELOG("MomDumper mkdir " << _dudir << " failed: "
+                           << strerror(errno));
+          throw std::runtime_error("MomDumper mkdir failure");
+        }
+    };
+  errno = 0;
   if (stat(_dudir.c_str(), &ds) || !S_ISDIR(ds.st_mode))
     {
       MOM_BACKTRACELOG("MomDumper bad directory " << _dudir << " : " << strerror(errno));
@@ -91,3 +102,26 @@ MomDumper::begin_scan(void)
   _dustate = ScanDu;
   scan_value(MomObject::set_of_predefined());
 } // end MomDumper::scan_loop
+
+
+////////////////////////////////////////////////////////////////
+
+MomLoader::MomLoader(std::string dir)
+  : _lddir(dir), _ldobjset()
+{
+  if (dir.empty())
+    _lddir=".";
+} // end MomLoader::MomLoader
+
+
+MomLoader::~MomLoader()
+{
+} // end of MomLoader::~MomLoader
+
+MomRefobj
+MomLoader::idstr_to_refobj(const std::string&idstr)
+{
+  auto pi = MomObject::id_from_cstr(idstr.c_str());
+  if (!pi) return nullptr;
+  return MomObject::find_object_of_id(pi);
+} // end MomLoader::idstr_to_refobj

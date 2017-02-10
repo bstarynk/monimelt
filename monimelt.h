@@ -1048,6 +1048,7 @@ inline std::ostream&operator << (std::ostream&os, const MomObject& ob);
 class MomObject ///
 {
   friend class MomPayload;
+  friend class MomLoader;
   friend class MomSharedReadObjLock;
   friend class MomUniqueWriteObjLock;
 private:
@@ -2270,7 +2271,7 @@ class MomJsonParser
 protected:
   MomJsonParser() {};
 public:
-  virtual ~MomJsonParser();
+  virtual ~MomJsonParser() {};
   virtual MomRefobj idstr_to_refobj(const std::string&) =0;
 };        // end class MomJsonParser
 
@@ -2308,6 +2309,18 @@ public:
   void scan_inside_dumped_object(const MomObject*);
   void scan_loop();
 };        // end class MomDumper
+
+
+////////////////
+class MomLoader final : public MomJsonParser ////
+{
+  std::string _lddir;
+  MomUnorderedSetRefobj _ldobjset;
+public:
+  MomLoader(std::string dir);
+  ~MomLoader();
+  MomRefobj idstr_to_refobj(const std::string&);
+};    // end class MomLoader
 
 
 ////////////////////////////////////////////////////////////////
