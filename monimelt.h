@@ -2298,7 +2298,12 @@ protected:
   MomJsonEmitter() {};
 public:
   virtual ~MomJsonEmitter() {};
-  virtual bool emittable_refobj(MomRefobj) =0;
+  virtual bool emittable_refobj(const MomRefobj) const =0;
+  virtual bool emittable_attr(const MomRefobj robat, const MomRefobj robinside) const
+  {
+    MOM_ASSERT(robinside, "no robinside");
+    return emittable_refobj(robat);
+  };
 };        // end class MomJsonEmitter
 
 
@@ -2330,6 +2335,10 @@ public:
   bool dumpable_refobj(const MomRefobj ro) const
   {
     return _duobjset.find(ro) != _duobjset.end();
+  };
+  bool emittable_refobj(const MomRefobj ro) const
+  {
+    return dumpable_refobj(ro);
   };
   void begin_scan();
   void scan_value(const MomVal);
