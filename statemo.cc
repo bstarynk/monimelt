@@ -124,6 +124,8 @@ MomDumper::begin_scan(void)
   scan_value(MomObject::set_of_predefined());
 } // end MomDumper::scan_loop
 
+
+
 void
 MomDumper::emit_loop(void)
 {
@@ -143,20 +145,51 @@ MomDumper::emit_loop(void)
   MOM_VERBOSELOG("emit_loop emitted " << nbemit << " objects");
 } // end MomDumper::emit_loop
 
+
+
 void
 MomDumper::emit_dumped_object(const MomObject*pob)
 {
   MOM_ASSERT(_dustate == ScanDu, "MomDumper is not scanning when emit_dumped_object");
   MOM_ASSERT(pob, "MomDumper nil emitted dumped object");
   MOM_ASSERT(_duqueryinsobj, "MomDumper nil queryinsobj");
-  MomSharedReadObjLock _gu(pob);
-  _duqueryinsobj->bindValue((int)InsobIdIx, pob->idstr().c_str());
-  _duqueryinsobj->bindValue((int)InsobMtimIx, (qlonglong) pob->mtime());
   {
-    const MomJson& jcont= pob->json_for_content(*this);
-    Json::StyledWriter jwr;
-    _duqueryinsobj->bindValue((int)InsobJsoncontIx, jwr.write(jcont).c_str());
+    MomSharedReadObjLock _gu(pob);
+    _duqueryinsobj->bindValue((int)InsobIdIx, pob->idstr().c_str());
+    _duqueryinsobj->bindValue((int)InsobMtimIx, (qlonglong) pob->mtime());
+    {
+      const MomJson& jcont= pob->json_for_content(*this);
+      Json::StyledWriter jwr;
+      _duqueryinsobj->bindValue((int)InsobJsoncontIx, jwr.write(jcont).c_str());
+    }
+    auto payl = pob->get_payload_ptr();
+    bool dumpedpayload = false;
+    if (payl)
+      {
+        MOM_ASSERT(payl->owner() == MomRefobj(pob), "MomDumper corrupted payload");
+        if (payl->emittable_payload(*this))
+          {
+            {
+              const MomJson& jpayl = payl->payload_json(*this);
+              Json::StyledWriter jwr;
+              _duqueryinsobj->bindValue((int)InsobPaylcontIx, jwr.write(jpayl).c_str());
+            }
+            dumpedpayload = true;
+            _duqueryinsobj->bindValue((int)InsobPaylkindIx, payl->payload_name());
+          }
+      };
+    if (!dumpedpayload)
+      {
+        _duqueryinsobj->bindValue((int)InsobPaylkindIx,"");
+        _duqueryinsobj->bindValue((int)InsobPaylcontIx,"");
+      }
   }
+  if (!_duqueryinsobj->exec())
+    {
+      MOM_BACKTRACELOG("emit_dumped_object: SQL failure for " <<  pob->idstr()
+                       << " :" <<  _dusqldb->lastError().text().toStdString());
+      throw std::runtime_error("MomDumper::emit_dumped_object SQL failure");
+    }
 } // end MomDumper::emit_dumped_object
 ////////////////////////////////////////////////////////////////
 

@@ -1297,8 +1297,15 @@ protected:
     MOM_ASSERT(pob != nullptr, "null pob for MomPayload");
   };
 public:
+  MomRefobj owner() const
+  {
+    return _pyowner;
+  };
   virtual ~MomPayload();
   virtual const char*payload_name() const =0;
+  virtual bool emittable_payload(MomJsonEmitter&) =0;
+  virtual MomJson payload_json(MomJsonEmitter&) =0;
+  virtual void fill_payload_from_json(const MomJson&,MomJsonEmitter&) =0;
   // the scanning stops as soon as f returns true; the result is true if the value has been fully scanned
   virtual bool scan_objects(const std::function<bool(MomRefobj)>&f) const =0;
 };    // end class MomPayload
