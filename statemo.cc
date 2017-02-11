@@ -248,6 +248,37 @@ MomDumper::emit_predefined_header(const MomVal vset)
   write_file_content(_predefined_header_, outs.str());
 }// end MomDumper::emit_predefined_header
 
+
+void
+MomDumper::emit_globals(void)
+{
+  std::set<std::string> globalset;
+  for (const char*const*psrcfile= monimelt_cxxsources; *psrcfile; psrcfile++)
+    {
+      std::string srcfilpath = std::string(monimelt_directory) + "/" + std::string(*psrcfile);
+      std::ifstream inp {srcfilpath};
+      int lineno = 0;
+      std::string clin;
+      do
+        {
+          clin.clear();
+          std::getline(inp,clin);
+          lineno++;
+          auto p = clin.find(_global_prefix_);
+          while (p != std::string::npos)
+            {
+              auto e = p;
+              while (isalnum(clin[e]) || (clin[e] == '_' && clin[e-1] != '_')) e++;
+              auto nam = clin.substr(p+sizeof(_global_prefix_), e);
+              if (mom_valid_name(nam))
+                globalset.insert(nam);
+              p = clin.find(_global_prefix_, e);
+            }
+        }
+      while(inp);
+    }
+#warning MomDumper::emit_globals incomplete should emit the _momglobal.h file & the global table
+} // end of MomDumper::emit_globals
 ////////////////////////////////////////////////////////////////
 
 MomLoader::MomLoader(std::string dir)

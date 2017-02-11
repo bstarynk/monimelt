@@ -182,6 +182,8 @@ extern "C" bool mom_verboseflag;
 
 std::string mom_demangled_typename(const std::type_info &ti);
 
+bool mom_valid_name(const std::string&);
+
 class MomRandom
 {
   static thread_local MomRandom _rand_thr_;
@@ -2339,6 +2341,7 @@ private:
   QSqlQuery* _duqueryinsobj;
 public:
   static constexpr const char* _predefined_header_ = "_mompredef.h";
+  static constexpr const char* _global_prefix_ = "momglob_";
   MomDumper(const std::string&dir);
   void write_file_content(const std::string&basepath, const std::string&content);
   ~MomDumper();
@@ -2358,6 +2361,7 @@ public:
   void emit_loop();
   void emit_dumped_object(const MomObject*);
   void emit_predefined_header(const MomVal);
+  void emit_globals(void);
 };        // end class MomDumper
 
 

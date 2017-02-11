@@ -440,3 +440,23 @@ MomUtf8Out::out(std::ostream&os) const
     }
 } // end of MomUtf8Out::out
 
+bool
+mom_valid_name(const std::string&str)
+{
+  static constexpr const unsigned max_name_len=256;
+  if (str.empty()) return false;
+  if (!isalpha(str[0])) return false;
+  auto sz = str.size();
+  if (sz>max_name_len) return false;
+  for (int ix=1; ix<(int)sz; ix++)
+    {
+      if (isalnum(str[ix])) continue;
+      else if (str[ix] == '_')
+        {
+          if (ix==(int)sz-1) return false;
+          if (str[ix-1] == '_') return false;
+        }
+      else return false;
+    }
+  return true;
+} // end mom_valid_name
