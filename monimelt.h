@@ -2341,6 +2341,7 @@ private:
   QSqlQuery* _duqueryinsobj;
 public:
   static constexpr const char* _predefined_header_ = "_mompredef.h";
+  static constexpr const char* _global_header_ = "_momglobal.h";
   static constexpr const char* _global_prefix_ = "momglob_";
   MomDumper(const std::string&dir);
   void write_file_content(const std::string&basepath, const std::string&content);
@@ -2353,7 +2354,8 @@ public:
   {
     return dumpable_refobj(ro);
   };
-  MomVal begin_scan(); // return the set of predefined
+  MomVal begin_scan(void); // return the set of predefined
+  void create_tables(void);
   void scan_value(const MomVal);
   void scan_refobj(const MomRefobj);
   void scan_inside_dumped_object(const MomObject*);

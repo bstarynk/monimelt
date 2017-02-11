@@ -227,7 +227,7 @@ MomDumper::emit_predefined_header(const MomVal vset)
   MOM_ASSERT(vset.kind() == MomVKind::SetK, "emit_predefined_header bad vset");
   MOM_ASSERT(_dustate == EmitDu, "MomDumper is not emitting when emit_predefined_header");
   std::ostringstream outs;
-  outs << "// generated file " << _predefined_header_ << " - DO NOT EDIT" << std::endl << std::endl;
+  outs << "// generated file of predefined " << _predefined_header_ << " - DO NOT EDIT" << std::endl << std::endl;
   outs << "#" "ifndef MOM_HAS_PREDEF" << std::endl;
   outs << "#" "error missing MOM_HAS_PREDEF" << std::endl;
   outs << "#" "endif /*no MOM_HAS_PREDEF*/" << std::endl << std::endl;
@@ -244,7 +244,8 @@ MomDumper::emit_predefined_header(const MomVal vset)
   outs << std::endl;
   outs << "#" << "undef MOM_HAS_PREDEF" << std::endl;
   outs << "#" << "undef MOM_NB_PREDEF" << std::endl;
-  outs << "#" "define MOM_NB_PREDEF" << " " << count << std::endl;
+  outs << "#" "define MOM_NB_PREDEF" << " " << count << std::endl << std::endl;
+  outs << "// eof " << _predefined_header_ << std::endl;
   write_file_content(_predefined_header_, outs.str());
 }// end MomDumper::emit_predefined_header
 
@@ -253,6 +254,7 @@ void
 MomDumper::emit_globals(void)
 {
   std::set<std::string> globalset;
+  /// collect the globals
   for (const char*const*psrcfile= monimelt_cxxsources; *psrcfile; psrcfile++)
     {
       std::string srcfilpath = std::string(monimelt_directory) + "/" + std::string(*psrcfile);
@@ -277,8 +279,85 @@ MomDumper::emit_globals(void)
         }
       while(inp);
     }
-#warning MomDumper::emit_globals incomplete should emit the _momglobal.h file & the global table
+  /// emit the global header
+  {
+    std::ostringstream outs;
+    outs << "// generated file of globals " << _global_header_ << " - DO NOT EDIT" << std::endl << std::endl;
+    outs << "#" "ifndef MOM_HAS_GLOBAL" << std::endl;
+    outs << "#" "error missing MOM_HAS_GLOBAL" << std::endl;
+    outs << "#" "endif /*no MOM_HAS_GLOBAL*/" << std::endl << std::endl;
+    outs << "///MOM_HAS_GLOBAL(GlobNam,Num)" << std::endl;
+    unsigned count = 0;
+    for (auto globnam : globalset)
+      {
+        outs << "MOM_HAS_GLOBAL(" << globnam << "," << count << ")" << std::endl;
+        count++;
+      }
+    outs << std::endl;
+    outs << "#" << "undef MOM_HAS_GLOBAL" << std::endl;
+    outs << "#" << "undef MOM_NB_GLOBAL" << std::endl;
+    outs << "#" "define MOM_NB_GLOBAL" << " " << count << std::endl << std::endl;
+    outs << "// eof " << _global_header_ << std::endl;
+    write_file_content(_global_header_, outs.str());
+  }
+  /// fill the global table
+  QSqlQuery query(*_dusqldb);
+  query.prepare("INSERT INTO t_globals (glo_name, glo_id) VALUES (?, ?)");
+  enum { InsGloNamIx, InsGloIdIx, InsGlo_LasrtIx };
+  for (auto glonam: globalset)
+    {
+      std::string cgloname = std::string{_global_prefix_} + glonam;
+      MomRefobj* gloptr = reinterpret_cast<MomRefobj*>(dlsym(mom_dlh,cgloname.c_str()));
+      if (gloptr && *gloptr)
+        {
+          query.bindValue(InsGloNamIx,glonam.c_str());
+          query.bindValue(InsGloIdIx,(*gloptr)->idstr().c_str());
+          if (!query.exec())
+            {
+              MOM_BACKTRACELOG("emit_globals: SQL failure for " <<  glonam.c_str()
+                               << " :" <<  _dusqldb->lastError().text().toStdString());
+              throw std::runtime_error("MomDumper::emit_globals SQL failure");
+            }
+        }
+    }
 } // end of MomDumper::emit_globals
+
+
+void
+MomDumper::create_tables(void)
+{
+  static constexpr const unsigned _obidwidth_ = 2*(MomSerial63::_nbdigits_+2);
+  static constexpr const unsigned _kindwidth_ = 40;
+  QSqlQuery query(*_dusqldb);
+  {
+    std::ostringstream obouts;
+    obouts << " CREATE TABLE IF NOT EXISTS t_objects "
+           << "(ob_id VARCHAR(" << _obidwidth_ << ") PRIMARY KEY ASC NOT NULL UNIQUE,"
+           << " ob_mtime DATETIME NOT NULL,"
+           << " ob_jsoncont TEXT NOT NULL,"
+           << " ob_paylkid VARCHAR(" << _kindwidth_ << ") NOT NULL,"
+           << " ob_paylcont TEXT NOT NULL)"
+           << std::endl;
+    if (!query.exec(obouts.str().c_str()))
+      {
+        MOM_BACKTRACELOG("create_tables Sql query t_objects failure: " <<  _dusqldb->lastError().text().toStdString());
+        throw std::runtime_error("MomLoader::create_tables  t_objects query failure");
+      }
+  }
+  {
+    std::ostringstream glouts;
+    glouts << " CREATE TABLE IF NOT EXISTS t_globals "
+           << " (glo_name VARCHAR(256)  PRIMARY KEY ASC NOT NULL UNIQUE,"
+           << "  glo_id VARCHAR(" << _obidwidth_ << ") NOT NULL)"
+           << std::endl;
+    if (!query.exec(glouts.str().c_str()))
+      {
+        MOM_BACKTRACELOG("create_tables Sql query t_globals failure: " <<  _dusqldb->lastError().text().toStdString());
+        throw std::runtime_error("MomLoader::create_tables  t_global query failure");
+      }
+  }
+} // end MomDumper::create_tables
+
 ////////////////////////////////////////////////////////////////
 
 MomLoader::MomLoader(std::string dir)
