@@ -169,17 +169,90 @@ MomObject::set_space(MomSpace sp)
   _obspace = sp;
 } // end of MomObject::set_space
 
+
+
 MomJson
 MomObject::json_for_content(MomJsonEmitter&jem) const
 {
-#warning MomObject::json_for_content to be coded
+  auto nbat = _obattrmap.size();
+  std::vector<MomRefobj> atvec;
+  atvec.reserve(nbat+1);
+  for (auto p : _obattrmap)
+    {
+      MomRefobj atrob = p.first;
+      if (!jem.emittable_attr(atrob,this))
+        continue;
+      atvec.push_back(atrob);
+    }
+  std::sort(atvec.begin(), atvec.end());
+  MomJson jatarr{Json::arrayValue};
+  for (const MomRefobj pat : atvec)
+    {
+      auto it = _obattrmap.find(pat);
+      if (it == _obattrmap.end()) continue;
+      auto va = it->second;
+      if (!va) continue;
+      auto jva = va.emit_json(jem);
+      if (jva.isNull()) continue;
+      MomJson jpair{Json::objectValue};
+      jpair["at"] = pat->idstr();
+      jpair["va"] = jva;
+      jatarr.append(jpair);
+    }
+  MomJson jcomparr{Json::arrayValue};
+  for (const MomVal vcomp : _obcompvec)
+    {
+      jcomparr.append(vcomp.emit_json(jem));
+    }
+  MomJson jres{Json::objectValue};
+  jres["attrs"] = jatarr;
+  jres["comps"] = jcomparr;
+  return jres;
 } // end of MomObject::json_for_content
 
+
+
 void
-MomObject::fill_content_from_json(const MomJson&job, MomJsonParser&jp)
+MomObject::fill_content_from_json(const MomJson&job, MomJsonParser&jpars)
 {
-#warning MomObject::fill_content_from_json to be coded
+  if (!job.isObject()) return;
+  // fill attributes
+  {
+    auto jatarr = job["attrs"];
+    if (jatarr.isArray())
+      {
+        unsigned nbat = jatarr.size();
+        _obattrmap.reserve(((6*nbat/5)|3)+1);
+        for (unsigned ix=0; ix<nbat; ix++)
+          {
+            auto jpair = jatarr[ix];
+            if (!jpair.isObject() || !jpair.isMember("at") || !jpair.isMember("va")) continue;
+            std::string idat = jpair["at"].asString();
+            if (idat.empty()) continue;
+            MomRefobj atrob = jpars.idstr_to_refobj(idat);
+            if (!atrob) continue;
+            MomVal valat = MomVal::parse_json(jpair["va"], jpars);
+            if (!valat) continue;
+            _obattrmap.insert({atrob,valat});
+          }
+      }
+  }
+  // fill components
+  {
+    auto jcomparr = job["comps"];
+    if (jcomparr.isArray())
+      {
+        auto nbcomp = jcomparr.size();
+        _obcompvec.reserve((nbcomp|3)+1);
+        _obcompvec.resize(nbcomp);
+        for (unsigned ix=0; ix<nbcomp; ix++)
+          _obcompvec[ix] = MomVal::parse_json(jcomparr[ix], jpars);
+      }
+  }
 } // end MomObject::fill_content_from_json
 
+
+
+////////////////
 #define MOM_HAS_PREDEF(Id,S1,S2,H) MomRefobj mompredef##Id;
 #include "_mompredef.h"

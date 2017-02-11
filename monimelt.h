@@ -41,6 +41,9 @@
 
 #include "jsoncpp/json/json.h"
 
+class QSqlQuery; // from Qt
+class QSqlDatabase; // from Qt
+
 // common prefix mom
 
 // mark unlikely conditions to help optimization
@@ -818,8 +821,8 @@ protected:
       }
   }
   MomVal(TagTuple, const MomTuple& tup) : _kind(MomVKind::TupleK), _tup(&tup) {};
-  static MomVal parse_json(const MomJson&js, MomJsonParser&jp);
 public:
+  static MomVal parse_json(const MomJson&js, MomJsonParser&jp);
   MomJson emit_json(MomJsonEmitter&je) const;
   // the scanning stops as soon as f returns true; the result is true if the value has been fully scanned
   bool scan_objects(const std::function<bool(MomRefobj)>&f) const;
@@ -2307,8 +2310,6 @@ public:
 };        // end class MomJsonEmitter
 
 
-class QSqlQuery;
-class QSqlDatabase;
 
 class MomDumper final : public MomJsonEmitter ////
 {
