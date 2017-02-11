@@ -116,13 +116,15 @@ MomDumper::scan_loop(void)
 } // end MomDumper::scan_loop
 
 
-void
+MomVal
 MomDumper::begin_scan(void)
 {
   MOM_ASSERT(_dustate == IdleDu, "MomDumper is not idle when begin_scan");
   _dustate = ScanDu;
-  scan_value(MomObject::set_of_predefined());
-} // end MomDumper::scan_loop
+  auto vsetpredef = MomObject::set_of_predefined();
+  scan_value(vsetpredef);
+  return vsetpredef;
+} // end MomDumper::begin_scan
 
 
 
@@ -150,7 +152,7 @@ MomDumper::emit_loop(void)
 void
 MomDumper::emit_dumped_object(const MomObject*pob)
 {
-  MOM_ASSERT(_dustate == ScanDu, "MomDumper is not scanning when emit_dumped_object");
+  MOM_ASSERT(_dustate == EmitDu, "MomDumper is not emitting when emit_dumped_object");
   MOM_ASSERT(pob, "MomDumper nil emitted dumped object");
   MOM_ASSERT(_duqueryinsobj, "MomDumper nil queryinsobj");
   {
@@ -191,6 +193,61 @@ MomDumper::emit_dumped_object(const MomObject*pob)
       throw std::runtime_error("MomDumper::emit_dumped_object SQL failure");
     }
 } // end MomDumper::emit_dumped_object
+
+void
+MomDumper::write_file_content(const std::string&basepath, const std::string&content)
+{
+  MOM_ASSERT(_dustate == EmitDu, "MomDumper is not emitting when write_file_content " << basepath);
+  if (basepath.empty() || basepath[0] == '/' || basepath.find(".."))
+    {
+      MOM_BACKTRACELOG("MomDumper::write_file_content invalid basepath:" << basepath);
+      throw std::runtime_error("MomDumper::write_file_content invalid basepath");
+    }
+  std::string fullpath = _dudir + "/" + basepath;
+  if (!::access(fullpath.c_str(), R_OK))
+    {
+      QFile fil(fullpath.c_str());
+      if ((unsigned)fil.size() == (unsigned)content.size())
+        {
+          QByteArray by= fil.readAll();
+          if (!strcmp(by.data(),content.c_str()))
+            return;
+        }
+      std::string backupath = fullpath + "~";
+      fil.rename(backupath.c_str());
+    }
+  std::ofstream outf(fullpath);
+  outf << content << std::flush;
+  outf.close();
+}// end MomDumper::write_file_content
+
+void
+MomDumper::emit_predefined_header(const MomVal vset)
+{
+  MOM_ASSERT(vset.kind() == MomVKind::SetK, "emit_predefined_header bad vset");
+  MOM_ASSERT(_dustate == EmitDu, "MomDumper is not emitting when emit_predefined_header");
+  std::ostringstream outs;
+  outs << "// generated file " << _predefined_header_ << " - DO NOT EDIT" << std::endl << std::endl;
+  outs << "#" "ifndef MOM_HAS_PREDEF" << std::endl;
+  outs << "#" "error missing MOM_HAS_PREDEF" << std::endl;
+  outs << "#" "endif /*no MOM_HAS_PREDEF*/" << std::endl << std::endl;
+  outs << "///MOM_HAS_PREDEF(Id,S1,S2,H)" << std::endl;
+  unsigned count = 0;
+  for (auto rob : *vset.as_set())
+    {
+      MOM_ASSERT(rob, "MomDumper emit_predefined_header no rob");
+      outs << "MOM_HAS_PREDEF(" << rob->idstr() << ","
+           << rob->hi_serial() << "," << rob->lo_serial() << ","
+           << rob->hash() << ")" << std::endl;
+      count++;
+    }
+  outs << std::endl;
+  outs << "#" << "undef MOM_HAS_PREDEF" << std::endl;
+  outs << "#" << "undef MOM_NB_PREDEF" << std::endl;
+  outs << "#" "define MOM_NB_PREDEF" << " " << count << std::endl;
+  write_file_content(_predefined_header_, outs.str());
+}// end MomDumper::emit_predefined_header
+
 ////////////////////////////////////////////////////////////////
 
 MomLoader::MomLoader(std::string dir)

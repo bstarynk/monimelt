@@ -915,7 +915,7 @@ public:
   {
     return _kind == MomVKind::SetK;
   };
-  inline std::shared_ptr<const MomSet> as_set(void) const;
+  inline const MomSet* as_set(void) const;
   inline std::shared_ptr<const MomSet>
   to_set(const std::shared_ptr<const MomSet> def = nullptr) const;
   inline const MomSet *get_set(void) const
@@ -932,7 +932,7 @@ public:
   {
     return _kind == MomVKind::TupleK;
   };
-  inline std::shared_ptr<const MomTuple> as_tuple(void) const;
+  inline const MomTuple* as_tuple(void) const;
   inline std::shared_ptr<const MomTuple>
   to_tuple(const std::shared_ptr<const MomTuple> def = nullptr) const;
   inline const MomTuple *get_tuple(void) const
@@ -949,7 +949,7 @@ public:
   {
     return _kind == MomVKind::SetK || _kind == MomVKind::TupleK;
   };
-  inline std::shared_ptr<const MomSequence> as_sequence(void) const;
+  inline const MomSequence* as_sequence(void) const;
   inline std::shared_ptr<const MomSequence>
   to_sequence(const std::shared_ptr<const MomSequence> def = nullptr) const;
   inline const MomSequence *get_sequence(void) const
@@ -2338,7 +2338,9 @@ private:
   QSqlDatabase* _dusqldb;
   QSqlQuery* _duqueryinsobj;
 public:
+  static constexpr const char* _predefined_header_ = "_mompredef.h";
   MomDumper(const std::string&dir);
+  void write_file_content(const std::string&basepath, const std::string&content);
   ~MomDumper();
   bool dumpable_refobj(const MomRefobj ro) const
   {
@@ -2348,13 +2350,14 @@ public:
   {
     return dumpable_refobj(ro);
   };
-  void begin_scan();
+  MomVal begin_scan(); // return the set of predefined
   void scan_value(const MomVal);
   void scan_refobj(const MomRefobj);
   void scan_inside_dumped_object(const MomObject*);
   void scan_loop();
   void emit_loop();
   void emit_dumped_object(const MomObject*);
+  void emit_predefined_header(const MomVal);
 };        // end class MomDumper
 
 
@@ -2382,7 +2385,8 @@ MomSerial63::MomSerial63(uint64_t n, bool nocheck) : _serial(n)
 
 
 /// see also http://stackoverflow.com/a/28613483/841108
-void MomVal::clear()
+void
+MomVal::clear()
 {
   auto k = _kind;
   *const_cast<MomVKind *>(&_kind) = MomVKind::NoneK;
@@ -2602,7 +2606,8 @@ void MomTuple::fill_vector(std::vector<MomRefobj>&vec, const MomVal val, Args...
   fill_vector(vec,args...);
 } /* end MomTuple::fill_vector */
 
-intptr_t MomVal::as_int(void) const
+intptr_t
+MomVal::as_int(void) const
 {
   if (!is_int())
     {
@@ -2653,6 +2658,39 @@ MomVal::to_cstr(const char*defcstr) const
   MOM_ASSERT(_str, "corrupted string value");
   return _str->to_cstr();
 } // end MomVal::to_cstr
+
+const MomSet*
+MomVal::as_set() const
+{
+  if (!is_set())
+    {
+      MOM_BACKTRACELOG("MomVal::as_set bad value:" << *this);
+      throw std::runtime_error("MomVal::as_set bad value");
+    }
+  return unsafe_set();
+} // end MomVal::as_set
+
+const MomTuple*
+MomVal::as_tuple() const
+{
+  if (!is_tuple())
+    {
+      MOM_BACKTRACELOG("MomVal::as_tuple bad value:" << *this);
+      throw std::runtime_error("MomVal::as_tuple bad value");
+    }
+  return unsafe_tuple();
+} // end MomVal::as_tuple
+
+const MomSequence*
+MomVal::as_sequence() const
+{
+  if (!is_sequence())
+    {
+      MOM_BACKTRACELOG("MomVal::as_sequence bad value:" << *this);
+      throw std::runtime_error("MomVal::as_sequence bad value");
+    }
+  return unsafe_sequence();
+} // end MomVal::as_sequence
 
 bool
 MomVal::equal(const MomVal&r) const
@@ -2726,6 +2764,17 @@ MomVal::MomVal(const MomVal&sv) : MomVal()
   _kind = k;
 } // end MomVal::MomVal(const MomVal&sv)
 
+
+MomRefobj
+MomVal::as_refobj(void) const
+{
+  if (!is_refobj())
+    {
+      MOM_BACKTRACELOG("MomVal::as_refobj bad value:" << *this);
+      throw std::runtime_error("MomVal::as_refobj bad value");
+    }
+  return unsafe_refobj();
+} // end MomVal::as_refobj
 
 std::ostream&operator << (std::ostream&os, const MomObject& ob)
 {
