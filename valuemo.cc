@@ -75,7 +75,8 @@ MomVal::out(std::ostream& os) const
 outseq:
       {
         unsigned cnt = 0;
-        for (auto rob : *as_sequence())
+        auto seq = *as_sequence();
+        for (auto rob : seq)
           {
             if (cnt>0) os << ' ';
             os << rob;

@@ -254,6 +254,7 @@ main (int argc_main, char **argv_main)
   if (showsize)
     show_size_mom();
   MomObject::initialize_predefined();
+  MOM_VERBOSELOG("main set_of_predefined=" << MomObject::set_of_predefined());
   if (dumping)
     mom_full_dump(dumpdir);
 } // end main

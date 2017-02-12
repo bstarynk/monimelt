@@ -1346,19 +1346,6 @@ protected:
   const unsigned _len;
   const MomRefobj *_seq;
   const SeqKind _skd;
-  ~MomSequence()
-  {
-    *(const_cast<SeqKind *>(&_skd)) = SeqKind::NoneS;
-    if (_seq)
-      {
-        for (unsigned ix = 0; ix < _len; ix++)
-          (const_cast<MomRefobj *>(_seq))[ix].clear();
-        delete[] _seq;
-        _seq = nullptr;
-      }
-    *(const_cast<MomHash_t *>(&_hash)) = 0;
-    *(const_cast<unsigned *>(&_len)) = 0;
-  }
   static unsigned check_length(unsigned ln)
   {
     if (ln >= MOM_SIZE_MAX)
@@ -1764,6 +1751,19 @@ public:
   {
     return !less(r);
   };
+  ~MomSequence()
+  {
+    *(const_cast<SeqKind *>(&_skd)) = SeqKind::NoneS;
+    if (_seq)
+      {
+        for (unsigned ix = 0; ix < _len; ix++)
+          (const_cast<MomRefobj *>(_seq))[ix].clear();
+        delete[] _seq;
+        _seq = nullptr;
+      }
+    *(const_cast<MomHash_t *>(&_hash)) = 0;
+    *(const_cast<unsigned *>(&_len)) = 0;
+  }
 }; // end class MomSequence
 
 

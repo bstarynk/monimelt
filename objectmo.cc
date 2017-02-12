@@ -54,6 +54,7 @@ MomObject::initialize_predefined(void)
     new MomObject(TagNewObject{},               \
       MomPairid{S1,S2},                         \
       MomSpace::PredefinedSp);                  \
+  add_predefined (mompredef##Id);               \
   MOM_ASSERT(mompredef##Id->hash() == (H),      \
        "corrupted hash for predefined");        \
   } while(0);
