@@ -74,14 +74,14 @@ MomVal::out(std::ostream& os) const
       goto outseq;
 outseq:
       {
-        unsigned cnt = 0;
-        auto seq = *as_sequence();
-        for (auto rob : seq)
-          {
-            if (cnt>0) os << ' ';
-            os << rob;
-            cnt++;
-          }
+        const MomSequence& seq = *as_sequence();
+        unsigned ln = seq.size();
+        if (ln>0)
+          for (unsigned ix=0; ix<ln; ix++)
+            {
+              if (ix>0) os << ' ';
+              os << seq.at(ix);
+            }
         os << endc;
       }
       break;

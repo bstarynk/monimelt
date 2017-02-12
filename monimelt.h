@@ -434,7 +434,7 @@ public:
     _ptrobj = nullptr;
   };
   MomRefobj(const MomRefobj &ro) : _ptrobj(ro._ptrobj) {};
-  MomRefobj(MomRefobj &&mo) : _ptrobj(std::move(mo._ptrobj)) {};
+  MomRefobj(MomRefobj &&mo) : _ptrobj(/*std::move*/(mo._ptrobj)) {};
   MomRefobj &operator=(const MomRefobj &ro)
   {
     _ptrobj = ro._ptrobj;
@@ -442,7 +442,7 @@ public:
   };
   MomRefobj &operator=(MomRefobj &&mo)
   {
-    _ptrobj = std::move(mo._ptrobj);
+    _ptrobj = /*std::move*/(mo._ptrobj);
     return *this;
   };
   MomObject *get_const(void) const
@@ -2811,11 +2811,20 @@ MomVal::as_colorob(void) const
   return unsafe_colorob();
 } // end MomVal::as_colorob
 
-std::ostream&operator << (std::ostream&os, const MomObject& ob)
+inline std::ostream&operator << (std::ostream&os, const MomObject& ob)
 {
   os << ob.ident();
   return os;
 }
+inline std::ostream&operator << (std::ostream&os, const MomRefobj rob)
+{
+  if (rob)
+    os << rob->ident();
+  else
+    os << "__";
+  return os;
+}
+
 
 std::ostream&operator << (std::ostream&os, const MomPairid pi)
 {
