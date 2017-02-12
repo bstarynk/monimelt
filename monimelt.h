@@ -830,7 +830,7 @@ public:
   // the scanning stops as soon as f returns true; the result is true if the value has been fully scanned
   bool scan_objects(const std::function<bool(MomRefobj)>&f) const;
   MomVal(TagJson, const MomJson&js, MomJsonParser&jp)
-    : MomVal(std::move(parse_json(js,jp))) {};
+    : MomVal(parse_json(js,jp)) {};
   MomVKind kind() const
   {
     return _kind;
@@ -1121,7 +1121,7 @@ private:
 public:
   // the filterf(insideobj,refobj) may return false to ignore, while scanning inside insideobj, some refobj
   bool scan_inside_object(const std::function<bool(MomRefobj)>&f,
-                          const std::function<bool(MomRefobj,MomRefobj)>&filterf= [=](MomRefobj,MomRefobj)
+                          const std::function<bool(MomRefobj,MomRefobj)>&filterf= [](MomRefobj,MomRefobj)
   {
     return true;
   }) const;
@@ -1358,19 +1358,12 @@ protected:
   MomSequence(SeqKind k, MomHash_t h)
     : _hash(h), _len(0), _seq(nullptr), _skd(k) {};
   MomSequence(SeqKind k, MomHash_t h, unsigned ln, const MomRefobj *arr)
-    : _hash(h), _len(check_length(ln)), _seq(new MomRefobj[ln]), _skd(k)
+    : _hash(h), _len(check_length(ln)), _seq(ln?new MomRefobj[ln]:nullptr), _skd(k)
   {
     MOM_ASSERT(ln == 0 || arr != nullptr, "missing arr");
     for (unsigned ix = 0; ix < ln; ix++)
       (const_cast<MomRefobj *>(_seq))[ix] = arr[ix];
   };
-  MomSequence(SeqKind k, MomHash_t h, unsigned ln, const MomRefobj *rawarr,
-              RawTag)
-    : _hash(h), _len(ln), _seq(rawarr), _skd(k)
-  {
-    MOM_ASSERT(ln <= MOM_SIZE_MAX, "too big length=" << ln);
-    MOM_ASSERT(ln == 0 || rawarr != nullptr, "missing rawarr");
-  }
   MomSequence(SeqKind k, MomHash_t h, const MomSequence &sq)
     : MomSequence(k, h, sq._len, sq._seq)
   {
@@ -1756,8 +1749,10 @@ public:
     *(const_cast<SeqKind *>(&_skd)) = SeqKind::NoneS;
     if (_seq)
       {
-        for (unsigned ix = 0; ix < _len; ix++)
-          (const_cast<MomRefobj *>(_seq))[ix].clear();
+        auto oldseq = const_cast<MomRefobj*>(_seq);
+        unsigned oldlen = _len;
+        for (unsigned ix=0; ix<oldlen; ix++)
+          oldseq[ix] = nullptr;
         delete[] _seq;
         _seq = nullptr;
       }
@@ -1922,19 +1917,13 @@ class MomSet  : public MomSequence
   static constexpr unsigned k2 = 3671;
   static constexpr unsigned k3 = 1367;
   static constexpr unsigned k4 = 569;
-  MomSet(MomSet&&set, RawTag tag)
+  MomSet(MomSet&&set)
     : MomSequence(SeqKind::SetS,
                   set._hash,
                   set._len,
-                  set._seq,
-                  tag)
+                  set._seq)
   {
-    *const_cast<SeqKind*>(&set._skd) = SeqKind::NoneS;
-    *const_cast<MomRefobj**>(&set._seq) = nullptr;
-    *const_cast<unsigned*>(&set._len) = 0;
-    *const_cast<MomHash_t*>(&set._hash) = 0;
   };
-  MomSet(MomSet&&set) : MomSet(std::move(set),RawTag{}) {};
   struct SortedTag {};
   MomSet(const std::vector<MomRefobj>& vec, SortedTag)
     : MomSequence(SeqKind::SetS,
@@ -1956,14 +1945,14 @@ class MomSet  : public MomSequence
   MomSet(void) : MomSequence(SeqKind::SetS, hinit) {};
   MomSet(std::nullptr_t) : MomSet() {};
   MomSet(const std::vector<MomRefobj>& vec, PlainTag)
-    : MomSet(std::move(make_from_vector(vec))) {};
+    : MomSet(make_from_vector(vec)) {};
   MomSet(std::initializer_list<MomRefobj> il, PlainTag)
-    : MomSet(std::move(make_from_vector(std::vector<MomRefobj>
+    : MomSet(make_from_vector(std::vector<MomRefobj>
   {
     il
-  }))) {};
+  })) {};
   MomSet(const MomSetRefobj& set, PlainTag)
-    : MomSet(std::move(make_from_set(set))) {};
+    : MomSet(make_from_set(set)) {};
   static void fill_set(std::set<MomRefobj>&);
   static void add_to_set(std::set<MomRefobj>&set, const MomVal val);
   template  <typename... Args>
@@ -2422,16 +2411,16 @@ MomVal::clear()
       _int = 0;
       break;
     case MomVKind::StringK:
-      _str.~shared_ptr<const MomString>();
+      _str.reset();
       ;
       break;
     case MomVKind::RefobjK:
       _ref.clear();
       break;
     case MomVKind::SetK:
-      _set.~shared_ptr<const MomSet>();
+      _set.reset();
     case MomVKind::TupleK:
-      _tup.~shared_ptr<const MomTuple>();
+      _tup.reset();
       break;
     case MomVKind::ColoRefK:
       *const_cast<MomRefobj*>(&_coloref._cobref) = nullptr;
