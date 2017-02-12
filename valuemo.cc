@@ -45,6 +45,51 @@ MomVal::less(const MomVal&r) const
   throw std::runtime_error("MomVal::less impossible case");
 } // end MomVal::less
 
+void
+MomVal::out(std::ostream& os) const
+{
+  auto k = kind();
+  char endc = 0;
+  switch(k)
+    {
+    case MomVKind::NoneK:
+      os << "~";
+      break;
+    case MomVKind::IntK:
+      os << _int;
+      break;
+    case MomVKind::StringK:
+      os << '"' << MomUtf8Out(as_string()) << '"';
+      break;
+    case MomVKind::RefobjK:
+      os << as_refobj();
+      break;
+    case MomVKind::SetK:
+      endc = '}';
+      os << '{';
+      goto outseq;
+    case MomVKind::TupleK:
+      endc = ']';
+      os << '[';
+      goto outseq;
+outseq:
+      {
+        unsigned cnt = 0;
+        for (auto rob : *as_sequence())
+          {
+            if (cnt>0) os << ' ';
+            os << rob;
+            cnt++;
+          }
+        os << endc;
+      }
+      break;
+    case MomVKind::ColoRefK:
+      os << '%' << as_colorob() << '!' << as_colorefobj();
+      break;
+    }
+} // end MomVal::out
+
 bool
 MomVal::less_equal(const MomVal&r) const
 {

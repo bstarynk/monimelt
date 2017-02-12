@@ -1000,6 +1000,8 @@ public:
   {
     return _coloref._colorob;
   };
+  inline MomRefobj as_colorefobj(void) const;
+  inline MomRefobj as_colorob(void) const;
 }; // end class MomVal
 
 
@@ -1049,7 +1051,14 @@ public:
 };        // end  MomUniqueWriteObjLock
 
 
-inline std::ostream&operator << (std::ostream&os, const MomObject& ob);
+static inline std::ostream&operator << (std::ostream&os, const MomObject& ob);
+
+static inline std::ostream&operator << (std::ostream&os, const MomVal& va)
+{
+  va.out(os);
+  return os;
+}
+
 
 class MomObject ///
 {
@@ -2790,6 +2799,28 @@ MomVal::as_refobj(void) const
     }
   return unsafe_refobj();
 } // end MomVal::as_refobj
+
+MomRefobj
+MomVal::as_colorefobj(void) const
+{
+  if (!is_coloref())
+    {
+      MOM_BACKTRACELOG("MomVal::as_colorefobj bad value:" << *this);
+      throw std::runtime_error("MomVal::as_colorefobj bad value");
+    }
+  return unsafe_colorefobj();
+} // end MomVal::as_colorefobj
+
+MomRefobj
+MomVal::as_colorob(void) const
+{
+  if (!is_coloref())
+    {
+      MOM_BACKTRACELOG("MomVal::as_colorob bad value:" << *this);
+      throw std::runtime_error("MomVal::as_colorob bad value");
+    }
+  return unsafe_colorob();
+} // end MomVal::as_colorob
 
 std::ostream&operator << (std::ostream&os, const MomObject& ob)
 {

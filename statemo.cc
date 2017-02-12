@@ -132,7 +132,9 @@ MomDumper::begin_scan(void)
   MOM_ASSERT(_dustate == IdleDu, "MomDumper is not idle when begin_scan");
   _dustate = ScanDu;
   auto vsetpredef = MomObject::set_of_predefined();
+  MOM_VERBOSELOG("MomDumper::begin_scan vsetpredef=" << vsetpredef);
   auto vglobal = MomObject::set_of_globals();
+  MOM_VERBOSELOG("MomDumper::begin_scan vglobal=" << vglobal);
   MomSetRefobj set;
   for (auto pob : *vsetpredef.as_set())
     {
