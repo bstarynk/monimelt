@@ -158,7 +158,8 @@ MomVal
 MomObject::set_of_predefined(void)
 {
   std::lock_guard<std::mutex> _gu(_predefined_mtx_);
-  return MomVSet( _predefined_set_);
+  auto vs = MomVSet(_predefined_set_);
+  return vs;
 } // end  MomObject::set_of_predefined
 
 
