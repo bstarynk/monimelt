@@ -254,7 +254,14 @@ main (int argc_main, char **argv_main)
   if (showsize)
     show_size_mom();
   MomObject::initialize_predefined();
-  MOM_VERBOSELOG("main set_of_predefined=" << MomObject::set_of_predefined());
+  {
+    auto predefs = MomObject::set_of_predefined();
+    MOM_VERBOSELOG("main predefs=" << predefs);
+    const MomSet* predefset = predefs.as_set();
+    MOM_ASSERT(predefset->size() == MOM_NB_PREDEF,
+               "wrong number of predefs=" << predefs);
+    MOM_VERBOSELOG("main set_of_predefined=" << predefs);
+  }
   if (dumping)
     mom_full_dump(dumpdir);
 } // end main
