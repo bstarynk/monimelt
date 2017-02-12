@@ -24,6 +24,7 @@
 #include <vector>
 #include <mutex>
 #include <shared_mutex>
+#include <atomic>
 
 // libbacktrace from GCC 6, i.e. libgcc-6-dev package
 #include <backtrace.h>
@@ -1116,6 +1117,7 @@ public:
     return true;
   }) const;
   static MomVal set_of_predefined(void);
+  static MomVal set_of_globals(void);
   MomJson json_for_content(MomJsonEmitter&) const;
   void fill_content_from_json(const MomJson&, MomJsonParser&);
   void set_space(MomSpace);
@@ -2343,6 +2345,7 @@ public:
   static constexpr const char* _predefined_header_ = "_mompredef.h";
   static constexpr const char* _global_header_ = "_momglobal.h";
   static constexpr const char* _global_prefix_ = "momglob_";
+  static constexpr const char* _globalatom_prefix_ = "momglobatom_";
   MomDumper(const std::string&dir);
   void write_file_content(const std::string&basepath, const std::string&content);
   ~MomDumper();
@@ -2828,4 +2831,13 @@ MomUniqueWriteObjLock::~MomUniqueWriteObjLock()
 #define MOM_HAS_PREDEF(Id,S1,S2,H) extern "C" MomRefobj mompredef##Id;
 #include "_mompredef.h"
 
+#define MOM_HAS_GLOBAL(Nam,Rank) extern "C" volatile std::atomic<MomObject*> momglobatom##Nam;
+#include "_momglobal.h"
+
+#define MOM_HAS_GLOBAL(Nam,Rank)        \
+  static inline MomRefobj momglobal_##Nam(void)     \
+  { return atomic_load(&momglobatom##Nam); }      \
+  static inline MomRefobj momglobal_##Nam(MomRefobj rob)  \
+  { return atomic_exchange(&momglobatom##Nam,rob); }
+#include "_momglobal.h"
 #endif /*MONIMELT_HEADER*/

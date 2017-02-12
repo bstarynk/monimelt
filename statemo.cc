@@ -122,8 +122,19 @@ MomDumper::begin_scan(void)
   MOM_ASSERT(_dustate == IdleDu, "MomDumper is not idle when begin_scan");
   _dustate = ScanDu;
   auto vsetpredef = MomObject::set_of_predefined();
-  scan_value(vsetpredef);
-  return vsetpredef;
+  auto vglobal = MomObject::set_of_globals();
+  MomSetRefobj set;
+  for (auto pob : *vsetpredef.as_set())
+    {
+      set.insert(pob);
+      scan_refobj(pob);
+    }
+  for (auto pob : *vglobal.as_set())
+    {
+      set.insert(pob);
+      scan_refobj(pob);
+    }
+  return MomVSet(set);
 } // end MomDumper::begin_scan
 
 
@@ -135,6 +146,17 @@ MomDumper::emit_loop(void)
   MOM_ASSERT(_duqueryinsobj == nullptr, "MomDumper with non-nil _duqueryinsobj");
   _dustate = EmitDu;
   _duqueryinsobj = new QSqlQuery(*_dusqldb);
+  /// clear the t_objects table
+  {
+    QSqlQuery dquery(*_dusqldb);
+    dquery.prepare("DELETE FROM t_objects");
+    if (!dquery.exec())
+      {
+        MOM_BACKTRACELOG("emit_loop: SQL failure for t_objects delete :"
+                         <<  _dusqldb->lastError().text().toStdString());
+        throw std::runtime_error("MomDumper::emit_loop SQL failure t_objects delete");
+      }
+  }
   _duqueryinsobj->prepare(_insert_object_sql_);
   unsigned long nbemit = 0;
   for (auto rob : _duobjset)
@@ -300,26 +322,40 @@ MomDumper::emit_globals(void)
     outs << "// eof " << _global_header_ << std::endl;
     write_file_content(_global_header_, outs.str());
   }
-  /// fill the global table
-  QSqlQuery query(*_dusqldb);
-  query.prepare("INSERT INTO t_globals (glo_name, glo_id) VALUES (?, ?)");
-  enum { InsGloNamIx, InsGloIdIx, InsGlo_LasrtIx };
-  for (auto glonam: globalset)
-    {
-      std::string cgloname = std::string{_global_prefix_} + glonam;
-      MomRefobj* gloptr = reinterpret_cast<MomRefobj*>(dlsym(mom_dlh,cgloname.c_str()));
-      if (gloptr && *gloptr)
-        {
-          query.bindValue(InsGloNamIx,glonam.c_str());
-          query.bindValue(InsGloIdIx,(*gloptr)->idstr().c_str());
-          if (!query.exec())
-            {
-              MOM_BACKTRACELOG("emit_globals: SQL failure for " <<  glonam.c_str()
-                               << " :" <<  _dusqldb->lastError().text().toStdString());
-              throw std::runtime_error("MomDumper::emit_globals SQL failure");
-            }
-        }
-    }
+  /// clear the t_globals table
+  {
+    QSqlQuery dquery(*_dusqldb);
+    dquery.prepare("DELETE FROM t_globals");
+    if (!dquery.exec())
+      {
+        MOM_BACKTRACELOG("emit_globals: SQL failure for t_globals delete :"
+                         <<  _dusqldb->lastError().text().toStdString());
+        throw std::runtime_error("MomDumper::emit_globals SQL failure t_globals delete");
+      }
+  }
+  /// fill the t_globals table
+  {
+    QSqlQuery iquery(*_dusqldb);
+    iquery.prepare("INSERT INTO t_globals (glo_name, glo_id) VALUES (?, ?)");
+    enum { InsGloNamIx, InsGloIdIx, InsGlo_LasrtIx };
+    for (auto glonam: globalset)
+      {
+        std::string cgloname = std::string{_globalatom_prefix_} + glonam;
+        auto gloptr = reinterpret_cast<volatile std::atomic<MomObject*>*>(dlsym(mom_dlh,cgloname.c_str()));
+        MomRefobj glrob;
+        if (gloptr && (glrob=atomic_load(gloptr)))
+          {
+            iquery.bindValue(InsGloNamIx,glonam.c_str());
+            iquery.bindValue(InsGloIdIx,glrob->idstr().c_str());
+            if (!iquery.exec())
+              {
+                MOM_BACKTRACELOG("emit_globals: SQL failure for t_globals insert " <<  glonam.c_str()
+                                 << " :" <<  _dusqldb->lastError().text().toStdString());
+                throw std::runtime_error("MomDumper::emit_globals SQL failure t_globals insert");
+              }
+          }
+      }
+  }
 } // end of MomDumper::emit_globals
 
 

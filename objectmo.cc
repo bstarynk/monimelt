@@ -160,6 +160,19 @@ MomObject::set_of_predefined(void)
   return MomVSet( _predefined_set_);
 } // end  MomObject::set_of_predefined
 
+
+MomVal
+MomObject::set_of_globals(void)
+{
+  MomSetRefobj setg;
+#define MOM_HAS_GLOBAL(Nam,Rank) do {     \
+    MomRefObj grob = atomic_load(momglobatom##Nam); \
+    if (grob) setg.insert(grob);      \
+  } while(0);
+#include "_momglobal.h"
+  return MomVSet(setg);
+} // end of MomObject::set_of_globals
+
 void
 MomObject::set_space(MomSpace sp)
 {
@@ -256,3 +269,6 @@ MomObject::fill_content_from_json(const MomJson&job, MomJsonParser&jpars)
 ////////////////
 #define MOM_HAS_PREDEF(Id,S1,S2,H) MomRefobj mompredef##Id;
 #include "_mompredef.h"
+
+#define MOM_HAS_GLOBAL(Nam,Rank) std::atomic<MomObject*> momglobatom##Nam;
+#include "_momglobal.h"
