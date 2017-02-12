@@ -23,7 +23,7 @@ public:
 };    // end class MomLoader
 
 MomDumper::MomDumper(const std::string&dir)
-  : _dustate(IdleDu), _dudir(dir), _duobjset(), _duqueue(), _duqueryinsobj(nullptr)
+  : _dustate(IdleDu), _dudir(dir), _duobjset(), _duqueue(), _dusqldb(nullptr), _duqueryinsobj(nullptr)
 {
   if (dir.empty()) _dudir = ".";
   struct stat ds = {};
@@ -50,6 +50,16 @@ MomDumper::~MomDumper()
 {
   MOM_ASSERT(_dustate == IdleDu,"MomDumper in " << _dudir
              << " still active when destroyed");
+  if (_duqueryinsobj)
+    {
+      delete _duqueryinsobj;
+      _duqueryinsobj = nullptr;
+    }
+  if (_dusqldb)
+    {
+      delete _dusqldb;
+      _dusqldb = nullptr;
+    }
   _duobjset.clear();
   _duqueue.clear();
 }
@@ -258,6 +268,8 @@ MomDumper::emit_predefined_header(const MomVal vset)
   for (auto rob : *vset.as_set())
     {
       MOM_ASSERT(rob, "MomDumper emit_predefined_header no rob");
+      if (rob->space() != MomSpace::PredefinedSp)
+        continue;
       outs << "MOM_HAS_PREDEF(" << rob->idstr() << ","
            << rob->hi_serial() << "," << rob->lo_serial() << ","
            << rob->hash() << ")" << std::endl;
@@ -393,6 +405,21 @@ MomDumper::create_tables(void)
       }
   }
 } // end MomDumper::create_tables
+
+
+void
+mom_full_dump(const std::string&dir)
+{
+  MomDumper du(dir);
+  MOM_VERBOSELOG("mom_full_dump start in " << du.dir());
+  auto vroots = du.begin_scan();
+  du.scan_loop();
+  du.create_tables();
+  du.emit_loop();
+  du.emit_predefined_header(vroots);
+  du.emit_globals();
+  MOM_VERBOSELOG("mom_full_dump done in " << du.dir());
+} // end mom_full_dump
 
 ////////////////////////////////////////////////////////////////
 

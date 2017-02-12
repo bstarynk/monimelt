@@ -232,6 +232,8 @@ main (int argc_main, char **argv_main)
       exit(EXIT_FAILURE);
     }
   bool nogui = false;
+  bool dumping = false;
+  std::string dumpdir;
   for (int ix=1; ix<argc_main; ix++)
     {
       if (!strcmp("--no-gui", argv_main[ix]) || !strcmp("-N", argv_main[ix]) || !strcmp("--batch", argv_main[ix]))
@@ -240,11 +242,20 @@ main (int argc_main, char **argv_main)
         mom_verboseflag = true;
       if (!strcmp("-S", argv_main[ix]) || !strcmp("--show-size",argv_main[ix]))
         showsize = true;
+      if (ix+1< argc_main
+          && (!strcmp("-D", argv_main[ix]) || !strcmp("--dump",argv_main[ix]))
+          && (argv_main[ix+1][0] == '/' || isalpha(argv_main[ix+1][0]) || argv_main[ix+1][0] == '_'))
+        {
+          dumping = true;
+          dumpdir = argv_main[ix+1];
+        }
     }
   sqlite3_config (SQLITE_CONFIG_LOG, mom_sqlite_errorlog, NULL);
   if (showsize)
     show_size_mom();
   MomObject::initialize_predefined();
+  if (dumping)
+    mom_full_dump(dumpdir);
 } // end main
 
 

@@ -2347,6 +2347,10 @@ public:
   static constexpr const char* _global_prefix_ = "momglob_";
   static constexpr const char* _globalatom_prefix_ = "momglobatom_";
   MomDumper(const std::string&dir);
+  std::string dir() const
+  {
+    return _dudir;
+  };
   void write_file_content(const std::string&basepath, const std::string&content);
   ~MomDumper();
   bool dumpable_refobj(const MomRefobj ro) const
@@ -2357,7 +2361,7 @@ public:
   {
     return dumpable_refobj(ro);
   };
-  MomVal begin_scan(void); // return the set of predefined
+  MomVal begin_scan(void); // return the set of predefined & globals
   void create_tables(void);
   void scan_value(const MomVal);
   void scan_refobj(const MomRefobj);
@@ -2372,6 +2376,8 @@ public:
 
 ////////////////
 void mom_initial_load(const std::string&dir);
+
+void mom_full_dump(const std::string&dir);
 
 ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
