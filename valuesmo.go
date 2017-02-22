@@ -1,6 +1,6 @@
 // file values-mo.go
 // manage values
-package values_mo
+package valuesmo
 
 type ValMo interface {
 	isValueMo()
