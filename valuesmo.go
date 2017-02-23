@@ -7,7 +7,9 @@ type ValMo interface {
 }
 
 type IntMo int
+
 func (i IntMo) isValueMo() {}
 
 type StringMo string
+
 func (s StringMo) isValueMo() {}
