@@ -2,6 +2,8 @@
 
 package serialmo
 
+import "bytes"
+
 type SerialMo uint64
 
 const B62DigitsMo = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -17,7 +19,8 @@ type IdentMo struct {
 }
 
 func (sm SerialMo) ValidSerial() bool {
-	return sm == 0 || sm >= MinSerialMo && sm < MaxSerialMo
+	return uint64(sm) == 0 ||
+		uint64(sm) >= MinSerialMo && uint64(sm) < MaxSerialMo
 }
 
 func (sm SerialMo) ToString() string {
@@ -30,5 +33,6 @@ func (sm SerialMo) ToString() string {
 		buf[ix] = B62DigitsMo[d]
 	}
 	buf[0] = '_'
-	return string(buf)
+	n := bytes.IndexByte(buf[:], 0)
+	return string(buf[:n])
 }
