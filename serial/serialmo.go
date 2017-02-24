@@ -2,7 +2,11 @@
 
 package serialmo
 
-import "bytes"
+import (
+	"bytes"
+	"errors"
+	"strings"
+)
 
 type SerialMo uint64
 
@@ -23,6 +27,10 @@ func (sm SerialMo) ValidSerial() bool {
 		uint64(sm) >= MinSerialMo && uint64(sm) < MaxSerialMo
 }
 
+func (sm SerialMo) NonEmpty() bool {
+	return uint64(sm) != 0
+}
+
 func (sm SerialMo) ToString() string {
 	if sm == 0 {
 		return "_"
@@ -35,4 +43,26 @@ func (sm SerialMo) ToString() string {
 	buf[0] = '_'
 	n := bytes.IndexByte(buf[:], 0)
 	return string(buf[:n])
+}
+
+func FromString(s string) (SerialMo, error) {
+	if s == "" {
+		return SerialMo(0), errors.New("serialmo.FromString empty string")
+	}
+	if s[0] != '_' {
+		return SerialMo(0), errors.New("serialmo.FromString string does not start with underscore")
+	}
+	if len(s) != NbDigitsSerialMo+1 {
+		return SerialMo(0), errors.New("serialmo.FromString string of wrong length")
+	}
+	sr := SerialMo(0)
+	for ix := NbDigitsSerialMo + 1; ix > 0; ix-- {
+		c := s[ix]
+		r := strings.IndexByte(B62DigitsMo, c)
+		if r < 0 {
+			return SerialMo(0), errors.New("serialmo.FromString invalid char")
+		}
+		sr = sr*SerialMo(BaseSerialMo) + SerialMo(r)
+	}
+	return sr, nil
 }
