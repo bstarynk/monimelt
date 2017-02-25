@@ -3,7 +3,6 @@
 package serialmo
 
 import (
-	"bytes"
 	"errors"
 	"strings"
 )
@@ -38,11 +37,11 @@ func (sm SerialMo) ToString() string {
 	var buf [NbDigitsSerialMo + 2]byte
 	for ix := NbDigitsSerialMo + 1; ix > 0; ix-- {
 		d := sm % BaseSerialMo
+		sm = sm / BaseSerialMo
 		buf[ix] = B62DigitsMo[d]
 	}
 	buf[0] = '_'
-	n := bytes.IndexByte(buf[:], 0)
-	return string(buf[:n])
+	return string(buf[:])
 }
 
 func FromString(s string) (SerialMo, error) {
