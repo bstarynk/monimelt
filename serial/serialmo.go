@@ -104,3 +104,13 @@ func FromString(s string) (SerialMo, error) {
 	}
 	return sr, nil
 }
+
+func FromUint64(u uint64) (SerialMo, error) {
+	if u == 0 {
+		return SerialMo(0), nil
+	}
+	if u < MinSerialMo || u >= MaxSerialMo {
+		return SerialMo(0), errors.New("serialmo.FromUint64 out of bound")
+	}
+	return SerialMo(u), nil
+}
