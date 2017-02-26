@@ -3,8 +3,11 @@
 package serialmo
 
 import (
-	"fmt"
+	cryptrand "crypto/rand"
+	encbinary "encoding/binary"
 	"errors"
+	"fmt"
+	mathrand "math/rand"
 	"strings"
 )
 
@@ -20,6 +23,30 @@ const BaseSerialMo = 62
 
 type IdentMo struct {
 	IdHi, IdLo SerialMo
+}
+
+var randchan chan uint64
+
+const seedperiod = 8192
+
+func randroutine() {
+	var randcount uint64
+	var curseed int64
+	for {
+		if randcount%seedperiod == 0 {
+			var buf [8]byte
+			cryptrand.Read(buf[:])
+			curseed = int64(encbinary.LittleEndian.Uint64(buf[:]))
+			mathrand.Seed(curseed)
+		}
+		randcount++
+		randchan <- mathrand.Uint64()
+	}
+}
+
+func init() {
+	randchan = make(chan uint64)
+	go randroutine()
 }
 
 func (sm SerialMo) ValidSerial() bool {
@@ -45,8 +72,16 @@ func (sm SerialMo) ToString() string {
 	return string(buf[:])
 }
 
+func RandomSerial() SerialMo {
+	var r uint64
+	for r < MinSerialMo || r >= MaxSerialMo {
+		r = <-randchan
+	}
+	return SerialMo(r)
+}
+
 func FromString(s string) (SerialMo, error) {
-	fmt.Printf("FromString s=%s\n", s);
+	fmt.Printf("FromString s=%s\n", s)
 	if s == "" {
 		return SerialMo(0), errors.New("serialmo.FromString empty string")
 	}
@@ -60,12 +95,12 @@ func FromString(s string) (SerialMo, error) {
 	for ix := NbDigitsSerialMo; ix > 0; ix-- {
 		c := s[ix]
 		r := strings.IndexByte(B62DigitsMo, c)
-		fmt.Printf("FromString ix=%d c='%c'=%#x r=%d\n", ix, c, c, r);
+		fmt.Printf("FromString ix=%d c='%c'=%#x r=%d\n", ix, c, c, r)
 		if r < 0 {
 			return SerialMo(0), errors.New("serialmo.FromString invalid char")
 		}
 		sr = sr*SerialMo(BaseSerialMo) + SerialMo(r)
-		fmt.Printf("FromString sr=%d=%#x\n", sr, sr);
+		fmt.Printf("FromString sr=%d=%#x\n", sr, sr)
 	}
 	return sr, nil
 }
