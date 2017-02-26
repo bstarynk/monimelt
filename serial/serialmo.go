@@ -94,7 +94,7 @@ func RandomOfBucket(bn uint) SerialMo {
 		panic(fmt.Sprintf("serialmo.RandomOfBucket bad bn=%d", bn))
 	}
 	r := <-randchan % (DeltaSerialMo / MaxBucketMo)
-	s := (uint64(bn) * (DeltaSerialMo % MaxBucketMo)) + r + MinSerialMo
+	s := (uint64(bn) * (DeltaSerialMo / MaxBucketMo)) + r + MinSerialMo
 	return SerialMo(s)
 }
 
