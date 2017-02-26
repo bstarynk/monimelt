@@ -59,6 +59,10 @@ func (sm SerialMo) NonEmpty() bool {
 	return uint64(sm) != 0
 }
 
+func (sm SerialMo) Empty() bool {
+	return uint64(sm) == 0
+}
+
 func (sm SerialMo) ToString() string {
 	if sm == 0 {
 		return "_"
@@ -146,4 +150,93 @@ func FromCheckedUint64(u uint64) SerialMo {
 			u, e))
 	}
 	return sr
+}
+
+func (id IdentMo) EmptyId() bool {
+	return uint64(id.IdHi) == 0 && uint64(id.IdLo) == 0
+}
+
+func (id IdentMo) ValidId() bool {
+	if id.EmptyId() {
+		return true
+	}
+	return id.IdHi.ValidSerial() && id.IdLo.ValidSerial()
+}
+
+func (id IdentMo) ToString() string {
+	if id.EmptyId() {
+		return "__"
+	}
+	return id.IdHi.ToString() + id.IdLo.ToString()
+}
+
+func (id IdentMo) BucketNum() uint {
+	return id.IdHi.BucketNum()
+}
+
+func RandomId() IdentMo {
+	return IdentMo{IdHi: RandomSerial(), IdLo: RandomSerial()}
+}
+
+func RandomIdOfBucket(bn uint) IdentMo {
+	return IdentMo{IdHi: RandomOfBucket(bn), IdLo: RandomSerial()}
+}
+
+func IdFromString(s string) (IdentMo, error) {
+	if s == "" {
+		return IdentMo{}, errors.New("serialmo.IdFromString empty string")
+	}
+	if s == "__" {
+		return IdentMo{}, nil
+	}
+	if len(s) != 2*NbDigitsSerialMo+2 {
+		return IdentMo{}, errors.New("serialmo.IdFromString string of wrong length")
+	}
+	if s[0] != '_' {
+		return IdentMo{}, errors.New("serialmo.IdFromString string does not start with underscore")
+	}
+	hi, eh := FromString(s[0 : NbDigitsSerialMo+1])
+	if eh != nil {
+		return IdentMo{}, errors.New("serialmo.IdFromString bad hi part")
+	}
+	lo, el := FromString(s[NbDigitsSerialMo+1 : 2*NbDigitsSerialMo+2])
+	if el != nil {
+		return IdentMo{}, errors.New("serialmo.IdFromString bad lo part")
+	}
+	return IdentMo{IdHi: hi, IdLo: lo}, nil
+}
+
+func IdFromCheckedString(s string) IdentMo {
+	id, e := IdFromString(s)
+	if e != nil {
+		panic(fmt.Sprintf("serialmo.IdFromCheckedString failure %v", e))
+	}
+	return id
+}
+
+func IdFromSerials(shi SerialMo, slo SerialMo) (IdentMo, error) {
+	if uint64(shi) == 0 && uint64(slo) == 0 {
+		return IdentMo{}, nil
+	}
+	if uint64(shi) == 0 {
+		return IdentMo{}, errors.New("serialmo.IdFromSerials zero shi")
+	}
+	if uint64(slo) == 0 {
+		return IdentMo{}, errors.New("serialmo.IdFromSerials zero slo")
+	}
+	if !shi.ValidSerial() {
+		return IdentMo{}, errors.New("serialmo.IdFromSerials invalid shi")
+	}
+	if !slo.ValidSerial() {
+		return IdentMo{}, errors.New("serialmo.IdFromSerials invalid slo")
+	}
+	return IdentMo{IdHi: shi, IdLo: slo}, nil
+}
+
+func IdFromCheckedSerials(shi SerialMo, slo SerialMo) IdentMo {
+	id, e := IdFromSerials(shi, slo)
+	if e != nil {
+		panic(fmt.Sprintf("serialmo.IdFromCheckedSerials failure %v", e))
+	}
+	return id
 }
