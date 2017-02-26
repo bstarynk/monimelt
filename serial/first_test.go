@@ -29,4 +29,19 @@ func TestFirst(t *testing.T) {
 	fmt.Printf("s1s='%s'\n", s1s)
 	s1n, e := FromString(s1s)
 	fmt.Printf("s1n=%d=%#x e=%v\n", s1n, s1n, e)
+	///
+	s2, e := FromUint64(62*62*62)
+	fmt.Printf("s2=%d=%#x e=%v\n", s2, s2, e)
+	s2s := s2.ToString()
+	fmt.Printf("s2s='%s'\n", s2s)
+	s2n, e := FromString(s2s)
+	fmt.Printf("s2n=%d=%#x e=%v\n", s2n, s2n, e)
+	//
+	const s3str = "_0000000A000"
+	const s3nn = 10*62*62*62
+	s3, e := FromString(s3str)
+	fmt.Printf("s3=%d=%#x s3str='%s' s3nn=%d=%#x e=%v\n", s3, s3, s3str,
+		s3nn, s3nn, e)
+	s3s := s3.ToString()
+	fmt.Printf("s3s='%s'\n", s3s)
 }
