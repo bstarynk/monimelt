@@ -75,9 +75,9 @@ func finalizeObjectMo(ob *ObjectMo) {
 	delete(buck.bu_admap, obid)
 }
 
-func MakeObjectById(id serialmo.IdentMo) *ObjectMo {
+func FindOrMakeObjectById(id serialmo.IdentMo) (*ObjectMo, bool) {
 	if id.EmptyId() {
-		return nil
+		return nil, true
 	}
 	if !id.ValidId() {
 		panic(fmt.Sprintf("objvalmo.FindObjectById invalid id %#x,%#x", id.IdHi, id.IdLo))
@@ -93,7 +93,12 @@ func MakeObjectById(id serialmo.IdentMo) *ObjectMo {
 		newobptr.obid = id
 		buck.bu_admap[id] = uintptr((unsafe.Pointer)(newobptr))
 		runtime.SetFinalizer(*newobptr, finalizeObjectMo)
-		return newobptr
+		return newobptr, false
 	}
-	return (*ObjectMo)((unsafe.Pointer)(ad))
+	return (*ObjectMo)((unsafe.Pointer)(ad)), true
+}
+
+func MakeObjectById(id serialmo.IdentMo) *ObjectMo {
+	ob, _ := FindOrMakeObjectById(id)
+	return ob
 }
