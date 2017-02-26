@@ -120,3 +120,12 @@ func FromUint64(u uint64) (SerialMo, error) {
 	}
 	return SerialMo(u), nil
 }
+
+func FromCheckedUint64(u uint64) SerialMo {
+	sr, e := FromUint64(u)
+	if e != nil {
+		panic(fmt.Sprintf("FromCheckedUint64 %#x fail %v",
+			u, e))
+	}
+	return sr
+}
