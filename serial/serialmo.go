@@ -6,7 +6,6 @@ import (
 	cryptrand "crypto/rand"
 	encbinary "encoding/binary"
 	"errors"
-	"fmt"
 	mathrand "math/rand"
 	"strings"
 )
@@ -81,7 +80,6 @@ func RandomSerial() SerialMo {
 }
 
 func FromString(s string) (SerialMo, error) {
-	fmt.Printf("FromString s=%s\n", s)
 	if s == "" {
 		return SerialMo(0), errors.New("serialmo.FromString empty string")
 	}
@@ -92,15 +90,13 @@ func FromString(s string) (SerialMo, error) {
 		return SerialMo(0), errors.New("serialmo.FromString string of wrong length")
 	}
 	sr := SerialMo(0)
-	for ix := NbDigitsSerialMo; ix > 0; ix-- {
+	for ix := 1; ix <= NbDigitsSerialMo; ix++ {
 		c := s[ix]
 		r := strings.IndexByte(B62DigitsMo, c)
-		fmt.Printf("FromString ix=%d c='%c'=%#x r=%d\n", ix, c, c, r)
 		if r < 0 {
 			return SerialMo(0), errors.New("serialmo.FromString invalid char")
 		}
 		sr = sr*SerialMo(BaseSerialMo) + SerialMo(r)
-		fmt.Printf("FromString sr=%d=%#x\n", sr, sr)
 	}
 	return sr, nil
 }
