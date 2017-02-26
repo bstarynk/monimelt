@@ -6,6 +6,7 @@ import (
 	cryptrand "crypto/rand"
 	encbinary "encoding/binary"
 	"errors"
+	"fmt"
 	mathrand "math/rand"
 	"strings"
 )
@@ -99,6 +100,15 @@ func FromString(s string) (SerialMo, error) {
 		sr = sr*SerialMo(BaseSerialMo) + SerialMo(r)
 	}
 	return sr, nil
+}
+
+func FromCheckedString(s string) SerialMo {
+	sr, e := FromString(s)
+	if e != nil {
+		panic(fmt.Sprintf("FromCheckedString %s fail %v",
+			s, e))
+	}
+	return sr
 }
 
 func FromUint64(u uint64) (SerialMo, error) {
