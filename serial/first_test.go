@@ -1,4 +1,4 @@
-// file serialmo_testing.go
+// file serialmo/first_test.go
 
 package serialmo
 
@@ -56,7 +56,7 @@ func TestFirst(t *testing.T) {
 	fmt.Printf("s3s='%s'\n", s3s)
 	sr := RandomSerial()
 	srs := sr.ToString()
-	fmt.Printf("sr=%d=%#x='%s'\n", sr, sr, srs)
+	fmt.Printf("sr=%d=%#x='%s' bucket#%d\n", sr, sr, srs, sr.BucketNum())
 	srf, e := FromString(srs)
 	if srf != sr {
 		t.Errorf("TestFirst failure sr=%d=%#x='%s' e=%v\n",
@@ -64,14 +64,23 @@ func TestFirst(t *testing.T) {
 	}
 	sr = RandomSerial()
 	srs = sr.ToString()
-	fmt.Printf("sr=%d=%#x='%s'\n", sr, sr, srs)
+	fmt.Printf("sr=%d=%#x='%s' bucket#%d\n", sr, sr, srs, sr.BucketNum())
 	if FromCheckedString(srs) != sr {
 		t.Errorf("TestFirst failure sr=%d=%#x='%s'\n", sr, sr, srs)
 	}
 	sr = RandomSerial()
 	srs = sr.ToString()
-	fmt.Printf("sr=%d=%#x='%s'\n", sr, sr, srs)
+	fmt.Printf("sr=%d=%#x='%s' bucket#%d\n", sr, sr, srs, sr.BucketNum())
+	sb := RandomOfBucket(sr.BucketNum())
+	sbs := sb.ToString()
+	fmt.Printf("sb=%d=%#x='%s' bucket#%d\n", sb, sb, sbs, sb.BucketNum())
 	if FromCheckedString(srs) != sr {
 		t.Errorf("TestFirst failure sr=%d=%#x='%s'\n", sr, sr, srs)
 	}
+	if sb.BucketNum() != sr.BucketNum() {
+		t.Errorf("TestFirst failure sr=%d=%#x='%s' bucket#%d non isobucket with sb=%d=%#x='%s' bucket#%d\n",
+			sr, sr, srs, sr.BucketNum(),
+			sb, sb, sbs, sb.BucketNum())
+	}
+
 }

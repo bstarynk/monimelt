@@ -20,6 +20,7 @@ const MaxSerialMo uint64 = 10 * 62 * (62 * 62 * 62) * (62 * 62 * 62) * (62 * 62 
 const DeltaSerialMo uint64 = MaxSerialMo - MinSerialMo
 const NbDigitsSerialMo = 11
 const BaseSerialMo = 62
+const MaxBucketMo = 10 * 62
 
 type IdentMo struct {
 	IdHi, IdLo SerialMo
@@ -72,12 +73,29 @@ func (sm SerialMo) ToString() string {
 	return string(buf[:])
 }
 
+func (sm SerialMo) BucketNum() uint {
+	return uint(uint64(sm) / uint64(DeltaSerialMo/MaxBucketMo))
+}
+
+func (sm SerialMo) BucketOffset() uint64 {
+	return uint64(sm) % (DeltaSerialMo / MaxBucketMo)
+}
+
 func RandomSerial() SerialMo {
 	var r uint64
 	for r < MinSerialMo || r >= MaxSerialMo {
 		r = <-randchan
 	}
 	return SerialMo(r)
+}
+
+func RandomOfBucket(bn uint) SerialMo {
+	if bn >= MaxBucketMo {
+		panic(fmt.Sprintf("serialmo.RandomOfBucket bad bn=%d", bn))
+	}
+	r := <-randchan % (DeltaSerialMo / MaxBucketMo)
+	s := (uint64(bn) * (DeltaSerialMo % MaxBucketMo)) + r + MinSerialMo
+	return SerialMo(s)
 }
 
 func FromString(s string) (SerialMo, error) {
@@ -105,7 +123,7 @@ func FromString(s string) (SerialMo, error) {
 func FromCheckedString(s string) SerialMo {
 	sr, e := FromString(s)
 	if e != nil {
-		panic(fmt.Sprintf("FromCheckedString %s fail %v",
+		panic(fmt.Sprintf("serialmo.FromCheckedString %s fail %v",
 			s, e))
 	}
 	return sr
