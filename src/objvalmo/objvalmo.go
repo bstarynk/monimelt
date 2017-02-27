@@ -4,10 +4,10 @@ package objvalmo
 
 import (
 	"fmt"
-	"github.com/bstarynk/monimelt/serialmo"
 	"runtime"
 	"sync"
 	"unsafe"
+	"serialmo"
 )
 
 const (
@@ -44,37 +44,24 @@ type StringVMo interface {
 	String() string
 }
 
-type StringV struct {
-	str string
+type StringV  string
+
+func (StringV) isStringV() {}
+
+func (sv StringV) Length() int {
+	return len(sv)
 }
 
-func (*StringV) isStringV() {}
-
-func (sv *StringV) Length() int {
-	if (sv == nil) {
-		return 0
-	}
-	return len(sv.str)
+func (sv StringV) String() string {
+	return string(sv)
 }
 
-func (sv *StringV) String() string {
-	if (sv == nil) {
-		return ""
-	}
-	return sv.str
-}
-
-func (sv *StringV) TypeV() uint {
-	if (sv==nil) {
-		return TyNilV
-	}
+func (sv StringV) TypeV() uint {
 	return TyStringV
 }
 
-func MakeStringV(s string) *StringV {
-	sv := new(StringV)
-	sv.str = s
-	return sv
+func MakeStringV(s string) StringV {
+	return StringV(s)
 }
 
 //////////////// integer values
