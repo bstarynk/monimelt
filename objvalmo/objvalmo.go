@@ -33,8 +33,69 @@ type PayloadMo interface {
 }
 
 type ValueMo interface {
+	TypeV() uint
 }
 
+//////////////// string values
+type StringVMo interface {
+	ValueMo
+	isStringV() // private
+	Length() int
+	String() string
+}
+
+type StringV struct {
+	str string
+}
+
+func (*StringV) isStringV() {}
+
+func (sv *StringV) Length() int {
+	if (sv == nil) {
+		return 0
+	}
+	return len(sv.str)
+}
+
+func (sv *StringV) String() string {
+	if (sv == nil) {
+		return ""
+	}
+	return sv.str
+}
+
+func (sv *StringV) TypeV() uint {
+	if (sv==nil) {
+		return TyNilV
+	}
+	return TyStringV
+}
+
+func MakeStringV(s string) *StringV {
+	sv := new(StringV)
+	sv.str = s
+	return sv
+}
+
+//////////////// integer values
+type IntVMo interface {
+	ValueMo
+	isIntV() // private
+	Int() int
+}
+
+type IntV int
+
+func (IntV) isIntV() {}
+func (i IntV) Int() int {
+	return int(i)
+}
+
+func MakeIntV(i int) IntV {
+	return IntV(i)
+}
+
+////////////////////////////////////////////////////////////////
 type bucketTy struct {
 	bu_mtx   sync.Mutex
 	bu_admap map[serialmo.IdentMo]uintptr
