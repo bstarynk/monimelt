@@ -4,7 +4,7 @@ package objvalmo
 
 import (
 	"fmt"
-	serialmo "github.com/bstarynk/monimelt/serial"
+	"github.com/bstarynk/monimelt/serialmo"
 	"testing"
 )
 

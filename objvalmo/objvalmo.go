@@ -4,7 +4,7 @@ package objvalmo
 
 import (
 	"fmt"
-	serialmo "github.com/bstarynk/monimelt/serial"
+	"github.com/bstarynk/monimelt/serialmo"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -22,6 +22,7 @@ const (
 
 type ObjectMo struct {
 	obid    serialmo.IdentMo
+	obmtx   sync.Mutex
 	obattrs map[*ObjectMo]*ValueMo
 	obcomps []*ValueMo
 	obpayl  *PayloadMo
@@ -57,6 +58,14 @@ func FindObjectById(id serialmo.IdentMo) *ObjectMo {
 		return nil
 	}
 	return (*ObjectMo)((unsafe.Pointer)(ad))
+}
+
+func FindObjectByTwoNums(hi uint64, lo uint64) *ObjectMo {
+	if hi == 0 && lo == 0 {
+		return nil
+	}
+	id := serialmo.IdFromCheckedTwoNums(hi, lo)
+	return FindObjectById(id)
 }
 
 func finalizeObjectMo(ob *ObjectMo) {
@@ -101,4 +110,12 @@ func FindOrMakeObjectById(id serialmo.IdentMo) (*ObjectMo, bool) {
 func MakeObjectById(id serialmo.IdentMo) *ObjectMo {
 	ob, _ := FindOrMakeObjectById(id)
 	return ob
+}
+
+func MakeObjectByTwoNums(hi uint64, lo uint64) *ObjectMo {
+	if hi == 0 && lo == 0 {
+		return nil
+	}
+	id := serialmo.IdFromCheckedTwoNums(hi, lo)
+	return MakeObjectById(id)
 }

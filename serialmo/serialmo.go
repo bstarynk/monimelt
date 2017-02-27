@@ -240,3 +240,11 @@ func IdFromCheckedSerials(shi SerialMo, slo SerialMo) IdentMo {
 	}
 	return id
 }
+
+func IdFromCheckedTwoNums(nhi uint64, nlo uint64) IdentMo {
+	id, e := IdFromSerials(SerialMo(nhi), SerialMo(nlo))
+	if e != nil {
+		panic(fmt.Sprintf("serialmo.IdFromCheckedTwoNums failure %v", e))
+	}
+	return id
+}
