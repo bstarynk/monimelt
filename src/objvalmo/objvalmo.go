@@ -7,6 +7,7 @@ import (
 	"math"
 	"runtime"
 	"serialmo"
+	"sort"
 	"sync"
 	"unsafe"
 )
@@ -359,6 +360,56 @@ func MakeTupleSliceV(objs []*ObjectMo) TupleV {
 	var tup TupleV
 	tup = TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
 	return tup
+}
+
+// private type for ordering slice of object pointers
+type ordSliceObptr []*ObjectMo
+
+func (os ordSliceObptr) Len() int {
+	return len(os)
+}
+
+func (os ordSliceObptr) Swap(i, j int) {
+	os[i], os[j] = os[j], os[i]
+}
+
+func (os ordSliceObptr) Less(i, j int) bool {
+	return LessObptr(os[i], os[j])
+}
+
+func filterObptr(arr []*ObjectMo) ordSliceObptr {
+	if arr == nil || len(arr) == 0 {
+		return arr
+	}
+	l := len(arr)
+	coparr := make([]*ObjectMo, 0, l)
+	nbnil := 0
+	for _, obp := range arr {
+		if obp == nil {
+			nbnil++
+		} else {
+			coparr = append(coparr, obp)
+		}
+	}
+	sort.Sort(ordSliceObptr(coparr))[:l-nbnil]
+	hasdup := false
+	for ix, ob := range coparr {
+		if ix > 0 && ob == coparr[ix-1] {
+			hasdup = true
+			break
+		}
+	}
+	if !hasdup {
+		return ordSliceObptr(coparr)
+	}
+	resarr := make([]*ObjectMo, 0, len(coparr))
+	resarr = append(resarr, coparr[0])
+	for ix, ob := range coparr {
+		if ix > 0 && ob != coparr[ix-1] {
+			resarr = append(resarr, ob)
+		}
+	}
+	return ordSliceObptr(resarr[:len(resarr)])
 }
 
 ////////////////////////////////////////////////////////////////
