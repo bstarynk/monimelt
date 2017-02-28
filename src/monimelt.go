@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	_ "objvalmo"
 	"os"
 	"runtime"
 	"serialmo"
