@@ -83,6 +83,26 @@ func MakeIntV(i int) IntV {
 	return IntV(i)
 }
 
+//////////////// refob values
+type RefobVMo interface {
+	ValueMo
+	isRefobV()
+	Obref() *ObjectMo
+}
+
+type RefobV struct {
+	roptr *ObjectMo
+}
+
+func (RefobV) isRefobV() {}
+func (rob RefobV) TypeV() uint {
+	return TyRefobV
+}
+
+func (rob RefobV) Obref() *ObjectMo {
+	return rob.roptr
+}
+
 //////////////// sequence values
 type SequenceVMo interface {
 	ValueMo
