@@ -93,6 +93,10 @@ func RandomSerial() SerialMo {
 	return SerialMo(r)
 }
 
+func (sm SerialMo) ToUint64() uint64 {
+	return uint64(sm)
+}
+
 func RandomOfBucket(bn uint) SerialMo {
 	if bn >= MaxBucketMo {
 		panic(fmt.Sprintf("serialmo.RandomOfBucket bad bn=%d", bn))
@@ -172,6 +176,10 @@ func (id IdentMo) ToString() string {
 
 func (id IdentMo) BucketNum() uint {
 	return id.IdHi.BucketNum()
+}
+
+func (id IdentMo) ToTwoNums() (uint64, uint64) {
+	return uint64(id.IdHi), uint64(id.IdLo)
 }
 
 func RandomId() IdentMo {
