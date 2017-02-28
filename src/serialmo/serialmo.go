@@ -182,6 +182,38 @@ func (id IdentMo) ToTwoNums() (uint64, uint64) {
 	return uint64(id.IdHi), uint64(id.IdLo)
 }
 
+func LessId(idl IdentMo, idr IdentMo) bool {
+	if idl.IdHi < idr.IdHi {
+		return true
+	}
+	if idl.IdHi > idr.IdHi {
+		return false
+	}
+	if idl.IdLo == idr.IdLo {
+		return false
+	}
+	if idl.IdLo < idr.IdLo {
+		return true
+	}
+	return false
+}
+
+func LessEqualId(idl IdentMo, idr IdentMo) bool {
+	if idl.IdHi < idr.IdHi {
+		return true
+	}
+	if idl.IdHi > idr.IdHi {
+		return false
+	}
+	if idl.IdLo == idr.IdLo {
+		return true
+	}
+	if idl.IdLo < idr.IdLo {
+		return true
+	}
+	return false
+}
+
 func RandomId() IdentMo {
 	return IdentMo{IdHi: RandomSerial(), IdLo: RandomSerial()}
 }
