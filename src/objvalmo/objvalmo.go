@@ -221,6 +221,13 @@ func (rob RefobV) Hash() HashMo {
 	return HashObptr(rob.roptr)
 }
 
+func MakeRefobV(pob *ObjectMo) RefobV {
+	if pob == nil {
+		panic("objectmo.MakeRefobV nil object")
+	}
+	return RefobV{roptr: pob}
+}
+
 //////////////// sequence values
 type SequenceVMo interface {
 	ValueMo
@@ -231,6 +238,7 @@ type SequenceVMo interface {
 }
 
 type SequenceV struct {
+	shash  HashMo
 	scomps []*ObjectMo
 }
 
@@ -250,6 +258,7 @@ func (sq SequenceV) At(rk int) *ObjectMo {
 func (sq SequenceV) Length() int {
 	return len(sq.scomps)
 }
+func (sq SequenceV) Hash() HashMo { return sq.shash }
 
 func (sq SequenceV) Nth(rk int) *ObjectMo {
 	l := len(sq.scomps)
@@ -262,19 +271,36 @@ func (sq SequenceV) Nth(rk int) *ObjectMo {
 	return sq.scomps[rk]
 }
 
-func makeCheckedSequence(objs ...*ObjectMo) SequenceV {
+func makeCheckedSequenceSlice(hinit uint32, k1 uint32, k2 uint32, objs []*ObjectMo) SequenceV {
 	if objs == nil {
 		return SequenceV{}
 	}
 	l := len(objs)
+	var h1, h2 uint32
+	h1 = hinit
+	h2 = k1*uint32(l) + k2
 	sq := make([]*ObjectMo, l)
 	for i := 0; i < l; i++ {
 		if objs[i] == nil {
 			panic("objvalmo.makeCheckedSequence with nil")
 		}
+		hob := uint32(HashObptr(objs[i]))
+		if i%2 == 0 {
+			h1 = (k1 * h1) ^ (k2*hob + uint32(i))
+		} else {
+			h2 = (k2 * h2) + (k1*hob - uint32(5*i))
+		}
 		sq[i] = objs[i]
 	}
-	return SequenceV{scomps: sq}
+	hs := (13 * h1) ^ (4093 * h2)
+	if hs == 0 {
+		hs = 31*(h1&0xfffff) + 5*(h2&0xfffff) + uint32(17+l&0xff)
+	}
+	return SequenceV{shash: HashMo(hs), scomps: sq}
+}
+
+func makeCheckedSequence(hinit uint32, k1 uint32, k2 uint32, objs ...*ObjectMo) SequenceV {
+	return makeCheckedSequenceSlice(hinit, k1, k2, objs)
 }
 
 //////////////// tuple values
@@ -287,7 +313,27 @@ type TupleV struct {
 	SequenceV
 }
 
+func (TupleV) TypeV() uint {
+	return TyTupleV
+}
+
 func (tu TupleV) isTupleV() {}
+
+const hinitTuple = 3529
+const k1Tuple = 2521
+const k2Tuple = 6529
+
+func MakeTupleV(objs ...*ObjectMo) TupleV {
+	var tup TupleV
+	tup = TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
+	return tup
+}
+
+func MakeTupleSliceV(objs []*ObjectMo) TupleV {
+	var tup TupleV
+	tup = TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
+	return tup
+}
 
 ////////////////////////////////////////////////////////////////
 type bucketTy struct {
