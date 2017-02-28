@@ -5,9 +5,9 @@ package objvalmo
 import (
 	"fmt"
 	"runtime"
+	"serialmo"
 	"sync"
 	"unsafe"
-	"serialmo"
 )
 
 const (
@@ -23,6 +23,7 @@ const (
 type ObjectMo struct {
 	obid    serialmo.IdentMo
 	obmtx   sync.Mutex
+	obspace uint8
 	obattrs map[*ObjectMo]*ValueMo
 	obcomps []*ValueMo
 	obpayl  *PayloadMo
@@ -44,7 +45,7 @@ type StringVMo interface {
 	String() string
 }
 
-type StringV  string
+type StringV string
 
 func (StringV) isStringV() {}
 
@@ -80,6 +81,12 @@ func (i IntV) Int() int {
 
 func MakeIntV(i int) IntV {
 	return IntV(i)
+}
+
+//////////////// sequence values
+type SequenceVMo interface {
+	ValueMo
+	isSequenceV() // private
 }
 
 ////////////////////////////////////////////////////////////////
