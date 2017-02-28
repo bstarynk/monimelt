@@ -4,6 +4,7 @@ package objvalmo
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 	"serialmo"
 	"sync"
@@ -24,8 +25,8 @@ type ObjectMo struct {
 	obid    serialmo.IdentMo
 	obmtx   sync.Mutex
 	obspace uint8
-	obattrs map[*ObjectMo]*ValueMo
-	obcomps []*ValueMo
+	obattrs map[*ObjectMo]ValueMo
+	obcomps []ValueMo
 	obpayl  *PayloadMo
 }
 
@@ -33,8 +34,11 @@ type PayloadMo interface {
 	DestroyPayl(*ObjectMo)
 }
 
+type HashMo uint32
+
 type ValueMo interface {
 	TypeV() uint
+	Hash() HashMo
 }
 
 //////////////// string values
@@ -45,24 +49,50 @@ type StringVMo interface {
 	String() string
 }
 
-type StringV string
+type StringV struct {
+	shash uint32
+	str   string
+}
 
 func (StringV) isStringV() {}
 
 func (sv StringV) Length() int {
-	return len(sv)
+	return len(sv.str)
 }
 
 func (sv StringV) String() string {
-	return string(sv)
+	return sv.str
 }
 
 func (sv StringV) TypeV() uint {
 	return TyStringV
 }
 
+func StringHash(s string) HashMo {
+	var h1, h2 uint32
+	for ix, ru := range s {
+		uc := uint32(ru)
+		if ix%2 == 0 {
+			h1 = (h1 * 433) ^ ((uc * 1427) + uint32(ix&0xff))
+		} else {
+			h2 = (h2 * 647) + (uc * 2657) - uint32(ix&0xff)
+		}
+	}
+	h := h1 ^ h2
+	if h == 0 {
+		h = 3*(h1&0xfffff) + 5*(h2&0xfffff) + uint32(len(s)&0xfffff) + 11
+	}
+	return HashMo(h)
+}
+
 func MakeStringV(s string) StringV {
-	return StringV(s)
+	h := StringHash(s)
+	strv := StringV{shash: uint32(h), str: s}
+	return strv
+}
+
+func Hash(sv StringV) HashMo {
+	return HashMo(sv.shash)
 }
 
 //////////////// integer values
@@ -75,8 +105,23 @@ type IntVMo interface {
 type IntV int
 
 func (IntV) isIntV() {}
+
 func (i IntV) Int() int {
 	return int(i)
+}
+
+func (IntV) TypeV() uint {
+	return TyIntV
+}
+
+func (i IntV) Hash() HashMo {
+	h1 := uint32(i)
+	h2 := uint32(i >> 30)
+	h := (11 * h1) ^ (26347 * h2)
+	if h == 0 {
+		h = (h1 & 0xffff) + 17*(h2&0xfffff) + 4
+	}
+	return HashMo(h)
 }
 
 func MakeIntV(i int) IntV {
@@ -97,8 +142,47 @@ func (f FloatV) Float() float64 {
 	return float64(f)
 }
 
+func (FloatV) TypeV() uint {
+	return TyFloatV
+}
+
 func MakeFloatV(f float64) FloatV {
+	if math.IsNaN(f) {
+		panic("objvalmo.MakeFloatV of NaN")
+	}
 	return FloatV(f)
+}
+
+func (fv FloatV) Hash() HashMo {
+	f := float64(fv)
+	if math.IsNaN(f) {
+		panic("objvalmo.Hash of float NaN")
+	}
+	if math.IsInf(f, 0) {
+		if f < 0.0 {
+			return 123
+		} else {
+			return 567
+		}
+	}
+	intp, fracp := math.Modf(f)
+	var h uint32
+	absintp := math.Abs(intp)
+	if absintp < float64(math.MaxInt32) {
+		h = uint32(absintp) ^ uint32(fracp*1234567.8)
+		if f < 0.0 && h < math.MaxInt32/4 {
+			h = 17*h ^ 5023
+		}
+	} else {
+		h = uint32(123.4*math.Log(absintp)) ^ uint32(fracp*456789.0)
+		if f < 0.0 && h < math.MaxInt32/4 {
+			h = 31*h ^ 15031
+		}
+	}
+	if h == 0 {
+		h = ((uint32(math.Log(absintp)) + uint32(fracp*12345678.9)) & 0xfffff) + 17
+	}
+	return HashMo(h)
 }
 
 //////////////// refob values
@@ -119,6 +203,22 @@ func (rob RefobV) TypeV() uint {
 
 func (rob RefobV) Obref() *ObjectMo {
 	return rob.roptr
+}
+
+func HashObptr(po *ObjectMo) HashMo {
+	if po == nil {
+		return 0
+	}
+	nhi, nlo := po.obid.ToTwoNums()
+	h := uint32((nhi * 1033) ^ (nlo * 2027))
+	if h == 0 {
+		h = (uint32(nhi) & 0xfffff) + 17*(uint32(nlo)&0xfffff) + 30
+	}
+	return HashMo(h)
+}
+
+func (rob RefobV) Hash() HashMo {
+	return HashObptr(rob.roptr)
 }
 
 //////////////// sequence values
