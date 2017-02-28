@@ -162,6 +162,21 @@ func (sq SequenceV) Nth(rk int) *ObjectMo {
 	return sq.scomps[rk]
 }
 
+func makeCheckedSequence(objs ...*ObjectMo) SequenceV {
+	if objs == nil {
+		return SequenceV{}
+	}
+	l := len(objs)
+	sq := make([]*ObjectMo, l)
+	for i := 0; i < l; i++ {
+		if objs[i] == nil {
+			panic("objvalmo.makeCheckedSequence with nil")
+		}
+		sq[i] = objs[i]
+	}
+	return SequenceV{scomps: sq}
+}
+
 //////////////// tuple values
 type TupleVMo interface {
 	SequenceVMo
