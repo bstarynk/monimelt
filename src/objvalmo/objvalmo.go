@@ -83,6 +83,24 @@ func MakeIntV(i int) IntV {
 	return IntV(i)
 }
 
+//////////////// float values
+type FloatVMo interface {
+	ValueMo
+	isFloatV() // private
+	Float() float64
+}
+
+type FloatV float64
+
+func (FloatV) isFloatV() {}
+func (f FloatV) Float() float64 {
+	return float64(f)
+}
+
+func MakeFloatV(f float64) FloatV {
+	return FloatV(f)
+}
+
 //////////////// refob values
 type RefobVMo interface {
 	ValueMo
@@ -106,8 +124,55 @@ func (rob RefobV) Obref() *ObjectMo {
 //////////////// sequence values
 type SequenceVMo interface {
 	ValueMo
-	isSequenceV() // private
+	isSequenceV()         // private
+	At(rk int) *ObjectMo  // may panic
+	Nth(rk int) *ObjectMo // or nil
+	Length() int
 }
+
+type SequenceV struct {
+	scomps []*ObjectMo
+}
+
+func (SequenceV) isSequenceV() {}
+
+func (sq SequenceV) At(rk int) *ObjectMo {
+	l := len(sq.scomps)
+	if rk < 0 {
+		rk += l
+	}
+	if rk < 0 || rk >= l {
+		panic("objvalmo.At(SequenceV) out of bounds")
+	}
+	return sq.scomps[rk]
+}
+
+func (sq SequenceV) Length() int {
+	return len(sq.scomps)
+}
+
+func (sq SequenceV) Nth(rk int) *ObjectMo {
+	l := len(sq.scomps)
+	if rk < 0 {
+		rk += l
+	}
+	if rk < 0 || rk >= l {
+		return nil
+	}
+	return sq.scomps[rk]
+}
+
+//////////////// tuple values
+type TupleVMo interface {
+	SequenceVMo
+	isTupleV() // private
+}
+
+type TupleV struct {
+	SequenceV
+}
+
+func (tu TupleV) isTupleV() {}
 
 ////////////////////////////////////////////////////////////////
 type bucketTy struct {
