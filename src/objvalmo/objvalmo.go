@@ -217,6 +217,32 @@ func HashObptr(po *ObjectMo) HashMo {
 	return HashMo(h)
 }
 
+func LessObptr(pol *ObjectMo, por *ObjectMo) bool {
+	if pol == por {
+		return false
+	}
+	if pol == nil {
+		return true
+	}
+	if por == nil {
+		return false
+	}
+	return serialmo.LessId(pol.obid, por.obid)
+}
+
+func LessEqualObptr(pol *ObjectMo, por *ObjectMo) bool {
+	if pol == por {
+		return false
+	}
+	if pol == nil {
+		return true
+	}
+	if por == nil {
+		return false
+	}
+	return serialmo.LessEqualId(pol.obid, por.obid)
+}
+
 func (rob RefobV) Hash() HashMo {
 	return HashObptr(rob.roptr)
 }
