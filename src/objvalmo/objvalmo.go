@@ -244,6 +244,10 @@ func (po *ObjectMo) Hash() HashMo {
 	return HashObptr(po)
 }
 
+func (po *ObjectMo) ToString() string {
+	return po.obid.ToString()
+}
+
 func LessObptr(pol *ObjectMo, por *ObjectMo) bool {
 	if pol == por {
 		return false
@@ -333,6 +337,9 @@ func (sq SequenceV) At(rk int) *ObjectMo {
 	return sq.scomps[rk]
 }
 
+func (SequenceV) TypeV() uint {
+	panic("SequenceV.TypeV() impossible")
+}
 func (sq SequenceV) Length() int {
 	return len(sq.scomps)
 }
