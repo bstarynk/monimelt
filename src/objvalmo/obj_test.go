@@ -59,4 +59,10 @@ func TestValues(t *testing.T) {
 	ro3 := NewRefobV()
 	fmt.Printf("refobjs ro1=%v of hash %v, ro2=%v of hash %v, ro3=%v of hash %v\n",
 		ro1, ro1.Hash(), ro2, ro2.Hash(), ro3, ro3.Hash())
+	/**
+		tu1 := MakeTupleV(ro1,ro2,ro3,ro2,ro1)
+		tu2 := MakeSkippedTupleV(ro1,nil,ro2,nil,ro3)
+		fmt.Printf("tuples tu1=%v of hash %v, tu2=%v of hash %v\n",
+			tu1, tu1.Hash(), tu2, tu2.Hash())
+	        **/
 }

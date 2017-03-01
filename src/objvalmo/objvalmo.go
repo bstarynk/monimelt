@@ -3,6 +3,7 @@
 package objvalmo
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"runtime"
@@ -297,6 +298,23 @@ func NewRefobV() RefobV {
 	pob := NewObj()
 	return RefobV{roptr: pob}
 }
+
+func RefobSliceToObjptrSlice(rarr []RefobV) []*ObjectMo {
+	if rarr == nil {
+		return nil
+	}
+	l := len(rarr)
+	osq := make([]*ObjectMo, 0, l)
+	for i := 0; i < l; i++ {
+		curef := rarr[i]
+		if curef.roptr == nil {
+			continue
+		}
+		osq = append(osq, curef.roptr)
+	}
+	return osq
+}
+
 func (rob RefobV) String() string {
 	return rob.roptr.obid.ToString()
 }
@@ -345,7 +363,19 @@ func (sq SequenceV) Nth(rk int) *ObjectMo {
 }
 
 func (sq SequenceV) seqToString(begc rune, endc rune) string {
-	panic("objvalmo.seqToString unimplemented")
+	var buf bytes.Buffer
+	sln := len(sq.scomps)
+	buf.Grow(sln*(2*serialmo.NbDigitsSerialMo+3) + 4)
+	buf.WriteRune(begc)
+	for ix := 0; ix < sln; ix++ {
+		curob := sq.scomps[ix]
+		if ix > 0 {
+			buf.WriteRune(' ')
+		}
+		buf.WriteString(curob.String())
+	}
+	buf.WriteRune(endc)
+	return buf.String()
 }
 
 func makeCheckedSequenceSlice(hinit uint32, k1 uint32, k2 uint32, objs []*ObjectMo) SequenceV {
@@ -450,6 +480,10 @@ func MakeSkippedTupleSliceV(objs []*ObjectMo) TupleV {
 	return TupleV{makeSkippedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
 }
 
+func (tu TupleV) String() string {
+	return tu.seqToString('[', ']')
+}
+
 // private type for ordering slice of object pointers
 type ordSliceObptr []*ObjectMo
 
@@ -532,6 +566,9 @@ func MakeSetV(objs ...*ObjectMo) SetV {
 func MakeSetSliceV(objs []*ObjectMo) SetV {
 	ord := sortedFilteredObptr(objs)
 	return SetV{makeCheckedSequenceSlice(hinitSet, k1Set, k2Set, ord)}
+}
+func (set SetV) String() string {
+	return set.seqToString('{', '}')
 }
 
 ////////////////////////////////////////////////////////////////
