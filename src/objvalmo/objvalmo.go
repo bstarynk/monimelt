@@ -580,12 +580,12 @@ func MakeSetSliceV(objs []*ObjectMo) SetV {
 
 func MakeSetRefobV(refobjs ...RefobV) SetV {
 	return SetV{makeCheckedSequenceSlice(hinitSet, k1Set, k2Set,
-		RefobSliceToObjptrSlice(refobjs))}
+		sortedFilteredObptr(RefobSliceToObjptrSlice(refobjs)))}
 }
 
 func MakeSetRefobSlice(refobjs []RefobV) SetV {
 	return SetV{makeCheckedSequenceSlice(hinitSet, k1Set, k2Set,
-		RefobSliceToObjptrSlice(refobjs))}
+		sortedFilteredObptr(RefobSliceToObjptrSlice(refobjs)))}
 }
 
 func (set SetV) String() string {
