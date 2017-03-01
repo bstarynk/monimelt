@@ -39,8 +39,6 @@ func TestMakeObjs(t *testing.T) {
 
 func TestValues(t *testing.T) {
 	fmt.Printf("TestValues start\n")
-	fmt.Printf("Nilv %v of hash %v\n",
-		GetNilV(), GetNilV().Hash())
 	s1 := MakeStringV("abc€")
 	s2 := MakeStringV("a\nnewline")
 	fmt.Printf("strings s1=%v of hash %v,  s2=%v of hash %v\n",

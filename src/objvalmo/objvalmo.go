@@ -47,23 +47,6 @@ type ValueMo interface {
 	Hash() HashMo
 }
 
-//////////////// the nil value
-
-type NilVMo interface {
-	ValueMo
-	isNilV()
-}
-
-type nilStruct struct {
-}
-type NilV *nilStruct
-
-func (nilStruct) String() string { return "__" }
-func (nilStruct) Hash() HashMo   { return HashMo(0) }
-func (nilStruct) isNilV()        {}
-
-func GetNilV() NilV { return nil }
-
 //////////////// string values
 type StringVMo interface {
 	ValueMo
