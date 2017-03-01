@@ -391,7 +391,8 @@ func filterObptr(arr []*ObjectMo) ordSliceObptr {
 			coparr = append(coparr, obp)
 		}
 	}
-	sort.Sort(ordSliceObptr(coparr))[:l-nbnil]
+	sort.Sort(ordSliceObptr(coparr))
+	coparr = coparr[:l-nbnil]
 	hasdup := false
 	for ix, ob := range coparr {
 		if ix > 0 && ob == coparr[ix-1] {
