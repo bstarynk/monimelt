@@ -293,6 +293,10 @@ func MakeRefobV(pob *ObjectMo) RefobV {
 	return RefobV{roptr: pob}
 }
 
+func NewRefobV() RefobV {
+	pob := NewObj()
+	return RefobV{roptr: pob}
+}
 func (rob RefobV) String() string {
 	return rob.roptr.obid.ToString()
 }
@@ -376,6 +380,40 @@ func makeCheckedSequence(hinit uint32, k1 uint32, k2 uint32, objs ...*ObjectMo) 
 	return makeCheckedSequenceSlice(hinit, k1, k2, objs)
 }
 
+func makeSkippedSequenceSlice(hinit uint32, k1 uint32, k2 uint32, objs []*ObjectMo) SequenceV {
+	if objs == nil {
+		return SequenceV{}
+	}
+	l := len(objs)
+	var h1, h2 uint32
+	h1 = hinit
+	h2 = k1*uint32(l) + k2
+	sq := make([]*ObjectMo, 0, l)
+	for i, j := 0, 0; i < l; i++ {
+		curobj := objs[i]
+		if curobj == nil {
+			continue
+		}
+		hob := uint32(HashObptr(curobj))
+		if j%2 == 0 {
+			h1 = (k1 * h1) ^ (k2*hob + uint32(j))
+		} else {
+			h2 = (k2 * h2) + (k1*hob - uint32(5*j))
+		}
+		sq = append(sq, curobj)
+		j++
+	}
+	hs := (13 * h1) ^ (4093 * h2)
+	if hs == 0 {
+		hs = 31*(h1&0xfffff) + 5*(h2&0xfffff) + uint32(17+l&0xff)
+	}
+	return SequenceV{shash: HashMo(hs), scomps: sq}
+}
+
+func makeSkippedSequence(hinit uint32, k1 uint32, k2 uint32, objs ...*ObjectMo) SequenceV {
+	return makeSkippedSequenceSlice(hinit, k1, k2, objs)
+}
+
 //////////////// tuple values
 type TupleVMo interface {
 	SequenceVMo
@@ -402,6 +440,14 @@ func MakeTupleV(objs ...*ObjectMo) TupleV {
 
 func MakeTupleSliceV(objs []*ObjectMo) TupleV {
 	return TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
+}
+
+func MakeSkippedTupleV(objs ...*ObjectMo) TupleV {
+	return TupleV{makeSkippedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
+}
+
+func MakeSkippedTupleSliceV(objs []*ObjectMo) TupleV {
+	return TupleV{makeSkippedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
 }
 
 // private type for ordering slice of object pointers

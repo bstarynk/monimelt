@@ -49,4 +49,14 @@ func TestValues(t *testing.T) {
 	i2 := MakeIntV(-345)
 	fmt.Printf("integers i1=%v of hash %v, i2=%v of hash %v\n",
 		i1, i1.Hash(), i2, i2.Hash())
+	f1 := MakeFloatV(12.3)
+	f2 := MakeFloatV(-1.0)
+	f3 := MakeFloatV(11.0e20)
+	f3bis := MakeFloatV(11.0e20)
+	fmt.Printf("floats f1=%v of hash %v, f2=%v of hash %v, f3=%v of hash %v, f3bis=%v of hash %v\n", f1, f1.Hash(), f2, f2.Hash(), f3, f3.Hash(), f3bis, f3bis.Hash())
+	ro1 := NewRefobV()
+	ro2 := NewRefobV()
+	ro3 := NewRefobV()
+	fmt.Printf("refobjs ro1=%v of hash %v, ro2=%v of hash %v, ro3=%v of hash %v\n",
+		ro1, ro1.Hash(), ro2, ro2.Hash(), ro3, ro3.Hash())
 }
