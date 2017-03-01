@@ -36,3 +36,17 @@ func TestMakeObjs(t *testing.T) {
 		fmt.Printf("ob3=%v is greater than ob4=%v\n", ob3, ob4)
 	}
 }
+
+func TestValues(t *testing.T) {
+	fmt.Printf("TestValues start\n")
+	fmt.Printf("Nilv %v of hash %v\n",
+		GetNilV(), GetNilV().Hash())
+	s1 := MakeStringV("abc€")
+	s2 := MakeStringV("a\nnewline")
+	fmt.Printf("strings s1=%v of hash %v,  s2=%v of hash %v\n",
+		s1, s1.Hash(), s2, s2.Hash())
+	i1 := MakeIntV(12)
+	i2 := MakeIntV(-345)
+	fmt.Printf("integers i1=%v of hash %v, i2=%v of hash %v\n",
+		i1, i1.Hash(), i2, i2.Hash())
+}

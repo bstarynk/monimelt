@@ -46,6 +46,24 @@ type ValueMo interface {
 	Hash() HashMo
 }
 
+//////////////// the nil value
+
+type NilVMo interface {
+	ValueMo
+	isNilV()
+}
+
+type NilV struct {
+}
+
+var nilValue = NilV{}
+
+func (NilV) String() string { return "__" }
+func (NilV) Hash() HashMo   { return HashMo(0) }
+func (NilV) isNilV()        {}
+
+func GetNilV() NilV { return nilValue }
+
 //////////////// string values
 type StringVMo interface {
 	ValueMo
@@ -96,7 +114,7 @@ func MakeStringV(s string) StringV {
 	return strv
 }
 
-func Hash(sv StringV) HashMo {
+func (sv StringV) Hash() HashMo {
 	return HashMo(sv.shash)
 }
 
