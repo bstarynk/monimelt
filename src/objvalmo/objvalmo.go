@@ -61,7 +61,7 @@ func (sv StringV) Length() int {
 	return len(sv.str)
 }
 
-func (sv StringV) String() string {
+func (sv StringV) ToString() string {
 	return sv.str
 }
 
@@ -96,6 +96,11 @@ func Hash(sv StringV) HashMo {
 	return HashMo(sv.shash)
 }
 
+// printable string
+func (sv StringV) String() string {
+	return fmt.Sprintf("%q", sv.str)
+}
+
 //////////////// integer values
 type IntVMo interface {
 	ValueMo
@@ -127,6 +132,10 @@ func (i IntV) Hash() HashMo {
 
 func MakeIntV(i int) IntV {
 	return IntV(i)
+}
+
+func (iv IntV) String() string {
+	return fmt.Sprintf("%d", int(iv))
 }
 
 //////////////// float values
@@ -184,6 +193,9 @@ func (fv FloatV) Hash() HashMo {
 		h = ((uint32(math.Log(absintp)) + uint32(fracp*12345678.9)) & 0xfffff) + 17
 	}
 	return HashMo(h)
+}
+func (fv FloatV) String() string {
+	return fmt.Sprintf("%f", float64(fv))
 }
 
 //////////////// refob values
@@ -255,6 +267,10 @@ func MakeRefobV(pob *ObjectMo) RefobV {
 	return RefobV{roptr: pob}
 }
 
+func (rob RefobV) String() string {
+	return rob.roptr.obid.ToString()
+}
+
 //////////////// sequence values
 type SequenceVMo interface {
 	ValueMo
@@ -296,6 +312,10 @@ func (sq SequenceV) Nth(rk int) *ObjectMo {
 		return nil
 	}
 	return sq.scomps[rk]
+}
+
+func (sq SequenceV) seqToString(begc rune, endc rune) string {
+	panic("objvalmo.seqToString unimplemented")
 }
 
 func makeCheckedSequenceSlice(hinit uint32, k1 uint32, k2 uint32, objs []*ObjectMo) SequenceV {
@@ -526,4 +546,21 @@ func MakeObjectByTwoNums(hi uint64, lo uint64) *ObjectMo {
 	}
 	id := serialmo.IdFromCheckedTwoNums(hi, lo)
 	return MakeObjectById(id)
+}
+
+func NewObj() *ObjectMo {
+	oid := serialmo.RandomId()
+	bn := oid.BucketNum()
+	buck := &bucketsob[bn]
+	buck.bu_mtx.Lock()
+	defer buck.bu_mtx.Unlock()
+	for _, found := buck.bu_admap[oid]; found; {
+		oid = serialmo.RandomIdOfBucket(bn)
+	}
+	var newobptr *ObjectMo
+	newobptr = new(ObjectMo)
+	newobptr.obid = oid
+	buck.bu_admap[oid] = uintptr((unsafe.Pointer)(newobptr))
+	runtime.SetFinalizer(*newobptr, finalizeObjectMo)
+	return newobptr
 }
