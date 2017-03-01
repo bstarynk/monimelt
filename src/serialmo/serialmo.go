@@ -174,6 +174,10 @@ func (id IdentMo) ToString() string {
 	return id.IdHi.ToString() + id.IdLo.ToString()
 }
 
+func (id IdentMo) String() string {
+	return id.ToString()
+}
+
 func (id IdentMo) BucketNum() uint {
 	return id.IdHi.BucketNum()
 }

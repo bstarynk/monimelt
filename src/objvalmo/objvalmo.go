@@ -37,6 +37,10 @@ type PayloadMo interface {
 
 type HashMo uint32
 
+func (h HashMo) String() string {
+	return fmt.Sprintf("h#%d", uint32(h))
+}
+
 type ValueMo interface {
 	TypeV() uint
 	Hash() HashMo
@@ -228,6 +232,10 @@ func HashObptr(po *ObjectMo) HashMo {
 		h = (uint32(nhi) & 0xfffff) + 17*(uint32(nlo)&0xfffff) + 30
 	}
 	return HashMo(h)
+}
+
+func (po *ObjectMo) Hash() HashMo {
+	return HashObptr(po)
 }
 
 func LessObptr(pol *ObjectMo, por *ObjectMo) bool {
@@ -481,6 +489,9 @@ func FindObjectById(id serialmo.IdentMo) *ObjectMo {
 	buck := &bucketsob[bn]
 	buck.bu_mtx.Lock()
 	defer buck.bu_mtx.Unlock()
+	if buck.bu_admap == nil {
+		return nil
+	}
 	ad, ok := buck.bu_admap[id]
 	if !ok {
 		return nil
@@ -523,13 +534,16 @@ func FindOrMakeObjectById(id serialmo.IdentMo) (*ObjectMo, bool) {
 	buck := &bucketsob[bn]
 	buck.bu_mtx.Lock()
 	defer buck.bu_mtx.Unlock()
+	if buck.bu_admap == nil {
+		buck.bu_admap = make(map[serialmo.IdentMo]uintptr)
+	}
 	ad, ok := buck.bu_admap[id]
 	if !ok {
 		var newobptr *ObjectMo
 		newobptr = new(ObjectMo)
 		newobptr.obid = id
 		buck.bu_admap[id] = uintptr((unsafe.Pointer)(newobptr))
-		runtime.SetFinalizer(*newobptr, finalizeObjectMo)
+		runtime.SetFinalizer(newobptr, finalizeObjectMo)
 		return newobptr, false
 	}
 	return (*ObjectMo)((unsafe.Pointer)(ad)), true
@@ -554,13 +568,21 @@ func NewObj() *ObjectMo {
 	buck := &bucketsob[bn]
 	buck.bu_mtx.Lock()
 	defer buck.bu_mtx.Unlock()
-	for _, found := buck.bu_admap[oid]; found; {
-		oid = serialmo.RandomIdOfBucket(bn)
+	if buck.bu_admap == nil {
+		buck.bu_admap = make(map[serialmo.IdentMo]uintptr)
 	}
-	var newobptr *ObjectMo
-	newobptr = new(ObjectMo)
+	for _, found := buck.bu_admap[oid]; found; oid = serialmo.RandomIdOfBucket(bn) {
+	}
+	newobptr := new(ObjectMo)
 	newobptr.obid = oid
 	buck.bu_admap[oid] = uintptr((unsafe.Pointer)(newobptr))
-	runtime.SetFinalizer(*newobptr, finalizeObjectMo)
+	runtime.SetFinalizer(newobptr, finalizeObjectMo)
 	return newobptr
+}
+
+func (pob *ObjectMo) String() string {
+	if pob == nil {
+		return "__"
+	}
+	return pob.obid.String()
 }
