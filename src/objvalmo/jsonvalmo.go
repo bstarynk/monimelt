@@ -18,10 +18,15 @@ type jsonSet struct {
 type jsonTuple struct {
 	tup []string `json:"tup"`
 }
+type JsonValEmitterMo interface {
+	EmitObjptr(*ObjectMo) bool
+}
 
 // we probably should have some JsonEmitter type....
 // having this method....
-func ValToJson(v ValueMo) interface{} {
+func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
+	var isset bool
+	var seqv SequenceV
 	switch v.TypeV() {
 	case TyIntV:
 		{
@@ -41,14 +46,40 @@ func ValToJson(v ValueMo) interface{} {
 	case TyRefobV:
 		{
 			obv := v.(RefobV)
+			if !vem.EmitObjptr(obv.Obref()) {
+				return nil
+			}
 			obid := obv.IdOb()
 			return jsonIdent{oid: obid.ToString()}
 		}
+	case TySetV:
+		isset = true
+		seqv = v.(SequenceV)
+		fallthrough
+	case TyTupleV:
+		seqv = v.(SequenceV)
+		{
+			ls := seqv.Length()
+			jseq := make([]string, 0, ls)
+			for ix := 0; ix < ls; ix++ {
+				curcomp := seqv.At(ix)
+				if !vem.EmitObjptr(curcomp) {
+					continue
+				}
+				jseq = append(jseq, curcomp.ToString())
+			}
+			if isset {
+				return jsonSet{set: jseq}
+			} else {
+				return jsonTuple{tup: jseq}
+			}
+		}
+
 	}
-	panic("objvalmo.ToJson unimplemented")
+	panic("objvalmo.ToJson incomplete")
 	return nil
 }
 
-func OutputJsonValue(enc *json.Encoder, v ValueMo) {
-	enc.Encode(ValToJson(v))
+func OutputJsonValue(vem JsonValEmitterMo, enc *json.Encoder, v ValueMo) {
+	enc.Encode(ValToJson(vem, v))
 }
