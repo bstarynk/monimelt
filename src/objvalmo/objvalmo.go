@@ -52,7 +52,7 @@ type StringVMo interface {
 	ValueMo
 	isStringV() // private
 	Length() int
-	String() string
+	ToString() string
 }
 
 type StringV struct {
@@ -208,6 +208,7 @@ type RefobVMo interface {
 	ValueMo
 	isRefobV()
 	Obref() *ObjectMo
+	IdOb() serialmo.IdentMo
 }
 
 type RefobV struct {
@@ -221,6 +222,10 @@ func (rob RefobV) TypeV() uint {
 
 func (rob RefobV) Obref() *ObjectMo {
 	return rob.roptr
+}
+
+func (rob RefobV) IdOb() serialmo.IdentMo {
+	return rob.roptr.obid
 }
 
 func HashObptr(po *ObjectMo) HashMo {
