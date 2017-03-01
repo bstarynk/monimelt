@@ -351,15 +351,11 @@ const k1Tuple = 2521
 const k2Tuple = 6529
 
 func MakeTupleV(objs ...*ObjectMo) TupleV {
-	var tup TupleV
-	tup = TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
-	return tup
+	return TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
 }
 
 func MakeTupleSliceV(objs []*ObjectMo) TupleV {
-	var tup TupleV
-	tup = TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
-	return tup
+	return TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
 }
 
 // private type for ordering slice of object pointers
@@ -377,11 +373,11 @@ func (os ordSliceObptr) Less(i, j int) bool {
 	return LessObptr(os[i], os[j])
 }
 
-func filterObptr(arr []*ObjectMo) ordSliceObptr {
-	if arr == nil || len(arr) == 0 {
+func sortedFilteredObptr(arr []*ObjectMo) ordSliceObptr {
+	l := len(arr)
+	if arr == nil || l == 0 {
 		return arr
 	}
-	l := len(arr)
 	coparr := make([]*ObjectMo, 0, l)
 	nbnil := 0
 	for _, obp := range arr {
@@ -390,6 +386,9 @@ func filterObptr(arr []*ObjectMo) ordSliceObptr {
 		} else {
 			coparr = append(coparr, obp)
 		}
+	}
+	if nbnil == l {
+		return ordSliceObptr(nil)
 	}
 	sort.Sort(ordSliceObptr(coparr))
 	coparr = coparr[:l-nbnil]
@@ -403,7 +402,7 @@ func filterObptr(arr []*ObjectMo) ordSliceObptr {
 	if !hasdup {
 		return ordSliceObptr(coparr)
 	}
-	resarr := make([]*ObjectMo, 0, len(coparr))
+	resarr := make([]*ObjectMo, 0, l-nbnil)
 	resarr = append(resarr, coparr[0])
 	for ix, ob := range coparr {
 		if ix > 0 && ob != coparr[ix-1] {
@@ -411,6 +410,36 @@ func filterObptr(arr []*ObjectMo) ordSliceObptr {
 		}
 	}
 	return ordSliceObptr(resarr[:len(resarr)])
+}
+
+//////////////// set
+type SetVMo interface {
+	SequenceVMo
+	isSetV() // private
+}
+
+type SetV struct {
+	SequenceV
+}
+
+func (SetV) TypeV() uint {
+	return TySetV
+}
+
+func (set SetV) isSetV() {}
+
+const hinitSet = 2549
+const k1Set = 3637
+const k2Set = 2939
+
+func MakeSetV(objs ...*ObjectMo) SetV {
+	ord := sortedFilteredObptr(objs)
+	return SetV{makeCheckedSequenceSlice(hinitSet, k1Set, k2Set, ord)}
+}
+
+func MakeSetSliceV(objs []*ObjectMo) SetV {
+	ord := sortedFilteredObptr(objs)
+	return SetV{makeCheckedSequenceSlice(hinitSet, k1Set, k2Set, ord)}
 }
 
 ////////////////////////////////////////////////////////////////
