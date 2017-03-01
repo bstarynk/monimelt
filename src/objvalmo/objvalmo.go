@@ -54,16 +54,15 @@ type NilVMo interface {
 	isNilV()
 }
 
-type NilV struct {
+type nilStruct struct {
 }
+type NilV *nilStruct
 
-var nilValue = NilV{}
+func (nilStruct) String() string { return "__" }
+func (nilStruct) Hash() HashMo   { return HashMo(0) }
+func (nilStruct) isNilV()        {}
 
-func (NilV) String() string { return "__" }
-func (NilV) Hash() HashMo   { return HashMo(0) }
-func (NilV) isNilV()        {}
-
-func GetNilV() NilV { return nilValue }
+func GetNilV() NilV { return nil }
 
 //////////////// string values
 type StringVMo interface {
