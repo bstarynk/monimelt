@@ -59,10 +59,21 @@ func TestValues(t *testing.T) {
 	ro3 := NewRefobV()
 	fmt.Printf("refobjs ro1=%v of hash %v, ro2=%v of hash %v, ro3=%v of hash %v\n",
 		ro1, ro1.Hash(), ro2, ro2.Hash(), ro3, ro3.Hash())
-	/**
-		tu1 := MakeTupleV(ro1,ro2,ro3,ro2,ro1)
-		tu2 := MakeSkippedTupleV(ro1,nil,ro2,nil,ro3)
-		fmt.Printf("tuples tu1=%v of hash %v, tu2=%v of hash %v\n",
-			tu1, tu1.Hash(), tu2, tu2.Hash())
-	        **/
+
+	tu1 := MakeTupleRefobV(ro1, ro2, ro3, ro2, ro1)
+	tu2 := MakeSkippedTupleV(ro1.Obref(), nil, ro2.Obref(), nil, ro3.Obref())
+	fmt.Printf("tuples tu1=%v of hash %v, tu2=%v of hash %v\n",
+		tu1, tu1.Hash(), tu2, tu2.Hash())
+	ro4 := NewRefobV()
+	ro5 := NewRefobV()
+	fmt.Printf("refobjs ro4=%v of hash %v, ro5=%v of hash %v\n",
+		ro4, ro4.Hash(), ro5, ro5.Hash())
+	set1 := MakeSetRefobV(ro1, ro2, ro3, ro4, ro5)
+	set1bis := MakeSetRefobV(ro5, ro4, ro3, ro2, ro1, ro5)
+	fmt.Printf("set set1=%v of hash %v, set1bis=%v of hash %v\n",
+		set1, set1.Hash(), set1bis, set1bis.Hash())
+	set2 := MakeSetRefobV(ro1, ro2)
+	set3 := MakeSetRefobV(ro3, ro3, ro4, ro2)
+	fmt.Printf("set set2=%v of hash %v, set3=%v of hash %v\n",
+		set2, set2.Hash(), set3, set3.Hash())
 }

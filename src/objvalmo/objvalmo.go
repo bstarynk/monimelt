@@ -468,8 +468,18 @@ func MakeTupleV(objs ...*ObjectMo) TupleV {
 	return TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
 }
 
+func MakeTupleRefobV(refobjs ...RefobV) TupleV {
+	return TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple,
+		RefobSliceToObjptrSlice(refobjs))}
+}
+
 func MakeTupleSliceV(objs []*ObjectMo) TupleV {
 	return TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple, objs)}
+}
+
+func MakeTupleRefobSlice(refobjs []RefobV) TupleV {
+	return TupleV{makeCheckedSequenceSlice(hinitTuple, k1Tuple, k2Tuple,
+		RefobSliceToObjptrSlice(refobjs))}
 }
 
 func MakeSkippedTupleV(objs ...*ObjectMo) TupleV {
@@ -567,6 +577,17 @@ func MakeSetSliceV(objs []*ObjectMo) SetV {
 	ord := sortedFilteredObptr(objs)
 	return SetV{makeCheckedSequenceSlice(hinitSet, k1Set, k2Set, ord)}
 }
+
+func MakeSetRefobV(refobjs ...RefobV) SetV {
+	return SetV{makeCheckedSequenceSlice(hinitSet, k1Set, k2Set,
+		RefobSliceToObjptrSlice(refobjs))}
+}
+
+func MakeSetRefobSlice(refobjs []RefobV) SetV {
+	return SetV{makeCheckedSequenceSlice(hinitSet, k1Set, k2Set,
+		RefobSliceToObjptrSlice(refobjs))}
+}
+
 func (set SetV) String() string {
 	return set.seqToString('{', '}')
 }
