@@ -25,6 +25,10 @@ type JsonValEmitterMo interface {
 	EmitObjptr(*ObjectMo) bool
 }
 
+type JsonValParserMo interface {
+	ParseObjptr(string) (*ObjectMo, error)
+}
+
 type EmitterFunction_t func(*ObjectMo) bool
 
 type JsonSimpleValEmitter struct {
@@ -147,4 +151,26 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 
 func OutputJsonValue(vem JsonValEmitterMo, enc *json.Encoder, v ValueMo) {
 	enc.Encode(ValToJson(vem, v))
+}
+
+func InputJsonValue(vpm JsonValParserMo, dec *json.Decoder) (ValueMo, error) {
+	// read first token
+	firstok, err := dec.Token()
+	if err != nil {
+		return nil, err
+	}
+	if str, ok := firstok.(string); ok {
+		return MakeStringV(str), nil
+	} else if flo, ok := firstok.(float64); ok {
+		return MakeFloatV(flo), nil
+	} else if num, ok := firstok.(json.Number); ok {
+		if n, errn := num.Int64(); errn == nil {
+			return MakeIntV(int(n)), nil
+		} else if f, errn := num.Float64(); errn == nil {
+			return MakeFloatV(f), nil
+		} else {
+			return nil, fmt.Errorf("InputJsonValue: bad number %s", num.String())
+		}
+	}
+	panic("unimplemented InputJsonValue")
 }
