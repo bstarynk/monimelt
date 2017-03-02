@@ -11,15 +11,15 @@ import (
 )
 
 type jsonIdent struct {
-	oid string `json:"oid"`
+	Joid string `json:"oid"`
 }
 
 type jsonSet struct {
-	set []string `json:"set"`
+	Jset []string `json:"set"`
 }
 
 type jsonTuple struct {
-	tup []string `json:"tup"`
+	Jtup []string `json:"tup"`
 }
 type JsonValEmitterMo interface {
 	EmitObjptr(*ObjectMo) bool
@@ -89,11 +89,22 @@ func (fv FloatV) MarshalJSON() ([]byte, error) {
 	return myJsonFloat(fv.Float()).MarshalJSON()
 }
 
+func sequenceToJsonTuple(vem JsonValEmitterMo, seqv SequenceV) []string {
+	ls := seqv.Length()
+	jseq := make([]string, 0, ls)
+	for ix := 0; ix < ls; ix++ {
+		curcomp := seqv.At(ix)
+		if !vem.EmitObjptr(curcomp) {
+			continue
+		}
+		jseq = append(jseq, curcomp.ToString())
+	}
+	return jseq
+}
+
 // we probably should have some JsonEmitter type....
 // having this method....
 func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
-	var isset bool
-	var seqv SequenceV
 	switch v.TypeV() {
 	case TyIntV:
 		{
@@ -117,31 +128,18 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 				return nil
 			}
 			obid := obv.IdOb()
-			return jsonIdent{oid: obid.ToString()}
+			return jsonIdent{Joid: obid.ToString()}
 		}
 	case TySetV:
-		isset = true
-		seqv = v.(SequenceV)
-		fallthrough
-	case TyTupleV:
-		seqv = v.(SequenceV)
 		{
-			ls := seqv.Length()
-			jseq := make([]string, 0, ls)
-			for ix := 0; ix < ls; ix++ {
-				curcomp := seqv.At(ix)
-				if !vem.EmitObjptr(curcomp) {
-					continue
-				}
-				jseq = append(jseq, curcomp.ToString())
-			}
-			if isset {
-				return jsonSet{set: jseq}
-			} else {
-				return jsonTuple{tup: jseq}
-			}
+			setv := v.(SetV)
+			return jsonSet{Jset: sequenceToJsonTuple(vem, setv.SequenceV)}
 		}
-
+	case TyTupleV:
+		{
+			tupv := v.(TupleV)
+			return jsonTuple{Jtup: sequenceToJsonTuple(vem, tupv.SequenceV)}
+		}
 	}
 	panic("objvalmo.ToJson incomplete")
 	return nil
