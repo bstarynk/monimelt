@@ -3,6 +3,8 @@
 package objvalmo
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"serialmo"
 	"testing"
@@ -35,6 +37,14 @@ func TestMakeObjs(t *testing.T) {
 	} else {
 		fmt.Printf("ob3=%v is greater than ob4=%v\n", ob3, ob4)
 	}
+}
+
+func json_emit(jem JsonSimpleValEmitter, v ValueMo) {
+	fmt.Printf("json_emit v=%v of type %T\n", v, v)
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	OutputJsonValue(jem, enc, v)
+	fmt.Printf("json_emit buf: %s\n", buf.String())
 }
 
 func TestValues(t *testing.T) {
@@ -91,4 +101,9 @@ func TestValues(t *testing.T) {
 		}
 	})
 	fmt.Printf("jsem %v of type %T\n", jsem, jsem)
+	json_emit(jsem, i1)
+	json_emit(jsem, i2)
+	json_emit(jsem, f1)
+	json_emit(jsem, f2)
+	json_emit(jsem, f3)
 }
