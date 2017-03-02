@@ -4,7 +4,10 @@ package objvalmo
 
 import (
 	"encoding/json"
+	"fmt"
+	"math"
 	_ "serialmo"
+	"strconv"
 )
 
 type jsonIdent struct {
@@ -36,6 +39,56 @@ func (jse JsonSimpleValEmitter) EmitObjptr(pob *ObjectMo) bool {
 	return jse.emfun(pob)
 }
 
+/// see https://groups.google.com/forum/#!topic/golang-nuts/nIshrMRrAt0
+type myJsonFloat float64
+
+func (mf myJsonFloat) MarshalJSON() ([]byte, error) {
+	f := float64(mf)
+	if math.IsNaN(f) {
+		return []byte("null"), nil
+	}
+	if math.IsInf(f, +1) {
+		return []byte(`{"float":"+Inf"}`), nil
+	}
+	if math.IsInf(f, -1) {
+		return []byte(`{"float":"-Inf"}`), nil
+	}
+	s := fmt.Sprintf("%.4f", f)
+	x := math.NaN()
+	x, _ = strconv.ParseFloat(s, 64)
+	//fmt.Printf("myJsonFloat f=%f x=%f s=%q first\n", f, x, s)
+	if x == f && len(s) < 20 {
+		return []byte(s), nil
+	}
+	s = fmt.Sprintf("%.9f", f)
+	x, _ = strconv.ParseFloat(s, 64)
+	//fmt.Printf("myJsonFloat f=%f x=%f s=%q second/f\n", f, x, s)
+	if x == f && len(s) < 25 {
+		return []byte(s), nil
+	}
+	s = fmt.Sprintf("%.9e", f)
+	x, _ = strconv.ParseFloat(s, 64)
+	//fmt.Printf("myJsonFloat f=%f x=%f s=%q second/e\n", f, x, s)
+	if x == f {
+		return []byte(s), nil
+	}
+	s = fmt.Sprintf("%.15e", f)
+	x, _ = strconv.ParseFloat(s, 64)
+	//fmt.Printf("myJsonFloat f=%f x=%f s=%q third\n", f, x, s)
+	if x == f {
+		return []byte(s), nil
+	}
+	s = fmt.Sprintf("%.28E", f)
+	x, _ = strconv.ParseFloat(s, 64)
+	//fmt.Printf("myJsonFloat f=%f x=%f s=%q last\n", f, x, s)
+	return []byte(s), nil
+}
+
+func (fv FloatV) MarshalJSON() ([]byte, error) {
+	fmt.Printf("FloatV MarshalJSON fv=%v\n", fv)
+	return myJsonFloat(fv.Float()).MarshalJSON()
+}
+
 // we probably should have some JsonEmitter type....
 // having this method....
 func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
@@ -55,7 +108,7 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 	case TyFloatV:
 		{
 			fv := v.(FloatV)
-			return fv.Float()
+			return myJsonFloat(fv.Float())
 		}
 	case TyRefobV:
 		{

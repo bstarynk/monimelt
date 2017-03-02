@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"serialmo"
 	"testing"
 )
@@ -39,12 +40,12 @@ func TestMakeObjs(t *testing.T) {
 	}
 }
 
-func json_emit(jem JsonSimpleValEmitter, v ValueMo) {
-	fmt.Printf("json_emit v=%v of type %T\n", v, v)
+func json_emit(jem JsonSimpleValEmitter, msg string, v ValueMo) {
+	fmt.Printf("json_emit %s v=%v of type %T\n", msg, v, v)
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	OutputJsonValue(jem, enc, v)
-	fmt.Printf("json_emit buf: %s\n", buf.String())
+	fmt.Printf("json_emit %s buf: %s\n", msg, buf.String())
 }
 
 func TestValues(t *testing.T) {
@@ -57,11 +58,19 @@ func TestValues(t *testing.T) {
 	i2 := MakeIntV(-345)
 	fmt.Printf("integers i1=%v of hash %v, i2=%v of hash %v\n",
 		i1, i1.Hash(), i2, i2.Hash())
-	f1 := MakeFloatV(12.3)
+	f1 := MakeFloatV(-12.3)
 	f2 := MakeFloatV(-1.0)
 	f3 := MakeFloatV(11.0e20)
 	f3bis := MakeFloatV(11.0e20)
 	fmt.Printf("floats f1=%v of hash %v, f2=%v of hash %v, f3=%v of hash %v, f3bis=%v of hash %v\n", f1, f1.Hash(), f2, f2.Hash(), f3, f3.Hash(), f3bis, f3bis.Hash())
+	f4 := MakeFloatV(math.Pi)
+	f5 := MakeFloatV(math.E * 1.0e150)
+	fmax := MakeFloatV(math.MaxFloat64)
+	finf := MakeFloatV(math.Inf(+1))
+	fmt.Printf("floats f4=%v of hash %v, f5=%v of hash %v\n",
+		f4, f4.Hash(), f5, f5.Hash())
+	fmt.Printf("floats fmax=%v of hash %v, finf=%v of hash %v\n",
+		fmax, fmax.Hash(), finf, finf.Hash())
 	ro1 := NewRefobV()
 	ro2 := NewRefobV()
 	ro3 := NewRefobV()
@@ -101,9 +110,13 @@ func TestValues(t *testing.T) {
 		}
 	})
 	fmt.Printf("jsem %v of type %T\n", jsem, jsem)
-	json_emit(jsem, i1)
-	json_emit(jsem, i2)
-	json_emit(jsem, f1)
-	json_emit(jsem, f2)
-	json_emit(jsem, f3)
+	json_emit(jsem, "i1", i1)
+	json_emit(jsem, "i2", i2)
+	json_emit(jsem, "f1", f1)
+	json_emit(jsem, "f2", f2)
+	json_emit(jsem, "f3", f3)
+	json_emit(jsem, "f4", f4)
+	json_emit(jsem, "f5", f5)
+	json_emit(jsem, "fmax", fmax)
+	json_emit(jsem, "finf", finf)
 }
