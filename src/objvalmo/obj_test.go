@@ -74,4 +74,21 @@ func TestValues(t *testing.T) {
 	set3 := MakeSetRefobV(ro3, ro3, ro4, ro2)
 	fmt.Printf("set set2=%v of hash %v, set3=%v of hash %v\n",
 		set2, set2.Hash(), set3, set3.Hash())
+	skipobmap := make(map[*ObjectMo]*ObjectMo)
+	jsem := MakeJsonSimpleValEmitter(func(pob *ObjectMo) bool {
+		_, ok := skipobmap[pob]
+		if ok {
+			return true
+		}
+		bn := pob.BucketNum()
+		if bn%2 == 0 {
+			skipobmap[pob] = pob
+			fmt.Printf("simplejsonemitter adding pob %v of bucket#%d\n",
+				pob, bn)
+			return true
+		} else {
+			return false
+		}
+	})
+	fmt.Printf("jsem %v of type %T\n", jsem, jsem)
 }

@@ -22,6 +22,20 @@ type JsonValEmitterMo interface {
 	EmitObjptr(*ObjectMo) bool
 }
 
+type EmitterFunction_t func(*ObjectMo) bool
+
+type JsonSimpleValEmitter struct {
+	emfun EmitterFunction_t
+}
+
+func MakeJsonSimpleValEmitter(ef EmitterFunction_t) JsonSimpleValEmitter {
+	return JsonSimpleValEmitter{emfun: ef}
+}
+
+func (jse JsonSimpleValEmitter) EmitObjptr(pob *ObjectMo) bool {
+	return jse.emfun(pob)
+}
+
 // we probably should have some JsonEmitter type....
 // having this method....
 func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {

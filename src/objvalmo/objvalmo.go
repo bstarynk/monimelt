@@ -702,3 +702,10 @@ func (pob *ObjectMo) String() string {
 	}
 	return pob.obid.String()
 }
+
+func (pob *ObjectMo) BucketNum() uint {
+	if pob == nil {
+		panic("objvalmo.BucketNum nil pob")
+	}
+	return pob.obid.BucketNum()
+}
