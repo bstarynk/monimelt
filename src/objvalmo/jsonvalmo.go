@@ -4,6 +4,7 @@ package objvalmo
 
 import (
 	// should use "github.com/antonholmquist/jason"
+	// or "github.com/mailru/easyjson"
 	"encoding/json"
 	"fmt"
 	"math"
