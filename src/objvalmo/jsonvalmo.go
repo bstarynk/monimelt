@@ -3,6 +3,7 @@
 package objvalmo
 
 import (
+	// should use "github.com/antonholmquist/jason"
 	"encoding/json"
 	"fmt"
 	"math"
