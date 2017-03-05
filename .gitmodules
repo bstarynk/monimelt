@@ -1,3 +1,6 @@
 [submodule "vendor/src/jason"]
 	path = vendor/src/jason
 	url = https://github.com/antonholmquist/jason
+[submodule "vendor/src/go-sqlite3"]
+	path = vendor/src/go-sqlite3
+	url = https://github.com/mattn/go-sqlite3
