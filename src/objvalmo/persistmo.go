@@ -38,17 +38,19 @@ type LoaderMo struct {
 
 func OpenLoader(globalpath string, userpath string) *LoaderMo {
 	l := new(LoaderMo)
-	l.ldglobaldb, err := sql.Open("sqlite3", globalpath)
+	db, err := sql.Open("sqlite3", globalpath)
 	if err != nil {
 		panic(fmt.Errorf("objvalmo.OpenLoad failed to open global db %s - %v",
 			globalpath, err))
 	}
+	l.ldglobaldb = db
 	if (len(userpath) > 0) {
-		l.lduserdb, err := sql.Open("sqlite3", userpath)
+		db, err := sql.Open("sqlite3", userpath)
 		if err != nil {
-		panic(fmt.Errorf("persistmo.OpenLoad failed to open user db %s - %v",
-			userpath, err))
+			panic(fmt.Errorf("persistmo.OpenLoad failed to open user db %s - %v",
+				userpath, err))
 		}
+		l.lduserdb = db
 	}
 	l.ldobjmap = new(map[serialmo.IdentMo] *ObjectMo)
 	return l
@@ -68,7 +70,7 @@ func (l *LoaderMo) create_objects (globflag bool) {
 	}
 	defer qr.Close()
 	for qr.Next() {
-		var idstr
+		var idstr string
 		err = qr.Scan(&idstr)
 		if err != nil {
 			panic(fmt.Errorf("persistmo.create_objects failure %v", err))
