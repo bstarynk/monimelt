@@ -1,0 +1,3 @@
+[submodule "vendor/src/jason"]
+	path = vendor/src/jason
+	url = https://github.com/antonholmquist/jason

@@ -44,7 +44,7 @@ func json_emit(jem JsonSimpleValEmitter, msg string, v ValueMo) {
 	fmt.Printf("json_emit %s v=%v of type %T\n", msg, v, v)
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
-	OutputJsonValue(jem, enc, v)
+	EncodeJsonValue(jem, enc, v)
 	fmt.Printf("json_emit %s buf: %s\n", msg, buf.String())
 }
 

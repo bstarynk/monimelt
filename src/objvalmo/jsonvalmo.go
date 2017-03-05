@@ -3,13 +3,14 @@
 package objvalmo
 
 import (
-	// should use "github.com/antonholmquist/jason"
-	// or "github.com/mailru/easyjson"
 	"encoding/json"
 	"fmt"
+	"bytes"
+	"jason" // github.com/antonholmquist/jason; in vendor/src
 	"math"
 	_ "serialmo"
 	"strconv"
+	"strings"
 )
 
 type jsonIdent struct {
@@ -108,8 +109,6 @@ func sequenceToJsonTuple(vem JsonValEmitterMo, seqv SequenceV) []string {
 	return jseq
 }
 
-// we probably should have some JsonEmitter type....
-// having this method....
 func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 	switch v.TypeV() {
 	case TyIntV:
@@ -151,28 +150,75 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 	return nil
 }
 
-func OutputJsonValue(vem JsonValEmitterMo, enc *json.Encoder, v ValueMo) {
+func EncodeJsonValue(vem JsonValEmitterMo, enc *json.Encoder, v ValueMo) {
 	enc.Encode(ValToJson(vem, v))
 }
 
-func InputJsonValue(vpm JsonValParserMo, dec *json.Decoder) (ValueMo, error) {
-	// read first token
-	firstok, err := dec.Token()
-	if err != nil {
-		return nil, err
-	}
-	if str, ok := firstok.(string); ok {
-		return MakeStringV(str), nil
-	} else if flo, ok := firstok.(float64); ok {
-		return MakeFloatV(flo), nil
-	} else if num, ok := firstok.(json.Number); ok {
-		if n, errn := num.Int64(); errn == nil {
-			return MakeIntV(int(n)), nil
-		} else if f, errn := num.Float64(); errn == nil {
-			return MakeFloatV(f), nil
+func EmitJsonValueInBuffer(vem JsonValEmitterMo, buf *bytes.Buffer, v ValueMo) {
+	enc := json.NewEncoder(buf)
+	EncodeJsonValue(vem, enc, v)
+}
+
+func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
+	var err error
+	if err = jval.Null(); err == nil {
+		return nil, nil
+	} else if num, err := jval.Number(); err == nil {
+		ns := num.String()
+		if strings.ContainsRune(ns, '.') || strings.ContainsRune(ns, 'e') || strings.ContainsRune(ns, 'e') {
+			fv, _ := num.Float64()
+			return MakeFloatV(fv), nil
 		} else {
-			return nil, fmt.Errorf("InputJsonValue: bad number %s", num.String())
+			iv, _ := num.Int64()
+			return MakeIntV(int(iv)), nil
+		}
+	} else if str, err := jval.String(); err == nil {
+		return MakeStringV(str), nil
+	} else {
+		job, err := jval.Object()
+		if err != nil {
+			return nil, err
+		}
+		if obs, err := job.GetString("oid"); err == nil {
+			pob, err := vpm.ParseObjptr(obs)
+			if pob != nil && err == nil {
+				return MakeRefobV(pob), nil
+			} else if err != nil {
+				return nil, err
+			} else {
+				return nil, nil
+			}
+		} else if flos, err := job.GetString("float"); err == nil {
+			if flos == "+Inf" {
+				return MakeFloatV(math.Inf(+1)), nil
+			} else if flos == "-Inf" {
+				return MakeFloatV(math.Inf(-1)), nil
+			}
+		} else if oelems, err := job.GetStringArray("set"); err == nil {
+			l := len(oelems)
+			obseq := make([]*ObjectMo, 0, l)
+			for ix := 0; ix < l; ix++ {
+				pob, err := vpm.ParseObjptr(oelems[ix])
+				if pob != nil && err == nil {
+					obseq = append(obseq, pob)
+				} else if err != nil {
+					return nil, err
+				}
+			}
+			return MakeSetSliceV(obseq), nil
+		} else if ocomps, err := job.GetStringArray("tup"); err == nil {
+			l := len(ocomps)
+			obseq := make([]*ObjectMo, 0, l)
+			for ix := 0; ix < l; ix++ {
+				pob, err := vpm.ParseObjptr(ocomps[ix])
+				if pob != nil && err == nil {
+					obseq = append(obseq, pob)
+				} else if err != nil {
+					return nil, err
+				}
+			}
+			return MakeTupleSliceV(obseq), nil
 		}
 	}
-	panic("unimplemented InputJsonValue")
+	return nil, fmt.Errorf("JasonParseValue invalid jval: %v", jval)
 }
