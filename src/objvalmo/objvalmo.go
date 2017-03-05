@@ -757,3 +757,7 @@ func SlicePredefined() []*ObjectMo {
 	sort.Sort(ordSliceObptr(sli))
 	return sli
 }
+
+func SetPredefined() SetV {
+	return MakeSetSliceV(SlicePredefined())
+}
