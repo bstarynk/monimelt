@@ -22,6 +22,13 @@ const NbDigitsSerialMo = 11
 const BaseSerialMo = 62
 const MaxBucketMo = 10 * 62
 
+
+type HashMo uint32
+
+func (h HashMo) String() string {
+	return fmt.Sprintf("h#%d", uint32(h))
+}
+
 type IdentMo struct {
 	IdHi, IdLo SerialMo
 }
@@ -176,6 +183,17 @@ func (id IdentMo) ToString() string {
 
 func (id IdentMo) String() string {
 	return id.ToString()
+}
+
+func (id IdentMo) Hash() HashMo {
+	if id.EmptyId() {
+		return 0
+	}
+	h := uint32((id.IdHi * 1033) ^ (id.IdLo * 2027))
+	if h == 0 {
+		h = (uint32(id.IdHi) & 0xfffff) + 17*(uint32(id.IdLo)&0xfffff) + 30
+	}
+	return HashMo(h)
 }
 
 func (id IdentMo) BucketNum() uint {

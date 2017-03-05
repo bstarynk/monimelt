@@ -36,15 +36,9 @@ type PayloadMo interface {
 	DestroyPayl(*ObjectMo)
 }
 
-type HashMo uint32
-
-func (h HashMo) String() string {
-	return fmt.Sprintf("h#%d", uint32(h))
-}
-
 type ValueMo interface {
 	TypeV() uint
-	Hash() HashMo
+	Hash() serialmo.HashMo
 }
 
 //////////////// string values
@@ -74,7 +68,7 @@ func (sv StringV) TypeV() uint {
 	return TyStringV
 }
 
-func StringHash(s string) HashMo {
+func StringHash(s string) serialmo.HashMo {
 	var h1, h2 uint32
 	for ix, ru := range s {
 		uc := uint32(ru)
@@ -88,7 +82,7 @@ func StringHash(s string) HashMo {
 	if h == 0 {
 		h = 3*(h1&0xfffff) + 5*(h2&0xfffff) + uint32(len(s)&0xfffff) + 11
 	}
-	return HashMo(h)
+	return serialmo.HashMo(h)
 }
 
 func MakeStringV(s string) StringV {
@@ -97,8 +91,8 @@ func MakeStringV(s string) StringV {
 	return strv
 }
 
-func (sv StringV) Hash() HashMo {
-	return HashMo(sv.shash)
+func (sv StringV) Hash() serialmo.HashMo {
+	return serialmo.HashMo(sv.shash)
 }
 
 // printable string
@@ -125,14 +119,14 @@ func (IntV) TypeV() uint {
 	return TyIntV
 }
 
-func (i IntV) Hash() HashMo {
+func (i IntV) Hash() serialmo.HashMo {
 	h1 := uint32(i)
 	h2 := uint32(i >> 30)
 	h := (11 * h1) ^ (26347 * h2)
 	if h == 0 {
 		h = (h1 & 0xffff) + 17*(h2&0xfffff) + 4
 	}
-	return HashMo(h)
+	return serialmo.HashMo(h)
 }
 
 func MakeIntV(i int) IntV {
@@ -168,7 +162,7 @@ func MakeFloatV(f float64) FloatV {
 	return FloatV(f)
 }
 
-func (fv FloatV) Hash() HashMo {
+func (fv FloatV) Hash() serialmo.HashMo {
 	f := float64(fv)
 	if math.IsNaN(f) {
 		panic("objvalmo.Hash of float NaN")
@@ -197,7 +191,7 @@ func (fv FloatV) Hash() HashMo {
 	if h == 0 {
 		h = ((uint32(math.Log(absintp)) + uint32(fracp*12345678.9)) & 0xfffff) + 17
 	}
-	return HashMo(h)
+	return serialmo.HashMo(h)
 }
 func (fv FloatV) String() string {
 	return fmt.Sprintf("%f", float64(fv))
@@ -228,19 +222,14 @@ func (rob RefobV) IdOb() serialmo.IdentMo {
 	return rob.roptr.obid
 }
 
-func HashObptr(po *ObjectMo) HashMo {
+func HashObptr(po *ObjectMo) serialmo.HashMo {
 	if po == nil {
 		return 0
 	}
-	nhi, nlo := po.obid.ToTwoNums()
-	h := uint32((nhi * 1033) ^ (nlo * 2027))
-	if h == 0 {
-		h = (uint32(nhi) & 0xfffff) + 17*(uint32(nlo)&0xfffff) + 30
-	}
-	return HashMo(h)
+	return po.obid.Hash()
 }
 
-func (po *ObjectMo) Hash() HashMo {
+func (po *ObjectMo) Hash() serialmo.HashMo {
 	return HashObptr(po)
 }
 
@@ -274,7 +263,7 @@ func LessEqualObptr(pol *ObjectMo, por *ObjectMo) bool {
 	return serialmo.LessEqualId(pol.obid, por.obid)
 }
 
-func (rob RefobV) Hash() HashMo {
+func (rob RefobV) Hash() serialmo.HashMo {
 	return HashObptr(rob.roptr)
 }
 
@@ -320,7 +309,7 @@ type SequenceVMo interface {
 }
 
 type SequenceV struct {
-	shash  HashMo
+	shash  serialmo.HashMo
 	scomps []*ObjectMo
 }
 
@@ -343,7 +332,7 @@ func (SequenceV) TypeV() uint {
 func (sq SequenceV) Length() int {
 	return len(sq.scomps)
 }
-func (sq SequenceV) Hash() HashMo { return sq.shash }
+func (sq SequenceV) Hash() serialmo.HashMo { return sq.shash }
 
 func (sq SequenceV) Nth(rk int) *ObjectMo {
 	l := len(sq.scomps)
@@ -397,7 +386,7 @@ func makeCheckedSequenceSlice(hinit uint32, k1 uint32, k2 uint32, objs []*Object
 	if hs == 0 {
 		hs = 31*(h1&0xfffff) + 5*(h2&0xfffff) + uint32(17+l&0xff)
 	}
-	return SequenceV{shash: HashMo(hs), scomps: sq}
+	return SequenceV{shash: serialmo.HashMo(hs), scomps: sq}
 }
 
 func makeCheckedSequence(hinit uint32, k1 uint32, k2 uint32, objs ...*ObjectMo) SequenceV {
@@ -431,7 +420,7 @@ func makeSkippedSequenceSlice(hinit uint32, k1 uint32, k2 uint32, objs []*Object
 	if hs == 0 {
 		hs = 31*(h1&0xfffff) + 5*(h2&0xfffff) + uint32(17+l&0xff)
 	}
-	return SequenceV{shash: HashMo(hs), scomps: sq}
+	return SequenceV{shash: serialmo.HashMo(hs), scomps: sq}
 }
 
 func makeSkippedSequence(hinit uint32, k1 uint32, k2 uint32, objs ...*ObjectMo) SequenceV {

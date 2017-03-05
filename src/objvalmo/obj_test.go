@@ -150,7 +150,7 @@ func TestValues(t *testing.T) {
 	///
 	jv, err := jason.NewValueFromBytes(([]byte)("null"))
 	fmt.Printf("objtest 'null' jv=%v (%T) err=%v\n", jv, jv, err)
-	json_parse("test-nil", "null")	/// for some reason, test-nil is failing...
+	json_parse("test-nil", "null") /// for some reason, test-nil is failing...
 	json_parse("test-valuenil", `{"value":null}`)
 	json_parse("test-1", " 1")
 	json_parse("test-m23", "-23")

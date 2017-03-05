@@ -12,7 +12,7 @@ import (
 
 func main() {
 	hasSerialPtr := flag.Bool("serial", false, "generate serials and obids")
-	nbSerialPtr := flag.Int("nb-serial", 2, "number of serials")
+	nbSerialPtr := flag.Int("nb-serial", 3, "number of serials")
 
 	flag.Parse()
 	fmt.Printf("Monimelt starting pid %d, Go version %s\n", os.Getpid(), runtime.Version())
@@ -28,8 +28,8 @@ func main() {
 		for i := 0; i < n; i++ {
 			oid := serialmo.RandomId()
 			nhi, nlo := oid.ToTwoNums()
-			fmt.Printf("id#%d: %#x,%#x %s buck#%d\n",
-				i, nhi, nlo, oid.ToString(), oid.BucketNum())
+			fmt.Printf("id#%d: %#x,%#x %s buck#%d %v\n",
+				i, nhi, nlo, oid.ToString(), oid.BucketNum(), oid.Hash())
 		}
 	}
 }
