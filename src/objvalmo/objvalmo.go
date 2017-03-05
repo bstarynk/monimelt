@@ -23,6 +23,14 @@ const (
 	TyTupleV
 )
 
+const (
+	SpaTransient = iota
+	SpaPredefined
+	SpaGlobal
+	SpaUser
+	Spa_Last
+)
+
 type ObjectMo struct {
 	obid    serialmo.IdentMo
 	obmtx   sync.Mutex
@@ -697,4 +705,55 @@ func (pob *ObjectMo) BucketNum() uint {
 		panic("objvalmo.BucketNum nil pob")
 	}
 	return pob.obid.BucketNum()
+}
+
+func (pob *ObjectMo) UnsyncSpaceNum() uint8 {
+	if pob == nil {
+		panic("objvalmo.UnsyncSpaceNum nil pob")
+	}
+	return pob.obspace
+}
+
+var predefined_map map[serialmo.IdentMo]*ObjectMo
+var predefined_mtx sync.Mutex
+
+func init() {
+	predefined_map = make(map[serialmo.IdentMo]*ObjectMo)
+}
+
+func (pob *ObjectMo) UnsyncSetSpaceNum(sp uint8) *ObjectMo {
+	if pob == nil {
+		panic("objvalmo.UnsyncSetSpaceNum nil pob")
+	}
+	if sp >= Spa_Last {
+		panic("objvalmo.UnsyncSetSpaceNum out-of-bounds sp")
+	}
+	oldsp := pob.obspace
+	if oldsp == sp {
+		return pob
+	}
+	if oldsp == SpaPredefined {
+		predefined_mtx.Lock()
+		defer predefined_mtx.Unlock()
+		delete(predefined_map, pob.obid)
+	}
+	if sp == SpaPredefined {
+		predefined_mtx.Lock()
+		defer predefined_mtx.Unlock()
+		predefined_map[pob.obid] = pob
+	}
+	pob.obspace = sp
+	return pob
+}
+
+func SlicePredefined() []*ObjectMo {
+	predefined_mtx.Lock()
+	defer predefined_mtx.Unlock()
+	nbpr := len(predefined_map)
+	sli := make([]*ObjectMo, 0, nbpr)
+	for _, pob := range predefined_map {
+		sli = append(sli, pob)
+	}
+	sort.Sort(ordSliceObptr(sli))
+	return sli
 }
