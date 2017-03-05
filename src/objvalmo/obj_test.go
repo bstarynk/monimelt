@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"jason"
 	"math"
 	"serialmo"
 	"testing"
@@ -46,6 +47,23 @@ func json_emit(jem JsonSimpleValEmitter, msg string, v ValueMo) {
 	enc := json.NewEncoder(&buf)
 	EncodeJsonValue(jem, enc, v)
 	fmt.Printf("json_emit %s buf: %s\n", msg, buf.String())
+}
+
+func json_parse(msg string, js string) {
+	fmt.Printf("json_parse %s: %s\n", msg, js)
+	jv, err := jason.NewValueFromBytes(([]byte)(js))
+	if err != nil {
+		fmt.Printf("json_parse jason failure %s: %v\n", msg, err)
+		return
+	}
+	fmt.Printf("json_parse %s: jv %v // %T\n", msg, jv, jv)
+	tp := TrivialValParser()
+	v, err := JasonParseValue(tp, *jv)
+	if err != nil {
+		fmt.Printf("json_parse failure %s: %v\n\n", msg, err)
+	} else {
+		fmt.Printf("json_parse success %s: %v (%T)\n\n", msg, v, v)
+	}
 }
 
 func TestValues(t *testing.T) {
@@ -129,4 +147,11 @@ func TestValues(t *testing.T) {
 	json_emit(jsem, "set1", set1)
 	json_emit(jsem, "set2", set2)
 	json_emit(jsem, "set3", set3)
+	///
+	jv, err := jason.NewValueFromBytes(([]byte)("null"))
+	fmt.Printf("objtest 'null' jv=%v (%T) err=%v\n", jv, jv, err)
+	json_parse("test-nil", "null")	/// for some reason, test-nil is failing...
+	json_parse("test-valuenil", `{"value":null}`)
+	json_parse("test-1", " 1")
+	json_parse("test-m23", "-23")
 }

@@ -3,12 +3,12 @@
 package objvalmo
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"bytes"
 	"jason" // github.com/antonholmquist/jason; in vendor/src
 	"math"
-	_ "serialmo"
+	"serialmo"
 	"strconv"
 	"strings"
 )
@@ -159,9 +159,31 @@ func EmitJsonValueInBuffer(vem JsonValEmitterMo, buf *bytes.Buffer, v ValueMo) {
 	EncodeJsonValue(vem, enc, v)
 }
 
+type JsonSimpleValParser struct {
+}
+
+func (JsonSimpleValParser) ParseObjptr(sid string) (*ObjectMo, error) {
+	oid, err := serialmo.IdFromString(sid)
+	if err != nil {
+		return nil, err
+	}
+	pob, ok := FindOrMakeObjectById(oid)
+	if !ok {
+		return nil, fmt.Errorf("JsonSimpleValParser.ParseObjptr bad sid=%q", sid)
+	}
+	return pob, nil
+}
+
+func TrivialValParser() JsonSimpleValParser {
+	return JsonSimpleValParser{}
+}
+
 func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
 	var err error
-	if err = jval.Null(); err == nil {
+	//fmt.Printf("JasonParseValue start jval %v (%T)\n", jval, jval)
+	err = jval.Null()
+	//fmt.Printf("JasonParseValue jval %v (%T) err=%v\n", jval, jval, err)
+	if err == nil {
 		return nil, nil
 	} else if num, err := jval.Number(); err == nil {
 		ns := num.String()
@@ -218,6 +240,8 @@ func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
 				}
 			}
 			return MakeTupleSliceV(obseq), nil
+		} else if jval, err := job.GetValue("value"); err == nil {
+			return JasonParseValue(vpm, *jval)
 		}
 	}
 	return nil, fmt.Errorf("JasonParseValue invalid jval: %v", jval)
