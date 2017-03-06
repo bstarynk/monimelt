@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"regexp"
 	"runtime"
 	"serialmo"
 	"sort"
@@ -760,4 +761,62 @@ func SlicePredefined() []*ObjectMo {
 
 func SetPredefined() SetV {
 	return MakeSetSliceV(SlicePredefined())
+}
+
+////////////////////////////////////////////////////////////////
+//// global variables support. They should be registered, at init
+//// time, using RegisterVariable. For example:
+////    var Glo_foo *ObjectMo
+////    RegisterGlobalVariable("foo", &Glo_foo)
+
+var glovar_map map[string]**ObjectMo
+var glovar_regexp *regexp.Regexp
+var glovar_mtx sync.Mutex
+
+func init() {
+	glovar_map = make(map[string]**ObjectMo)
+	glovar_regexp = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+}
+
+func RegisterGlobalVariable(vnam string, advar **ObjectMo) {
+	if !glovar_regexp.MatchString(vnam) {
+		panic(fmt.Errorf("RegisterGlobalVariable invalid vnam %q", vnam))
+	}
+	if advar == nil {
+		panic(fmt.Errorf("RegisterGlobalVariable null address for vnam %q", vnam))
+	}
+	glovar_mtx.Lock()
+	defer glovar_mtx.Unlock()
+	glovar_map[vnam] = advar
+}
+
+func UnregisterGlobalVariable(vnam string) {
+	if !glovar_regexp.MatchString(vnam) {
+		panic(fmt.Errorf("UnregisterGlobalVariable invalid vnam %q", vnam))
+	}
+	glovar_mtx.Lock()
+	defer glovar_mtx.Unlock()
+	delete(glovar_map, vnam)
+}
+
+func GlobalVariableAddress(vnam string) **ObjectMo {
+	if !glovar_regexp.MatchString(vnam) {
+		panic(fmt.Errorf("GlobalVariableAddress invalid vnam %q", vnam))
+	}
+	glovar_mtx.Lock()
+	defer glovar_mtx.Unlock()
+	vad, _ := glovar_map[vnam]
+	return vad
+}
+
+func NamesGlobalVariables() []string {
+	glovar_mtx.Lock()
+	defer glovar_mtx.Unlock()
+	ln := len(glovar_map)
+	sl := make([]string, 0, ln+1)
+	for n, _ := range glovar_map {
+		sl = append(sl, n)
+	}
+	sort.Slice(sl, func(i, j int) bool { return sl[i] < sl[j] })
+	return sl
 }
