@@ -4,3 +4,6 @@
 [submodule "vendor/src/gosqlite"]
 	path = vendor/src/gosqlite
 	url = https://github.com/gwenn/gosqlite
+[submodule "vendor/src/yacr"]
+	path = vendor/src/yacr
+	url = https://github.com/gwenn/yacr

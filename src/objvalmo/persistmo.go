@@ -1,14 +1,20 @@
 // file objvalmo/persistmo.go
 
-/// could use https://github.com/gwenn/gosqlite
+/// use https://github.com/gwenn/gosqlite
 package objvalmo
 
 import (
-	"bytes"
+	//"bytes"
 	"database/sql"
 	"fmt"
-	"gosqlite" // https://github.com/gwenn/gosqlite
+	gosqlite "github.com/gwenn/gosqlite"
+	"log"
+	"serialmo"
+	"strings"
 )
+
+const GlobalObjects = true
+const UserObjects = false
 
 func sqliteerrorlogmo(d interface{}, err error, msg string) {
 	log.Printf("SQLITE: %s, %s\n", err, msg)
@@ -24,12 +30,12 @@ func init() {
 type LoaderMo struct {
 	ldglobaldb *sql.DB
 	lduserdb   *sql.DB
-	ldobjmap   map[serialmo.IdentMo]*ObjectMo
+	ldobjmap   *map[serialmo.IdentMo]*ObjectMo
 }
 
 func validsqlitepath(path string) bool {
 	// check that path has no :?&=$~;' characters
-	return !string.ContainsAny(path, ":?&=$;'")
+	return !strings.ContainsAny(path, ":?&=$;'")
 }
 
 func OpenLoader(globalpath string, userpath string) *LoaderMo {
@@ -64,12 +70,12 @@ func (l *LoaderMo) create_objects(globflag bool) {
 	var qr *sql.Rows
 	var err error
 	if globflag {
-		qr, err := l.ldglobaldb.Query("SELECT ob_id FROM to_objects")
+		qr, err = l.ldglobaldb.Query("SELECT ob_id FROM to_objects")
 	} else {
-		qr, err := l.lduserdb.Query("SELECT ob_id FROM to_objects")
+		qr, err = l.lduserdb.Query("SELECT ob_id FROM to_objects")
 	}
 	if err != nil {
-		panic(fmt.Errorf("loader: create_objects failure %v"), err)
+		panic(fmt.Errorf("loader: create_objects failure %v", err))
 	}
 	defer qr.Close()
 	for qr.Next() {
@@ -82,8 +88,8 @@ func (l *LoaderMo) create_objects(globflag bool) {
 		if err != nil {
 			panic(fmt.Errorf("persistmo.create_objects bad id %s: %v", idstr, err))
 		}
-		pob := objvalmo.MakeObjectById(oid)
-		l.ldobjmap[oid] = pob
+		pob := MakeObjectById(oid)
+		(*l.ldobjmap)[oid] = pob
 	}
 	err = qr.Err()
 	if err != nil {
@@ -92,9 +98,9 @@ func (l *LoaderMo) create_objects(globflag bool) {
 }
 
 func (l *LoaderMo) Load() {
-	l.create_objects(true)
-	if l.lduserdb {
-		l.create_objects(false)
+	l.create_objects(GlobalObjects)
+	if l.lduserdb != nil {
+		l.create_objects(UserObjects)
 	}
 }
 
@@ -111,5 +117,5 @@ func (l *LoaderMo) Close() {
 		gd.Close()
 	}
 	/// clear the object map
-	l.ldobjmap = new(map[serialmo.IdentMo]*ObjectMo)
+	l.ldobjmap = nil
 }
