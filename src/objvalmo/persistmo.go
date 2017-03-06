@@ -24,7 +24,7 @@ func sqliteerrorlogmo(d interface{}, err error, msg string) {
 
 func init() {
 	err := gosqlite.ConfigLog(sqliteerrorlogmo, nil)
-	if err == nil {
+	if err != nil {
 		panic(fmt.Errorf("persistmo could not ConfigLog sqlite: %v", err))
 	}
 }
@@ -135,7 +135,7 @@ func (l *LoaderMo) Close() {
 	l.ldobjmap = nil
 }
 
-const dump_chunk_len = 14
+const dump_chunk_len = 7
 
 type dumpChunk struct {
 	dchobjects [dump_chunk_len]*ObjectMo
