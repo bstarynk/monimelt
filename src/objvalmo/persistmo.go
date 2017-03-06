@@ -1,6 +1,5 @@
 // file objvalmo/persistmo.go
 
-
 package objvalmo
 
 import (
@@ -136,11 +135,21 @@ func (l *LoaderMo) Close() {
 	l.ldobjmap = nil
 }
 
+const dump_chunk_len = 14
+
+type dumpChunk struct {
+	dchobjects [dump_chunk_len]*ObjectMo
+	dchnext    *dumpChunk
+}
+
 type DumperMo struct {
 	dudirname    string
 	dutempsuffix string
 	duglobaldb   *sql.DB
 	duuserdb     *sql.DB
+	dufirstchk   *dumpChunk
+	dulastchk    *dumpChunk
+	dusetobjects *map[*ObjectMo]*ObjectMo
 }
 
 const sql_create_t_params = `CREATE TABLE IF NOT EXISTS t_params
@@ -173,6 +182,37 @@ func (du DumperMo) create_tables(globflag bool) {
 		panic(fmt.Errorf("create_tables failure in directory %s for t_objects creation %v",
 			du.dudirname, err))
 	}
+}
+
+func (du DumperMo) AddDumpedObject(pob *ObjectMo) {
+	if pob == nil {
+		return
+	}
+	if _, found := (*du.dusetobjects)[pob]; found {
+		return
+	}
+	if du.dufirstchk == nil {
+		nchk := new(dumpChunk)
+		du.dufirstchk = nchk
+		du.dulastchk = nchk
+	}
+	lchk := du.dulastchk
+	putix := -1
+	for ix := 0; ix < dump_chunk_len; ix++ {
+		if lchk.dchobjects[ix] == nil {
+			putix = ix
+			break
+		}
+	}
+	if putix >= 0 {
+		lchk.dchobjects[putix] = pob
+		return
+	}
+	nchk := new(dumpChunk)
+	lchk.dchnext = nchk
+	du.dulastchk = nchk
+	nchk.dchobjects[0] = pob
+	du.dulastchk = nchk
 }
 
 func OpenDumperDirectory(dirpath string) *DumperMo {
