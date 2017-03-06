@@ -12,6 +12,7 @@ monimelt
 *.orig
 *.ii
 *.i
+monimelt
 core
 _timestamp.c
 _MomDumpTimeStamp
