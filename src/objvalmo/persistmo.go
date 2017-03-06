@@ -5,60 +5,62 @@ package objvalmo
 
 import (
 	"bytes"
-	"fmt"
 	"database/sql"
-	_ "go-sqlite3"
+	"fmt"
+	"gosqlite" // https://github.com/gwenn/gosqlite
 )
 
-/**
- #cgo pkg-config: sqlite3
- #include <stdio.h>
- #include <stdlib.h>
- #include <sqlite/sqlite.h>
- #include <pthread.h>
- void monimelt_sqlite3_errorlog(void *pdata __attribute__((unused)), int errcode, const char *msg) {
-    fprintf(stderr, "monimelt Sqlite3 error:  errcode#%d msg=%s\n", errcode, msg);
-    fflush(stderr);
- }
- void monimelt_initialize_sqlite3_logging(void) {
-  sqlite3_config (SQLITE_CONFIG_LOG, monimelt_sqlite3_errorlog, NULL);
- }
-**/
-
-import "C"
+func sqliteerrorlogmo(d interface{}, err error, msg string) {
+	log.Printf("SQLITE: %s, %s\n", err, msg)
+}
 
 func init() {
-	C.monimelt_initialize_sqlite3_logging()
+	err := gosqlite.ConfigLog(sqliteerrorlogmo, nil)
+	if err == nil {
+		panic(fmt.Errorf("persistmo could not ConfigLog sqlite: %v", err))
+	}
 }
 
 type LoaderMo struct {
 	ldglobaldb *sql.DB
-	lduserdb *sql.DB
-	ldobjmap map[serialmo.IdentMo] *ObjectMo
+	lduserdb   *sql.DB
+	ldobjmap   map[serialmo.IdentMo]*ObjectMo
+}
+
+func validsqlitepath(path string) bool {
+	// check that path has no :?&=$~;' characters
+	return !string.ContainsAny(path, ":?&=$;'")
 }
 
 func OpenLoader(globalpath string, userpath string) *LoaderMo {
+	if !validsqlitepath(globalpath) {
+		panic(fmt.Errorf("objvalmo.OpenLoad invalid global path %s",
+			globalpath))
+	}
 	l := new(LoaderMo)
-	db, err := sql.Open("sqlite3", globalpath)
+	db, err := sql.Open("sqlite3", "file:"+globalpath+"?mode=readonly")
 	if err != nil {
 		panic(fmt.Errorf("objvalmo.OpenLoad failed to open global db %s - %v",
 			globalpath, err))
 	}
 	l.ldglobaldb = db
-	if (len(userpath) > 0) {
-		db, err := sql.Open("sqlite3", userpath)
+	if len(userpath) > 0 {
+		if !validsqlitepath(userpath) {
+			panic(fmt.Errorf("objvalmo.OpenLoad invalid user path %s",
+				userpath))
+		}
+		db, err := sql.Open("sqlite3", "file:"+userpath+"?mode=readonly")
 		if err != nil {
 			panic(fmt.Errorf("persistmo.OpenLoad failed to open user db %s - %v",
 				userpath, err))
 		}
 		l.lduserdb = db
 	}
-	l.ldobjmap = new(map[serialmo.IdentMo] *ObjectMo)
+	l.ldobjmap = new(map[serialmo.IdentMo]*ObjectMo)
 	return l
 }
 
-
-func (l *LoaderMo) create_objects (globflag bool) {
+func (l *LoaderMo) create_objects(globflag bool) {
 	var qr *sql.Rows
 	var err error
 	if globflag {
@@ -89,26 +91,25 @@ func (l *LoaderMo) create_objects (globflag bool) {
 	}
 }
 
-
 func (l *LoaderMo) Load() {
 	l.create_objects(true)
 	if l.lduserdb {
 		l.create_objects(false)
-	}	
+	}
 }
 
 func (l *LoaderMo) Close() {
 	if l == nil {
 		return
 	}
-	if ud := l.lduserdb ; ud != nil {
+	if ud := l.lduserdb; ud != nil {
 		l.lduserdb = nil
 		ud.Close()
 	}
-	if gd := l.ldglobaldb ; gd != nil {
+	if gd := l.ldglobaldb; gd != nil {
 		l.ldglobaldb = nil
 		gd.Close()
 	}
 	/// clear the object map
-	l.ldobjmap = new(map[serialmo.IdentMo] *ObjectMo)
+	l.ldobjmap = new(map[serialmo.IdentMo]*ObjectMo)
 }
