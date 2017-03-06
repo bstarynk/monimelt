@@ -1,6 +1,6 @@
 // file objvalmo/persistmo.go
 
-/// use https://github.com/gwenn/gosqlite
+
 package objvalmo
 
 import (

@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"jason" // github.com/antonholmquist/jason; in vendor/src
+	jason "github.com/antonholmquist/jason"
 	"math"
 	"serialmo"
 	"strconv"

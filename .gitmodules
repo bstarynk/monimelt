@@ -7,3 +7,12 @@
 [submodule "vendor/src/yacr"]
 	path = vendor/src/yacr
 	url = https://github.com/gwenn/yacr
+[submodule "vendor/src/github.com/gwenn/gosqlite"]
+	path = vendor/src/github.com/gwenn/gosqlite
+	url = git@github.com:gwenn/gosqlite.git
+[submodule "vendor/src/github.com/gwenn/yacr"]
+	path = vendor/src/github.com/gwenn/yacr
+	url = git@github.com:gwenn/yacr.git
+[submodule "vendor/src/github.com/antonholmquist/jason"]
+	path = vendor/src/github.com/antonholmquist/jason
+	url = git@github.com:antonholmquist/jason.git
