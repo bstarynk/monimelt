@@ -4,7 +4,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	_ "objvalmo"
+	"log"
+	"objvalmo"
 	"os"
 	"runtime"
 	"serialmo"
@@ -32,7 +33,7 @@ func main() {
 				i, nhi, nlo, oid.ToString(), oid.BucketNum(), oid.Hash())
 		}
 	}
-	if *finalDumpPtr && len(*finalDumpPtr) > 0 {
+	if len(*finalDumpPtr) > 0 {
 		log.Printf("monimelt should final dump in %s\n", *finalDumpPtr)
 		objvalmo.DumpIntoDirectory(*finalDumpPtr)
 	}
