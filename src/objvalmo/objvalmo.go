@@ -48,6 +48,7 @@ type PayloadMo interface {
 type ValueMo interface {
 	TypeV() uint
 	Hash() serialmo.HashMo
+	DumpScan(*DumperMo)
 }
 
 //////////////// string values
@@ -76,6 +77,8 @@ func (sv StringV) ToString() string {
 func (sv StringV) TypeV() uint {
 	return TyStringV
 }
+
+func (sv StringV) DumpScan(du *DumperMo) {}
 
 func StringHash(s string) serialmo.HashMo {
 	var h1, h2 uint32
@@ -146,6 +149,8 @@ func (iv IntV) String() string {
 	return fmt.Sprintf("%d", int(iv))
 }
 
+func (sv IntV) DumpScan(du *DumperMo) {}
+
 //////////////// float values
 type FloatVMo interface {
 	ValueMo
@@ -205,6 +210,8 @@ func (fv FloatV) Hash() serialmo.HashMo {
 func (fv FloatV) String() string {
 	return fmt.Sprintf("%f", float64(fv))
 }
+
+func (fv FloatV) DumpScan(du *DumperMo) {}
 
 //////////////// refob values
 type RefobVMo interface {
@@ -308,6 +315,10 @@ func (rob RefobV) String() string {
 	return rob.roptr.obid.ToString()
 }
 
+func (rob RefobV) DumpScan(du *DumperMo) {
+	du.AddDumpedObject(rob.roptr)
+}
+
 //////////////// sequence values
 type SequenceVMo interface {
 	ValueMo
@@ -352,6 +363,14 @@ func (sq SequenceV) Nth(rk int) *ObjectMo {
 		return nil
 	}
 	return sq.scomps[rk]
+}
+
+func (sq SequenceV) DumpScan(du *DumperMo) {
+	sln := len(sq.scomps)
+	for ix := 0; ix < sln; ix++ {
+		curob := sq.scomps[ix]
+		du.AddDumpedObject(curob)
+	}
 }
 
 func (sq SequenceV) seqToString(begc rune, endc rune) string {
@@ -763,6 +782,14 @@ func SetPredefined() SetV {
 	return MakeSetSliceV(SlicePredefined())
 }
 
+func DumpScanPredefined(du *DumperMo) {
+	predefined_mtx.Lock()
+	defer predefined_mtx.Unlock()
+	for _, pob := range predefined_map {
+		du.AddDumpedObject(pob)
+	}
+}
+
 ////////////////////////////////////////////////////////////////
 //// global variables support. They should be registered, at init
 //// time, using RegisterVariable. For example:
@@ -819,4 +846,15 @@ func NamesGlobalVariables() []string {
 	}
 	sort.Slice(sl, func(i, j int) bool { return sl[i] < sl[j] })
 	return sl
+}
+
+func DumpScanGlobalVariables(du *DumperMo) {
+	glovar_mtx.Lock()
+	defer glovar_mtx.Unlock()
+	for _, av := range glovar_map {
+		if *av == nil {
+			continue
+		}
+		du.AddDumpedObject(*av)
+	}
 }
