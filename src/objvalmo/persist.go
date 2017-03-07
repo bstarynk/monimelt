@@ -10,6 +10,8 @@ import (
 	gosqlite "github.com/gwenn/gosqlite"
 	"log"
 	"os"
+	osexec "os/exec"
+	"regexp"
 	"serialmo"
 	"strings"
 )
@@ -17,6 +19,7 @@ import (
 const DefaultGlobalDbname = "monimelt_state"
 const DefaultUserDbname = "monimelt_user"
 
+const SqliteProgram = "sqlite3"
 const GlobalObjects = true
 const UserObjects = false
 
@@ -37,13 +40,20 @@ type LoaderMo struct {
 	ldobjmap   *map[serialmo.IdentMo]*ObjectMo
 }
 
-func validsqlitepath(path string) bool {
-	// check that path has no :?&=$~;' characters
-	return !strings.ContainsAny(path, ":?&=$;'")
+var validpath_regexp *regexp.Regexp
+
+const validpath_regexp_str = `^[a-zA-Z0-9_/.+-]*$`
+
+func validpath(path string) bool {
+	if validpath_regexp == nil {
+		validpath_regexp = regexp.MustCompile(validpath_regexp_str)
+	}
+	// check that path has no double dots like ..
+	return validpath_regexp.MatchString(path) && !strings.Contains(path, "..")
 }
 
 func OpenLoaderFromFiles(globalpath string, userpath string) *LoaderMo {
-	if !validsqlitepath(globalpath) {
+	if !validpath(globalpath) {
 		panic(fmt.Errorf("OpenLoaderFromFiles invalid global path %s",
 			globalpath))
 	}
@@ -52,7 +62,7 @@ func OpenLoaderFromFiles(globalpath string, userpath string) *LoaderMo {
 			globalpath, err))
 	}
 	if len(userpath) > 0 {
-		if !validsqlitepath(userpath) {
+		if !validpath(userpath) {
 			panic(fmt.Errorf("OpenLoaderFromFiles invalid user path %s",
 				userpath))
 		}
@@ -173,7 +183,13 @@ const sql_create_t_objects = `CREATE TABLE IF NOT EXISTS t_objects
   ob_paylkind VARCHAR(40) NOT NULL,
   ob_paylcont TEXT NOT NULL)`
 
+const sql_create_t_globals = `CREATE TABLE IF NOT EXISTS t_globals
+ (glob_name VARCHAR(80) PRIMARY KEY ASC NOT NULL UNIQUE,
+  glob_oid VARCHAR(26)  NOT NULL)`
+
 const sql_insert_t_objects = `INSERT INTO t_objects VALUES (?, ?, ?, ?, ?)`
+
+const sql_insert_t_globals = `INSERT INTO t_globals VALUES (?, ?)`
 
 func (du DumperMo) create_tables(globflag bool) {
 	var db *sql.DB
@@ -194,6 +210,13 @@ func (du DumperMo) create_tables(globflag bool) {
 	if err != nil {
 		panic(fmt.Errorf("create_tables failure in directory %s for t_objects creation %v",
 			du.dudirname, err))
+	}
+	if globflag {
+		_, err = db.Exec(sql_create_t_globals)
+		if err != nil {
+			panic(fmt.Errorf("create_tables failure in directory %s for t_globals creation %v",
+				du.dudirname, err))
+		}
 	}
 }
 
@@ -237,7 +260,7 @@ func (du DumperMo) AddDumpedObject(pob *ObjectMo) {
 }
 
 func OpenDumperDirectory(dirpath string) *DumperMo {
-	if !validsqlitepath(dirpath) {
+	if !validpath(dirpath) {
 		panic(fmt.Errorf("OpenDumperDirectory invalid dirpath %q", dirpath))
 	}
 	if dirpath == "" {
@@ -257,8 +280,8 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 		panic(fmt.Errorf("OpenDumperDirectory dirpath %s is not a directory", dirpath))
 	}
 	dtempsuf := fmt.Sprintf("+%v_p%d.tmp", serialmo.RandomSerial(), os.Getpid())
-	globtemppath := fmt.Sprintf("%s/%s%s", dirpath, DefaultGlobalDbname, dtempsuf)
-	usertemppath := fmt.Sprintf("%s/%s%s", dirpath, DefaultUserDbname, dtempsuf)
+	globtemppath := fmt.Sprintf("%s/%s.sqlite%s", dirpath, DefaultGlobalDbname, dtempsuf)
+	usertemppath := fmt.Sprintf("%s/%s.sqlite%s", dirpath, DefaultUserDbname, dtempsuf)
 	glodb, err := sql.Open("sqlite3", "file:"+globtemppath+"?mode=rwc&cache=private")
 	if err != nil {
 		panic(fmt.Errorf("OpenDumperDirectory failed to open global db %s - %v", globtemppath, err))
@@ -412,16 +435,99 @@ func (du *DumperMo) EmitObjptr(pob *ObjectMo) bool {
 	return found
 }
 
-func (du *DumperMo) LoopDumpEmit() {
+func (du *DumperMo) DumpEmit() {
 	if du == nil || du.dumode != dumod_Scan {
-		panic("LoopDumpEmit on non-scanning dumper")
+		panic("DumpEmit on non-scanning dumper")
 	}
 	du.dumode = dumod_Emit
+	globstmt, err := du.duglobaldb.Prepare(sql_insert_t_globals)
+	if err != nil {
+		panic(fmt.Errorf("DumpEmit failed to prepare t_globals insertion %v", err))
+	}
+	defer globstmt.Close()
+	// emit all objects
 	dso := du.dusetobjects
 	if dso == nil {
-		panic("LoopDumpEmit: nil dusetobjects")
+		panic("DumpEmit: nil dusetobjects")
 	}
 	for pob, sp := range *dso {
 		du.emitDumpedObject(pob, sp)
 	}
+	/// emit the global variables
+	globnames := NamesGlobalVariables()
+	for _, gname := range globnames {
+		gad := GlobalVariableAddress(gname)
+		if gad == nil {
+			continue
+		}
+		gpob := *gad
+		if gpob == nil || !du.IsDumpedObject(gpob) {
+			continue
+		}
+		_, err := globstmt.Exec(gname, gpob.ToString())
+		if err != nil {
+			panic(fmt.Errorf("DumpEmit failed to insert global %s - %v", gname, err))
+		}
+	}
+}
+
+func (du *DumperMo) renameWithBackup(fpath string) {
+	tmpath := du.dudirname + "/" + fpath + du.dutempsuffix
+	newpath := du.dudirname + "/" + fpath
+	backupath := newpath + "~"
+	if _, err := os.Stat(backupath); err == nil {
+		os.Rename(backupath, backupath+"~")
+	}
+	if _, err := os.Stat(newpath); err == nil {
+		os.Rename(newpath, backupath)
+	}
+	if err := os.Rename(tmpath, newpath); err != nil {
+		panic(fmt.Errorf("renameWithBackup dumpdir %s failed for %s  -> %s - %v", du.dudirname, tmpath, newpath, err))
+	}
+}
+
+func (du *DumperMo) Close() {
+	nbob := len(*du.dusetobjects)
+	du.dusetobjects = nil
+	du.dulastchk = nil
+	du.dufirstchk = nil
+	du.dustobglob.Close()
+	du.dustobglob = nil
+	if du.dustobuser != nil {
+		du.dustobuser.Close()
+		du.dustobuser = nil
+	}
+	if du.duuserdb != nil {
+		du.duuserdb.Close()
+	}
+	var shcmd string
+	var err error
+	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%.sqlite%s", du.dudirname,
+		DefaultGlobalDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt global dumpfile %s.sql'"`, DefaultGlobalDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%.sql%s", du.dudirname,
+		DefaultGlobalDbname, du.dutempsuffix))
+	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
+		panic(fmt.Errorf("dumper Close failed to run %s - %v",
+			shcmd, err))
+	}
+	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%.sqlite%s", du.dudirname,
+		DefaultUserDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt user dumpfile %s.sql'"`, DefaultUserDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%.sql%s", du.dudirname,
+		DefaultUserDbname, du.dutempsuffix))
+	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
+		panic(fmt.Errorf("dumper Close failed to run %s - %v",
+			shcmd, err))
+	}
+	du.renameWithBackup(DefaultGlobalDbname + ".sql")
+	du.renameWithBackup(DefaultUserDbname + ".sql")
+	du.renameWithBackup(DefaultGlobalDbname + ".sqlite")
+	du.renameWithBackup(DefaultUserDbname + ".sqlite")
+	log.Printf("done dump of %d objects in %s\n", nbob, du.dudirname)
+}
+
+func DumpIntoDirectory(dirname string) {
+	var du *DumperMo
+	du = OpenDumperDirectory(dirname)
+	defer du.Close()
+	du.StartDumpScan()
+	du.LoopDumpScan()
+	du.DumpEmit()
 }
