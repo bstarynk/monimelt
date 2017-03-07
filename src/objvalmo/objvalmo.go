@@ -844,7 +844,7 @@ func DumpScanPredefined(du *DumperMo) {
 
 ////////////////////////////////////////////////////////////////
 //// global variables support. They should be registered, at init
-//// time, using RegisterVariable. For example:
+//// time, using RegisterGlobalVariable. For example:
 ////    var Glob_foo *ObjectMo
 ////    RegisterGlobalVariable("foo", &Glob_foo)
 //// see generated file globals.go
@@ -853,20 +853,28 @@ var glovar_map map[string]**ObjectMo
 var glovar_regexp *regexp.Regexp
 var glovar_mtx sync.Mutex
 
+const glovar_regexp_str = `^[a-zA-Z_][a-zA-Z0-9_]*$`
+
 func init() {
 	glovar_map = make(map[string]**ObjectMo)
-	glovar_regexp = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	glovar_regexp = regexp.MustCompile(glovar_regexp_str)
 }
 
 func RegisterGlobalVariable(vnam string, advar **ObjectMo) {
+	glovar_mtx.Lock()
+	defer glovar_mtx.Unlock()
+	if glovar_regexp == nil {
+		glovar_regexp = regexp.MustCompile(glovar_regexp_str)
+	}
+	if glovar_map == nil {
+		glovar_map = make(map[string]**ObjectMo, 100)
+	}
 	if !glovar_regexp.MatchString(vnam) {
 		panic(fmt.Errorf("RegisterGlobalVariable invalid vnam %q", vnam))
 	}
 	if advar == nil {
 		panic(fmt.Errorf("RegisterGlobalVariable null address for vnam %q", vnam))
 	}
-	glovar_mtx.Lock()
-	defer glovar_mtx.Unlock()
 	glovar_map[vnam] = advar
 }
 
