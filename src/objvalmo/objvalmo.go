@@ -11,6 +11,7 @@ import (
 	"serialmo"
 	"sort"
 	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -36,6 +37,7 @@ type ObjectMo struct {
 	obid    serialmo.IdentMo
 	obmtx   sync.Mutex
 	obspace uint8
+	obmtime int64
 	obattrs map[*ObjectMo]ValueMo
 	obcomps []ValueMo
 	obpayl  *PayloadMo
@@ -719,6 +721,18 @@ func NewObj() *ObjectMo {
 	buck.bu_admap[oid] = uintptr((unsafe.Pointer)(newobptr))
 	runtime.SetFinalizer(newobptr, finalizeObjectMo)
 	return newobptr
+}
+
+func (pob *ObjectMo) UnsyncTouch() {
+	pob.obmtime = time.Now().Unix()
+}
+
+func (pob *ObjectMo) UnsyncPutMtime(tim int64) {
+	pob.obmtime = tim
+}
+
+func (pob *ObjectMo) UnsyncMtime() int64 {
+	return pob.obmtime
 }
 
 func (pob *ObjectMo) String() string {

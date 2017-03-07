@@ -156,6 +156,8 @@ type DumperMo struct {
 	dutempsuffix string
 	duglobaldb   *sql.DB
 	duuserdb     *sql.DB
+	dustobuser   *sql.Stmt
+	dustobglob   *sql.Stmt
 	dufirstchk   *dumpChunk
 	dulastchk    *dumpChunk
 	dusetobjects *map[*ObjectMo]uint8
@@ -170,6 +172,8 @@ const sql_create_t_objects = `CREATE TABLE IF NOT EXISTS t_objects
   ob_jsoncont TEXT NOT NULL,
   ob_paylkind VARCHAR(40) NOT NULL,
   ob_paylcont TEXT NOT NULL)`
+
+const sql_insert_t_objects = `INSERT INTO t_objects VALUES (?, ?, ?, ?, ?)`
 
 func (du DumperMo) create_tables(globflag bool) {
 	var db *sql.DB
@@ -272,6 +276,16 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 	du.duuserdb = usrdb
 	du.create_tables(GlobalObjects)
 	du.create_tables(UserObjects)
+	du.dustobglob, err = glodb.Prepare(sql_insert_t_objects)
+	if err != nil {
+		// this should never happen
+		panic(fmt.Errorf("OpenDumperDirectory failed to prepare global %s t_object insertion - %v", globtemppath, err))
+	}
+	du.dustobuser, err = usrdb.Prepare(sql_insert_t_objects)
+	if err != nil {
+		// this should never happen
+		panic(fmt.Errorf("OpenDumperDirectory failed to prepare global %s t_object insertion - %v", usertemppath, err))
+	}
 	return du
 }
 
@@ -334,6 +348,7 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	if spa == SpaTransient || spa >= Spa_Last {
 		panic("emitDumpedObject bad spa")
 	}
+	pobidstr := pob.ToString()
 	pob.obmtx.Lock()
 	defer pob.obmtx.Unlock()
 	/// dump the attrbitues
@@ -364,18 +379,32 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	contenc := json.NewEncoder(&contbuf)
 	contenc.Encode(jcontent)
 	/// encode the payload
-	var jpaylkind string
+	var paylkindstr string
 	var jpayljson interface{}
 	if pob.obpayl != nil {
-		jpaylkind, jpayljson = (*pob.obpayl).DumpEmitPayl(pob, du)
+		paylkindstr, jpayljson = (*pob.obpayl).DumpEmitPayl(pob, du)
 	}
 	var paylbuf bytes.Buffer
-	if len(jpaylkind) > 0 {
+	if len(paylkindstr) > 0 {
 		paylenc := json.NewEncoder(&paylbuf)
 		paylenc.Encode(jpayljson)
 	}
 	/// should now insert in the appropriate database
-	///@@@ incomplete
+	var stmt *sql.Stmt
+	if spa == SpaUser {
+		stmt = du.dustobuser
+	} else {
+		stmt = du.dustobglob
+	}
+	var err error
+	_, err = stmt.Exec(pobidstr,
+		fmt.Sprintf("%d", pob.UnsyncMtime()),
+		contbuf.String(),
+		paylkindstr,
+		paylbuf.String())
+	if err != nil {
+		panic(fmt.Errorf("emitDumpedObject insertion failed for %s - %v", pobidstr, err))
+	}
 }
 
 func (du *DumperMo) EmitObjptr(pob *ObjectMo) bool {
