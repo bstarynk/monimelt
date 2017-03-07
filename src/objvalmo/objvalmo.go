@@ -44,7 +44,7 @@ type ObjectMo struct {
 type PayloadMo interface {
 	DestroyPayl(*ObjectMo)
 	DumpScanPayl(*ObjectMo, *DumperMo)
-	DumpEmitPayl(*ObjectMo, *DumperMo) string
+	DumpEmitPayl(*ObjectMo, *DumperMo) (string, interface{})
 }
 
 type ValueMo interface {

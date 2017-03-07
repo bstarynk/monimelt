@@ -3,7 +3,9 @@
 package objvalmo
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	gosqlite "github.com/gwenn/gosqlite"
 	"log"
@@ -156,7 +158,7 @@ type DumperMo struct {
 	duuserdb     *sql.DB
 	dufirstchk   *dumpChunk
 	dulastchk    *dumpChunk
-	dusetobjects *map[*ObjectMo]*ObjectMo
+	dusetobjects *map[*ObjectMo]uint8
 }
 
 const sql_create_t_params = `CREATE TABLE IF NOT EXISTS t_params
@@ -195,12 +197,17 @@ func (du DumperMo) AddDumpedObject(pob *ObjectMo) {
 	if du.dumode != dumod_Scan {
 		panic("AddDumpedObject in non-scanning dumper")
 	}
-	if pob == nil || pob.SpaceNum() == SpaTransient {
+	if pob == nil {
+		return
+	}
+	spo := pob.SpaceNum()
+	if spo == SpaTransient {
 		return
 	}
 	if _, found := (*du.dusetobjects)[pob]; found {
 		return
 	}
+	(*du.dusetobjects)[pob] = spo
 	if du.dufirstchk == nil {
 		nchk := new(dumpChunk)
 		du.dufirstchk = nchk
@@ -307,8 +314,73 @@ func (du *DumperMo) LoopDumpScan() {
 	}
 }
 
-func (du *DumperMo) emitDumpedObject(pob *ObjectMo) {
+type jsonAttrEntry struct {
+	Jat string      `json:"at"`
+	Jva interface{} `json:"va"`
+}
+
+type jsonObContent struct {
+	Jattrs []jsonAttrEntry `json:"attrs"`
+	Jcomps []interface{}   `json:"comps"`
+}
+
+func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
+	if du == nil || du.dumode != dumod_Emit {
+		panic("emitDumpedObject bad dumper")
+	}
+	if pob == nil {
+		panic("emitDumpedObject nil object")
+	}
+	if spa == SpaTransient || spa >= Spa_Last {
+		panic("emitDumpedObject bad spa")
+	}
+	pob.obmtx.Lock()
+	defer pob.obmtx.Unlock()
+	/// dump the attrbitues
+	nbat := len(pob.obattrs)
+	var jattrs []jsonAttrEntry
+	jattrs = make([]jsonAttrEntry, nbat)
+	for atob, atva := range pob.obattrs {
+		if atva == nil {
+			continue
+		}
+		if !du.EmitObjptr(atob) {
+			continue
+		}
+		jpair := jsonAttrEntry{Jat: atob.ToString(), Jva: ValToJson(du, atva)}
+		jattrs = append(jattrs, jpair)
+	}
+	/// dump the components
+	nbcomp := len(pob.obcomps)
+	var jcomps []interface{}
+	jcomps = make([]interface{}, nbcomp)
+	for _, cva := range pob.obcomps {
+		jva := ValToJson(du, cva)
+		jcomps = append(jcomps, jva)
+	}
+	/// construct and encode the content
+	jcontent := jsonObContent{Jattrs: jattrs, Jcomps: jcomps}
+	var contbuf bytes.Buffer
+	contenc := json.NewEncoder(&contbuf)
+	contenc.Encode(jcontent)
+	/// encode the payload
+	var jpaylkind string
+	var jpayljson interface{}
+	if pob.obpayl != nil {
+		jpaylkind, jpayljson = (*pob.obpayl).DumpEmitPayl(pob, du)
+	}
+	var paylbuf bytes.Buffer
+	if len(jpaylkind) > 0 {
+		paylenc := json.NewEncoder(&paylbuf)
+		paylenc.Encode(jpayljson)
+	}
+	/// should now insert in the appropriate database
 	///@@@ incomplete
+}
+
+func (du *DumperMo) EmitObjptr(pob *ObjectMo) bool {
+	_, found := (*du.dusetobjects)[pob]
+	return found
 }
 
 func (du *DumperMo) LoopDumpEmit() {
@@ -320,7 +392,7 @@ func (du *DumperMo) LoopDumpEmit() {
 	if dso == nil {
 		panic("LoopDumpEmit: nil dusetobjects")
 	}
-	for pob, _ := range *dso {
-		du.emitDumpedObject(pob)
+	for pob, sp := range *dso {
+		du.emitDumpedObject(pob, sp)
 	}
 }
