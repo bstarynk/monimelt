@@ -286,5 +286,23 @@ func (du *DumperMo) LoopDumpScan() {
 	if du == nil || du.dumode != dumod_Scan {
 		panic("LoopDumpScan on non-scanning dumper")
 	}
-
+	var chk *dumpChunk
+	var nchk *dumpChunk
+	for chk = du.dufirstchk; chk != nil; chk = nchk {
+		nchk = chk.dchnext
+		if chk == du.dulastchk {
+			du.dufirstchk = nil
+			du.dulastchk = nil
+		} else {
+			du.dufirstchk = nchk
+		}
+		chk.dchnext = nil
+		for vix := 0; vix < dump_chunk_len; vix++ {
+			curpob := chk.dchobjects[vix]
+			chk.dchobjects[vix] = nil
+			if curpob != nil {
+				curpob.DumpScanInsideObject(du)
+			}
+		}
+	}
 }
