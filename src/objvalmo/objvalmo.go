@@ -43,6 +43,7 @@ type ObjectMo struct {
 
 type PayloadMo interface {
 	DestroyPayl(*ObjectMo)
+	DumpScanPayl(*ObjectMo, *DumperMo)
 }
 
 type ValueMo interface {
@@ -741,6 +742,27 @@ func (pob *ObjectMo) SpaceNum() uint8 {
 	pob.obmtx.Lock()
 	defer pob.obmtx.Unlock()
 	return pob.UnsyncSpaceNum()
+}
+
+func (pob *ObjectMo) DumpScanInsideObject(du *DumperMo) {
+	if pob == nil || du == nil {
+		panic("DumpScanInsideObject corruption")
+	}
+	pob.obmtx.Lock()
+	defer pob.obmtx.Unlock()
+	for patob, pval := range pob.obattrs {
+		du.AddDumpedObject(patob)
+		if !du.IsDumpedObject(patob) {
+			continue
+		}
+		pval.DumpScan(du)
+	}
+	for _, cval := range pob.obcomps {
+		cval.DumpScan(du)
+	}
+	if pob.obpayl != nil {
+		(*pob.obpayl).DumpScanPayl(pob, du)
+	}
 }
 
 var predefined_map map[serialmo.IdentMo]*ObjectMo

@@ -1,4 +1,4 @@
-// file objvalmo/jsonvalmo.go
+// file objvalmo/jsonval.go
 
 package objvalmo
 

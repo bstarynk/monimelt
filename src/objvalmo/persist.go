@@ -1,4 +1,4 @@
-// file objvalmo/persistmo.go
+// file objvalmo/persist.go
 
 package objvalmo
 
@@ -268,11 +268,23 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 	return du
 }
 
-func (du *DumperMo) DumpStartScan() {
+func (du *DumperMo) StartDumpScan() {
 	if du == nil || du.dumode != dumod_Idle {
-		panic("DumpStartScan on non-idle dumper")
+		panic("StartDumpScan on non-idle dumper")
 	}
 	du.dumode = dumod_Scan
 	DumpScanPredefined(du)
 	DumpScanGlobalVariables(du)
+}
+
+func (du *DumperMo) IsDumpedObject(pob *ObjectMo) bool {
+	_, found := (*du.dusetobjects)[pob]
+	return found
+}
+
+func (du *DumperMo) LoopDumpScan() {
+	if du == nil || du.dumode != dumod_Scan {
+		panic("LoopDumpScan on non-scanning dumper")
+	}
+
 }
