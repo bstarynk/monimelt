@@ -734,6 +734,15 @@ func (pob *ObjectMo) UnsyncSpaceNum() uint8 {
 	return pob.obspace
 }
 
+func (pob *ObjectMo) SpaceNum() uint8 {
+	if pob == nil {
+		panic("SpaceNum nil pob")
+	}
+	pob.obmtx.Lock()
+	defer pob.obmtx.Unlock()
+	return pob.UnsyncSpaceNum()
+}
+
 var predefined_map map[serialmo.IdentMo]*ObjectMo
 var predefined_mtx sync.Mutex
 

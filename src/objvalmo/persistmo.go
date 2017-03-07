@@ -142,7 +142,14 @@ type dumpChunk struct {
 	dchnext    *dumpChunk
 }
 
+const (
+	dumod_Idle = iota
+	dumod_Scan
+	dumod_Emit
+)
+
 type DumperMo struct {
+	dumode       uint
 	dudirname    string
 	dutempsuffix string
 	duglobaldb   *sql.DB
@@ -185,7 +192,10 @@ func (du DumperMo) create_tables(globflag bool) {
 }
 
 func (du DumperMo) AddDumpedObject(pob *ObjectMo) {
-	if pob == nil {
+	if du.dumode != dumod_Scan {
+		panic("AddDumpedObject in non-scanning dumper")
+	}
+	if pob == nil || pob.SpaceNum() == SpaTransient {
 		return
 	}
 	if _, found := (*du.dusetobjects)[pob]; found {
@@ -256,4 +266,13 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 	du.create_tables(GlobalObjects)
 	du.create_tables(UserObjects)
 	return du
+}
+
+func (du *DumperMo) DumpStartScan() {
+	if du == nil || du.dumode != dumod_Idle {
+		panic("DumpStartScan on non-idle dumper")
+	}
+	du.dumode = dumod_Scan
+	DumpScanPredefined(du)
+	DumpScanGlobalVariables(du)
 }
