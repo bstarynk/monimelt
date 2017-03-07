@@ -306,3 +306,21 @@ func (du *DumperMo) LoopDumpScan() {
 		}
 	}
 }
+
+func (du *DumperMo) emitDumpedObject(pob *ObjectMo) {
+	///@@@ incomplete
+}
+
+func (du *DumperMo) LoopDumpEmit() {
+	if du == nil || du.dumode != dumod_Scan {
+		panic("LoopDumpEmit on non-scanning dumper")
+	}
+	du.dumode = dumod_Emit
+	dso := du.dusetobjects
+	if dso == nil {
+		panic("LoopDumpEmit: nil dusetobjects")
+	}
+	for pob, _ := range *dso {
+		du.emitDumpedObject(pob)
+	}
+}

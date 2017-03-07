@@ -44,6 +44,7 @@ type ObjectMo struct {
 type PayloadMo interface {
 	DestroyPayl(*ObjectMo)
 	DumpScanPayl(*ObjectMo, *DumperMo)
+	DumpEmitPayl(*ObjectMo, *DumperMo) string
 }
 
 type ValueMo interface {
@@ -696,6 +697,12 @@ func MakeObjectByTwoNums(hi uint64, lo uint64) *ObjectMo {
 	return MakeObjectById(id)
 }
 
+func MakePredefinedObj(hi uint64, lo uint64) *ObjectMo {
+	pob := MakeObjectByTwoNums(hi, lo)
+	pob.UnsyncSetSpaceNum(SpaPredefined)
+	return pob
+}
+
 func NewObj() *ObjectMo {
 	oid := serialmo.RandomId()
 	bn := oid.BucketNum()
@@ -824,8 +831,9 @@ func DumpScanPredefined(du *DumperMo) {
 ////////////////////////////////////////////////////////////////
 //// global variables support. They should be registered, at init
 //// time, using RegisterVariable. For example:
-////    var Glo_foo *ObjectMo
-////    RegisterGlobalVariable("foo", &Glo_foo)
+////    var Glob_foo *ObjectMo
+////    RegisterGlobalVariable("foo", &Glob_foo)
+//// see generated file globals.go
 
 var glovar_map map[string]**ObjectMo
 var glovar_regexp *regexp.Regexp
