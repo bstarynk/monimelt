@@ -1,0 +1,23 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/antonholmquist/jason",
+			"repository": "https://github.com/antonholmquist/jason",
+			"revision": "962e09b85496e2e158eec1567fb4c826ce3d55d1",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/gwenn/gosqlite",
+			"repository": "https://github.com/gwenn/gosqlite",
+			"revision": "5aa36f51eedd6425f9981324393f7251c915cf97",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/gwenn/yacr",
+			"repository": "https://github.com/gwenn/yacr",
+			"revision": "67f7471b9d0ac6ab53456b3892af9d91a7b18330",
+			"branch": "master"
+		}
+	]
+}
