@@ -32,6 +32,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("persistmo could not ConfigLog sqlite: %v", err))
 	}
+	log.Printf("persist-init installed sqliteerrorlogmo\n")
 }
 
 type LoaderMo struct {
@@ -173,8 +174,7 @@ type DumperMo struct {
 	dusetobjects *map[*ObjectMo]uint8
 }
 
-const sql_create_t_params = `CREATE TABLE IF NOT EXISTS t_params
- (par_name VARCHAR(35) PRIMARY KEY ASC NOT NULL UNIQUE,  par_value TEXT NOT NULL)`
+const sql_create_t_params = `CREATE TABLE IF NOT EXISTS t_params (par_name VARCHAR(35) PRIMARY KEY ASC NOT NULL UNIQUE,  par_value TEXT NOT NULL)`
 
 const sql_create_t_objects = `CREATE TABLE IF NOT EXISTS t_objects
  (ob_id VARCHAR(26) PRIMARY KEY ASC NOT NULL UNIQUE,
@@ -193,6 +193,7 @@ const sql_insert_t_globals = `INSERT INTO t_globals VALUES (?, ?)`
 
 func (du DumperMo) create_tables(globflag bool) {
 	var db *sql.DB
+	log.Printf("create_table globflag=%v dir=%s\n", globflag, du.dudirname)
 	if globflag {
 		db = du.duglobaldb
 	} else {
@@ -201,7 +202,9 @@ func (du DumperMo) create_tables(globflag bool) {
 	if db == nil {
 		panic(fmt.Errorf("create_tables no db in directory %s", du.dudirname))
 	}
-	_, err := db.Exec(sql_create_t_params)
+	log.Printf("create_table db=%v sql_create_t_params=%q\n", db, sql_create_t_params)
+	rcparam, err := db.Exec(sql_create_t_params)
+	log.Printf("create_table rcparam=%v err=%v\n", rcparam, err)
 	if err != nil {
 		panic(fmt.Errorf("create_tables failure in directory %s for t_params creation %v",
 			du.dudirname, err))
@@ -279,7 +282,8 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 	} else if !di.Mode().IsDir() {
 		panic(fmt.Errorf("OpenDumperDirectory dirpath %s is not a directory", dirpath))
 	}
-	dtempsuf := fmt.Sprintf("+%v_p%d.tmp", serialmo.RandomSerial(), os.Getpid())
+	dtempsuf := fmt.Sprintf("+%s_p%d.tmp", serialmo.RandomSerial().ToString(), os.Getpid())
+	log.Printf("OpenDumperDirectory dirpath=%s dtempsuf=%s\n", dirpath, dtempsuf)
 	globtemppath := fmt.Sprintf("%s/%s.sqlite%s", dirpath, DefaultGlobalDbname, dtempsuf)
 	usertemppath := fmt.Sprintf("%s/%s.sqlite%s", dirpath, DefaultUserDbname, dtempsuf)
 	glodb, err := sql.Open("sqlite3", "file:"+globtemppath+"?mode=rwc&cache=private")
