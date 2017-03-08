@@ -82,4 +82,6 @@ hook](https://git-scm.com/book/it/v2/Customizing-Git-Git-Hooks).
     ln -sv ../../pre-commit-githook.sh pre-commit
     cd ../..
 
-These hooks are dumping and restoring the `monimelt_state` database.
+These hooks are dumping (before `git commit`) and restoring (after
+`git merge` or `git pull`) the `monimelt_state.sqlite` database
+from/to its (`git`-versionned) `monimelt_state.sql` textual dump.
