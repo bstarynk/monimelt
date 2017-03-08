@@ -174,20 +174,22 @@ type DumperMo struct {
 	dusetobjects *map[*ObjectMo]uint8
 }
 
-const sql_create_t_params = `CREATE TABLE IF NOT EXISTS t_params (par_name VARCHAR(35) PRIMARY KEY ASC NOT NULL UNIQUE,  par_value TEXT NOT NULL)`
+const sql_create_t_params = `CREATE TABLE IF NOT EXISTS t_params 
+ (par_name VARCHAR(35) PRIMARY KEY ASC NOT NULL UNIQUE, 
+  par_value TEXT NOT NULL);`
 
 const sql_create_t_objects = `CREATE TABLE IF NOT EXISTS t_objects
  (ob_id VARCHAR(26) PRIMARY KEY ASC NOT NULL UNIQUE,
   ob_mtime DATETIME,
   ob_jsoncont TEXT NOT NULL,
   ob_paylkind VARCHAR(40) NOT NULL,
-  ob_paylcont TEXT NOT NULL)`
+  ob_paylcont TEXT NOT NULL);`
 
 const sql_create_t_globals = `CREATE TABLE IF NOT EXISTS t_globals
  (glob_name VARCHAR(80) PRIMARY KEY ASC NOT NULL UNIQUE,
-  glob_oid VARCHAR(26)  NOT NULL)`
+  glob_oid VARCHAR(26)  NOT NULL);`
 
-const sql_insert_t_objects = `INSERT INTO t_objects VALUES (?, ?, ?, ?, ?)`
+const sql_insert_t_objects = `INSERT INTO t_objects VALUES (?, ?, ?, ?, ?);`
 
 const sql_insert_t_globals = `INSERT INTO t_globals VALUES (?, ?)`
 
