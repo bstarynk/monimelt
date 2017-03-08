@@ -3,6 +3,9 @@
 Hosted on github as [bstarynk/monimelt](http://github.com/bstarynk/monimelt).
 GPLv3 free software.
 
+Author: [Basile Starynkevitch](http://starynkevitch.net/Basile/), France.
+email: [`basile@starynkevitch.net`](mailto:basile@starynkevitch.net).
+
 To be completed. This is a somehow a redesign and rewrite of my
 [melt-monitor-2015](http://github.com/bstarynk/melt-monitor-2015) in
 Go.  So the
@@ -37,13 +40,19 @@ distribution, with its `sqlite3` command and (on Debian and Ubuntu...)
 #### installation of external dependencies
 
 Once and for all, you need to install the external dependencies above,
-using the following shell commands (if you need to run them, be
-sure to `rm -rf vendor/` first). The `gb` tool knows then (thru our
-*git-versionned* [`vendor/manifest`](vendor/manifest) file).
+using `gb vendor restore` or else with the following shell commands
+(if you need to run them, be sure to `rm -rf vendor/` first). The `gb`
+tool knows then (thru our *git-versionned*
+[`vendor/manifest`](vendor/manifest) file).
 
     # run once
     gb vendor fetch github.com/mattn/go-sqlite3
     gb vendor fetch github.com/antonholmquist/jason
+
+Actually, you could avoid doing the above, since
+[`vendor/manifest`](vendor/manifest) keeps the version, repository,
+revision, branch of dependencies, and **simply run `gb vendor restore`**
+(from a pristine cloned repository of this `monimelt/`)
 
 #### building the `monimelt` binary
 
@@ -75,4 +84,6 @@ hook](https://git-scm.com/book/it/v2/Customizing-Git-Git-Hooks).
     ln -sv ../../pre-commit-githook.sh pre-commit
     cd ../..
 
-These hooks are dumping and restoring the `monimelt_state` database.
+These hooks are dumping (before `git commit`) and restoring (after
+`git merge` or `git pull`) the `monimelt_state.sqlite` database
+from/to its (`git`-versionned) `monimelt_state.sql` textual dump.
