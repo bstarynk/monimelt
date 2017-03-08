@@ -6,8 +6,9 @@ GPLv3 free software.
 To be completed. This is a somehow a redesign and rewrite of my
 [melt-monitor-2015](http://github.com/bstarynk/melt-monitor-2015) in
 Go.  So the
-[melt-monitor-2015/README.md](http://github.com/bstarynk/melt-monitor-2015/README.md)
-is giving *some* motivation (but a *lot* of details and design have changed).
+[melt-monitor-2015/README.md](https://github.com/bstarynk/melt-monitor-2015/blob/master/README.md)
+is giving *some* motivation (but a *lot* of details and design have
+changed).
 
 Compilable on Linux/Debian/x86-64 (Sid)
 
