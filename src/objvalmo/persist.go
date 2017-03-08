@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	gosqlite "github.com/gwenn/gosqlite"
+	gosqlite "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
 	osexec "os/exec"
@@ -23,16 +23,11 @@ const SqliteProgram = "sqlite3"
 const GlobalObjects = true
 const UserObjects = false
 
-func sqliteerrorlogmo(d interface{}, err error, msg string) {
-	log.Printf("SQLITE: %s, %s\n", err, msg)
-}
-
 func init() {
-	err := gosqlite.ConfigLog(sqliteerrorlogmo, nil)
-	if err != nil {
-		panic(fmt.Errorf("persistmo could not ConfigLog sqlite: %v", err))
-	}
-	log.Printf("persist-init installed sqliteerrorlogmo\n")
+	EnableSqliteLog()
+	libv, libvnum, srcid := gosqlite.Version()
+	log.Printf("persist-init libv=%s libvnum=%d srcid=%s\n",
+		libv, libvnum, srcid)
 }
 
 type LoaderMo struct {

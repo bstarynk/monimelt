@@ -27,9 +27,8 @@ We depend on several **external packages** (including indirect dependencies)
 
 + `jason`, from [github.com/antonholmquist/jason](https://github.com/antonholmquist/jason), for JSON things.
 
-+ `gosqlite`, from [github.com/gwenn/gosqlite](https://github.com/gwenn/gosqlite), is an [Sqlite3](http://sqlite.org/) driver.
++ `go-sqlite3`, from [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3), is an [Sqlite3](http://sqlite.org/) driver.
 
-+ `yacr`, from [github.com/gwenn/yacr](https://github.com/gwenn/yacr), is yet another CSV reader, it is an indirect dependency, required from `gosqlite`.
 
 + [Sqlite3](http://sqlite.org/) should be available from your Linux
 distribution, with its `sqlite3` command and (on Debian and Ubuntu...)
@@ -43,8 +42,7 @@ sure to `rm -rf vendor/` first). The `gb` tool knows then (thru our
 *git-versionned* [`vendor/manifest`](vendor/manifest) file).
 
     # run once
-    gb vendor fetch github.com/gwenn/yacr
-    gb vendor fetch github.com/gwenn/gosqlite
+    gb vendor fetch github.com/mattn/go-sqlite3
     gb vendor fetch github.com/antonholmquist/jason
 
 #### building the `monimelt` binary

@@ -8,16 +8,17 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/gwenn/gosqlite",
-			"repository": "https://github.com/gwenn/gosqlite",
-			"revision": "5aa36f51eedd6425f9981324393f7251c915cf97",
+			"importpath": "github.com/mattn/go-sqlite3",
+			"repository": "https://github.com/mattn/go-sqlite3",
+			"revision": "eac1dfa2a61ebccaa117538a5bb12044f6700cd0",
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/gwenn/yacr",
-			"repository": "https://github.com/gwenn/yacr",
-			"revision": "67f7471b9d0ac6ab53456b3892af9d91a7b18330",
-			"branch": "master"
+			"importpath": "golang.org/x/net/context",
+			"repository": "https://go.googlesource.com/net",
+			"revision": "7bf7a75e312ea2853f1050e8b1057b4949f90010",
+			"branch": "master",
+			"path": "/context"
 		}
 	]
 }
