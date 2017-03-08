@@ -38,9 +38,10 @@ distribution, with its `sqlite3` command and (on Debian and Ubuntu...)
 #### installation of external dependencies
 
 Once and for all, you need to install the external dependencies above,
-using the following shell commands (if you need to run them, be
-sure to `rm -rf vendor/` first). The `gb` tool knows then (thru our
-*git-versionned* [`vendor/manifest`](vendor/manifest) file).
+using `gb vendor restore` or else with the following shell commands
+(if you need to run them, be sure to `rm -rf vendor/` first). The `gb`
+tool knows then (thru our *git-versionned*
+[`vendor/manifest`](vendor/manifest) file).
 
     # run once
     gb vendor fetch github.com/gwenn/yacr
