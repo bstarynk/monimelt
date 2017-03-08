@@ -47,6 +47,11 @@ sure to `rm -rf vendor/` first). The `gb` tool knows then (thru our
     gb vendor fetch github.com/gwenn/gosqlite
     gb vendor fetch github.com/antonholmquist/jason
 
+Actually, you could avoid doing the above, since
+[`vendor/manifest`](vendor/manifest) keeps the version, repository,
+revision, branch of dependencies, and **simply run `gb vendor restore`**
+(from a pristine cloned repository of this `monimelt/`)
+
 #### building the `monimelt` binary
 
     gb build
