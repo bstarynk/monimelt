@@ -473,6 +473,9 @@ func (du *DumperMo) DumpEmit() {
 }
 
 func (du *DumperMo) renameWithBackup(fpath string) {
+	if du == nil {
+		panic(fmt.Errorf("renameWithBackup nil du fpath=%q\n", fpath))
+	}
 	tmpath := du.dudirname + "/" + fpath + du.dutempsuffix
 	newpath := du.dudirname + "/" + fpath
 	backupath := newpath + "~"
@@ -488,7 +491,13 @@ func (du *DumperMo) renameWithBackup(fpath string) {
 }
 
 func (du *DumperMo) Close() {
-	nbob := len(*du.dusetobjects)
+	if du == nil {
+		return
+	}
+	var nbob int
+	if du.dusetobjects != nil {
+		nbob = len(*du.dusetobjects)
+	}
 	du.dusetobjects = nil
 	du.dulastchk = nil
 	du.dufirstchk = nil
