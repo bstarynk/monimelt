@@ -12,6 +12,7 @@ import (
 	"os"
 	osexec "os/exec"
 	"regexp"
+	"runtime"
 	"serialmo"
 	"strings"
 )
@@ -166,7 +167,7 @@ type DumperMo struct {
 	dustobglob   *sql.Stmt
 	dufirstchk   *dumpChunk
 	dulastchk    *dumpChunk
-	dusetobjects *map[*ObjectMo]uint8
+	dusetobjects map[*ObjectMo]uint8
 }
 
 const sql_create_t_params = `CREATE TABLE IF NOT EXISTS t_params 
@@ -221,7 +222,12 @@ func (du DumperMo) create_tables(globflag bool) {
 }
 
 func (du *DumperMo) AddDumpedObject(pob *ObjectMo) {
-	log.Printf("AddDumpedObject start pob=%v du=%#v\n", pob, du)
+	{
+		var stabuf [1024]byte
+		stalen := runtime.Stack(stabuf[:], false)
+		log.Printf("AddDumpedObject start pob=%v du=%#v\n...stack:\n%s\n\n\n",
+			pob, du, string(stabuf[:stalen]))
+	}
 	if du.dumode != dumod_Scan {
 		panic("AddDumpedObject in non-scanning dumper")
 	}
@@ -232,12 +238,12 @@ func (du *DumperMo) AddDumpedObject(pob *ObjectMo) {
 	if spo == SpaTransient {
 		return
 	}
-	if _, found := (*du.dusetobjects)[pob]; found {
+	if _, found := du.dusetobjects[pob]; found {
 		return
 	}
-	log.Printf("AddDumpedObject pob=%v before dusetobjects=%v\n", pob, du.dusetobjects)
-	(*du.dusetobjects)[pob] = spo
-	log.Printf("AddDumpedObject pob=%v after dusetobjects=%v\n", pob, du.dusetobjects)
+	log.Printf("AddDumpedObject pob=%v before dusetobjects=%p=%#v\n", pob, du.dusetobjects, du.dusetobjects)
+	du.dusetobjects[pob] = spo
+	log.Printf("AddDumpedObject pob=%v after dusetobjects=%#v\n", pob, du.dusetobjects)
 	if du.dufirstchk == nil {
 		nchk := new(dumpChunk)
 		du.dufirstchk = nchk
@@ -301,7 +307,7 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 	du.dutempsuffix = dtempsuf
 	du.duglobaldb = glodb
 	du.duuserdb = usrdb
-	du.dusetobjects = new(map[*ObjectMo]uint8)
+	du.dusetobjects = make(map[*ObjectMo]uint8)
 	du.create_tables(GlobalObjects)
 	du.create_tables(UserObjects)
 	du.dustobglob, err = glodb.Prepare(sql_insert_t_objects)
@@ -330,7 +336,7 @@ func (du *DumperMo) StartDumpScan() {
 }
 
 func (du *DumperMo) IsDumpedObject(pob *ObjectMo) bool {
-	_, found := (*du.dusetobjects)[pob]
+	_, found := du.dusetobjects[pob]
 	return found
 }
 
@@ -444,7 +450,7 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 }
 
 func (du *DumperMo) EmitObjptr(pob *ObjectMo) bool {
-	_, found := (*du.dusetobjects)[pob]
+	_, found := du.dusetobjects[pob]
 	return found
 }
 
@@ -464,7 +470,7 @@ func (du *DumperMo) DumpEmit() {
 	if dso == nil {
 		panic("DumpEmit: nil dusetobjects")
 	}
-	for pob, sp := range *dso {
+	for pob, sp := range dso {
 		du.emitDumpedObject(pob, sp)
 	}
 	/// emit the global variables
@@ -506,13 +512,18 @@ func (du *DumperMo) renameWithBackup(fpath string) {
 }
 
 func (du *DumperMo) Close() {
-	log.Printf("dumper Close start du=%#v\n", du)
+	{
+		var stabuf [2048]byte
+		stalen := runtime.Stack(stabuf[:], true)
+		log.Printf("dumper Close start du=%#v stack:\n%s\n\n\n",
+			du, string(stabuf[:stalen]))
+	}
 	if du == nil {
 		return
 	}
 	var nbob int
 	if du.dusetobjects != nil {
-		nbob = len(*du.dusetobjects)
+		nbob = len(du.dusetobjects)
 	}
 	du.dusetobjects = nil
 	du.dulastchk = nil
@@ -535,7 +546,7 @@ func (du *DumperMo) Close() {
 	var err error
 	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
 		DefaultGlobalDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt global dumpfile %s.sql'"`, DefaultGlobalDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
-			DefaultGlobalDbname, du.dutempsuffix))
+		DefaultGlobalDbname, du.dutempsuffix))
 	log.Printf("dumperclose global shcmd=%s\n", shcmd)
 	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
