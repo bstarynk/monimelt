@@ -29,7 +29,7 @@ if [ -z "$dbfile" ] ; then
 fi
 
 if [ -f "$dbfile" ] ; then
-    mv -v --backup "$dbfile" "$dbfile"
+    mv -v --backup "$dbfile" "$dbfile~"
 fi
 sqlite3 "$dbfile" <  "$sqlfile"
 touch -r "$sqlfile" "$dbfile"

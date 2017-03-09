@@ -16,12 +16,16 @@
 ##   <http://www.gnu.org/licenses/>.
 
 ## Dont change the name monimelt-dump-state.sh of this script without
-## care, it appears elsewhere (in Makefile & in monimelt.h)
+## care, it appears elsewhere
 
 echo start $0 "$@"
 dbfile=$1
 sqlfile=$2
 
+if [ -z "$dbfile" ]; then
+	dbfile=monimelt_state.sqlite
+	sqlfile=monimelt_state.sql
+fi
 if [ ! -f "$dbfile" ]; then
     echo "$0": missing database file "$dbfile" >& 2
     exit 1
