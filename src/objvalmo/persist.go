@@ -179,32 +179,6 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 	log.Printf("fill_content_objects end globflag=%b\n", globflag)
 } // end fill_content_objects
 
-func (ld *LoaderMo) Load() {
-	{
-		var stabuf [1024]byte
-		stalen := runtime.Stack(stabuf[:], false)
-		log.Printf("loader Load start ld=%#v\n...stack:\n%s\n\n\n",
-			ld, string(stabuf[:stalen]))
-	}
-	if ld == nil {
-		return
-	}
-	ld.create_objects(GlobalObjects)
-	if ld.lduserdb != nil {
-		ld.create_objects(UserObjects)
-	}
-	ld.fill_content_objects(GlobalObjects)
-	if ld.lduserdb != nil {
-		ld.fill_content_objects(UserObjects)
-	}
-	ld.fill_payload_objects(GlobalObjects)
-	if ld.lduserdb != nil {
-		ld.fill_payload_objects(UserObjects)
-	}
-
-	log.Printf("loader Load ld=%v missing fill\n", ld)
-} // end Load
-
 func (l *LoaderMo) fill_payload_objects(globflag bool) {
 	log.Printf("fill_payload_objects start globflag=%b\n", globflag)
 	var qr *sql.Rows
@@ -240,6 +214,74 @@ FROM t_objects WHERE ob_paylkind != ""`
 	}
 	log.Printf("fill_payload_objects end globflag=%b\n", globflag)
 } // end fill_payload_objects
+
+func (l *LoaderMo) bind_globals(globflag bool) {
+	log.Printf("bind_globals start globflag=%b\n", globflag)
+	var qr *sql.Rows
+	var err error
+	const sql_selglobals = `SELECT glob_name, glob_oid FROM t_globals WHERE glob_oid!=""`
+	if globflag {
+		qr, err = l.ldglobaldb.Query(sql_selglobals)
+	} else {
+		qr, err = l.lduserdb.Query(sql_selglobals)
+	}
+	if err != nil {
+		panic(fmt.Errorf("loader: bind_globals failure %v", err))
+	}
+	defer qr.Close()
+	for qr.Next() {
+		var globname string
+		var globidstr string
+		err = qr.Scan(&globname, &globidstr)
+		if err != nil {
+			panic(fmt.Errorf("persistmo.bind_globals failure %v", err))
+		}
+		gloid, err := serialmo.IdFromString(globidstr)
+		if err != nil {
+			panic(fmt.Errorf("persistmo.bind_globals bad id %s: %v", globidstr, err))
+		}
+		glpob := l.ldobjmap[gloid]
+		if glpob == nil {
+			panic(fmt.Errorf("persistmo.bind_globals unknown id %s: %v", globidstr, err))
+		}
+		pglovar := GlobalVariableAddress(globname)
+		if pglovar == nil {
+			panic(fmt.Errorf("persistmo.bind_globals unknown global %s", globname))
+		}
+		*pglovar = glpob
+	}
+	log.Printf("bind_globals end globflag=%b\n", globflag)
+} // end bind_globals
+
+func (ld *LoaderMo) Load() {
+	{
+		var stabuf [1024]byte
+		stalen := runtime.Stack(stabuf[:], false)
+		log.Printf("loader Load start ld=%#v\n...stack:\n%s\n\n\n",
+			ld, string(stabuf[:stalen]))
+	}
+	if ld == nil {
+		return
+	}
+	ld.create_objects(GlobalObjects)
+	if ld.lduserdb != nil {
+		ld.create_objects(UserObjects)
+	}
+	ld.fill_content_objects(GlobalObjects)
+	if ld.lduserdb != nil {
+		ld.fill_content_objects(UserObjects)
+	}
+	ld.fill_payload_objects(GlobalObjects)
+	if ld.lduserdb != nil {
+		ld.fill_payload_objects(UserObjects)
+	}
+	ld.bind_globals(GlobalObjects)
+	if ld.lduserdb != nil {
+		ld.bind_globals(UserObjects)
+	}
+
+	log.Printf("loader Load ld=%v missing fill\n", ld)
+} // end Load
 
 func (ld *LoaderMo) Close() {
 	{
@@ -652,6 +694,7 @@ func (du *DumperMo) DumpEmit() {
 		du.emitDumpedObject(pob, sp)
 	}
 	/// emit the global variables
+	/// @@@@ FIXME, perhaps global variables bound to user objects should go into the user database
 	globnames := NamesGlobalVariables()
 	for _, gname := range globnames {
 		gad := GlobalVariableAddress(gname)
