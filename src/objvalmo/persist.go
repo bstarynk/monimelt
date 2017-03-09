@@ -550,8 +550,14 @@ func (du *DumperMo) Close() {
 	}
 	var shcmd string
 	var err error
-	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
-		DefaultGlobalDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt global dumpfile %s.sql'"`, DefaultGlobalDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
+	shcmd = (SqliteProgram + " " +
+		fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
+			DefaultGlobalDbname, du.dutempsuffix) + " " +
+		fmt.Sprintf(`".print '-- generated monimelt global dumpfile %s.sql'"`,
+			DefaultGlobalDbname) + " " + ".dump" + " " +
+		fmt.Sprintf(`".print '-- end of monimelt global dumpfile %s.sql'"`,
+			DefaultGlobalDbname) +
+		">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
 		DefaultGlobalDbname, du.dutempsuffix))
 	log.Printf("dumperclose global shcmd=%s\n", shcmd)
 	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
@@ -559,7 +565,11 @@ func (du *DumperMo) Close() {
 			shcmd, err))
 	}
 	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
-		DefaultUserDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt user dumpfile %s.sql'"`, DefaultUserDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
+		DefaultUserDbname, du.dutempsuffix) + " " +
+		fmt.Sprintf(`".print '-- generated monimelt user dumpfile %s.sql'"`, DefaultUserDbname) + " " + ".dump" + " " +
+		fmt.Sprintf(`".print '-- end of monimelt user dumpfile %s.sql'"`,
+			DefaultGlobalDbname) +
+		">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
 		DefaultUserDbname, du.dutempsuffix))
 	log.Printf("dumperclose user shcmd=%s\n", shcmd)
 	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
