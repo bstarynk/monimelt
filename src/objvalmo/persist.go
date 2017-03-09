@@ -229,6 +229,7 @@ const (
 )
 
 type DumperMo struct {
+	dutime       time.Time
 	dumode       uint
 	dudirname    string
 	dutempsuffix string
@@ -374,6 +375,7 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 		panic(fmt.Errorf("OpenDumperDirectory failed to open user db %s - %v", usertemppath, err))
 	}
 	du := new(DumperMo)
+	du.dutime = time.Now()
 	du.dudirname = dirpath
 	du.dutempsuffix = dtempsuf
 	du.duglobaldb = glodb
@@ -650,7 +652,7 @@ func (du *DumperMo) Close() {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
 			shcmd, err))
 	}
-	nowt := time.Now()
+	nowt := du.dutime
 	os.Chtimes(globtempdb, nowt, nowt)
 	os.Chtimes(globtempsql, nowt, nowt)
 	os.Chtimes(usertempdb, nowt, nowt)
