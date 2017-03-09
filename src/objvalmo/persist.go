@@ -525,6 +525,11 @@ func (du *DumperMo) Close() {
 	}
 	if du.duuserdb != nil {
 		du.duuserdb.Close()
+		du.duuserdb = nil
+	}
+	if du.duglobaldb != nil {
+		du.duglobaldb.Close()
+		du.duglobaldb = nil
 	}
 	var shcmd string
 	var err error
