@@ -50,6 +50,12 @@ func validpath(path string) bool {
 }
 
 func OpenLoaderFromFiles(globalpath string, userpath string) *LoaderMo {
+	{
+		var stabuf [2048]byte
+		stalen := runtime.Stack(stabuf[:], true)
+		log.Printf("OpenLoaderFromFiles start globalpath=%s userpath=%s\n...stack:\n%s\n\n\n",
+			globalpath, userpath, string(stabuf[:stalen]))
+	}
 	if !validpath(globalpath) {
 		panic(fmt.Errorf("OpenLoaderFromFiles invalid global path %s",
 			globalpath))
@@ -118,32 +124,96 @@ func (l *LoaderMo) create_objects(globflag bool) {
 	}
 }
 
-func (l *LoaderMo) Load() {
-	if l == nil {
+func (ld *LoaderMo) Load() {
+	{
+		var stabuf [1024]byte
+		stalen := runtime.Stack(stabuf[:], false)
+		log.Printf("loader Load start ld=%#v\n...stack:\n%s\n\n\n",
+			ld, string(stabuf[:stalen]))
+	}
+	if ld == nil {
 		return
 	}
-	l.create_objects(GlobalObjects)
-	if l.lduserdb != nil {
-		l.create_objects(UserObjects)
+	ld.create_objects(GlobalObjects)
+	if ld.lduserdb != nil {
+		ld.create_objects(UserObjects)
 	}
+	log.Printf("loader Load ld=%v missing fill\n")
 }
 
-func (l *LoaderMo) Close() {
-	if l == nil {
+func (ld *LoaderMo) Close() {
+	{
+		var stabuf [1024]byte
+		stalen := runtime.Stack(stabuf[:], false)
+		log.Printf("loader Close start ld=%#v\n...stack:\n%s\n\n\n",
+			ld, string(stabuf[:stalen]))
+	}
+	if ld == nil {
 		return
 	}
-	if ud := l.lduserdb; ud != nil {
-		l.lduserdb = nil
+	if ud := ld.lduserdb; ud != nil {
+		ld.lduserdb = nil
 		ud.Close()
 	}
-	if gd := l.ldglobaldb; gd != nil {
-		l.ldglobaldb = nil
+	if gd := ld.ldglobaldb; gd != nil {
+		ld.ldglobaldb = nil
 		gd.Close()
 	}
 	/// clear the object map
-	l.ldobjmap = nil
+	ld.ldobjmap = nil
 }
 
+func LoadFromDirectory(dirname string) {
+	{
+		var stabuf [2048]byte
+		stalen := runtime.Stack(stabuf[:], true)
+		log.Printf("LoadFromDirectory dirname=%s\n...stack:\n%s\n\n\n",
+			dirname, string(stabuf[:stalen]))
+	}
+	if dirname == "" {
+		dirname = "."
+	}
+	dl := len(dirname)
+	if dirname[dl-1] != '/' {
+		dirname = dirname + "/"
+	}
+	if dinf, err := os.Stat(dirname); err != nil || !dinf.Mode().IsDir() {
+		panic(fmt.Errorf("LoadFromDirectory bad dirname %s - %v, %v", dirname, err, dinf))
+	}
+	glodbpath := dirname + DefaultGlobalDbname + ".sqlite"
+	glodbinf, err := os.Stat(glodbpath)
+	if err != nil || !glodbinf.Mode().IsRegular() {
+		panic(fmt.Errorf("LoadFromDirectory bad global db %s - %v, %v", glodbpath, err, glodbinf))
+	}
+	glosqlpath := dirname + DefaultGlobalDbname + ".sql"
+	glosqlinf, err := os.Stat(glosqlpath)
+	if err == nil {
+		if glosqlinf.ModTime().Before(glodbinf.ModTime()) {
+			panic(fmt.Errorf("LoadFromDirectory global sql file %s [%v] older than db file %s [%v]",
+				glosqlpath, glosqlinf.ModTime(), glodbpath, glodbinf.ModTime()))
+		}
+	}
+	usrdbpath := dirname + DefaultUserDbname + ".sqlite"
+	usrsqlpath := dirname + DefaultUserDbname + ".sql"
+	if usrdbinf, err := os.Stat(usrdbpath); err != nil || !usrdbinf.Mode().IsRegular() {
+		log.Printf("LoadFromDirectory missing or bad user db %s\n", usrdbpath)
+		usrdbpath = ""
+		usrsqlpath = ""
+	} else {
+		if usrsqlinf, err := os.Stat(usrsqlpath); err == nil {
+			if usrsqlinf.ModTime().Before(usrdbinf.ModTime()) {
+				panic(fmt.Errorf("LoadFromDirectory user sql file %s [%v] older than db file %s [%v]",
+					usrsqlpath, glosqlinf.ModTime(), usrdbpath, usrdbinf.ModTime()))
+			}
+		}
+	}
+	ld := OpenLoaderFromFiles(glodbpath, usrdbpath)
+	defer ld.Close()
+	ld.Load()
+	log.Printf("done LoadFromDirectory %s\n", dirname)
+}
+
+////////////////////////////////////////////////////////////////
 const dump_chunk_len = 7
 
 type dumpChunk struct {
