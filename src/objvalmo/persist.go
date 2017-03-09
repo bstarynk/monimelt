@@ -568,7 +568,7 @@ func (du *DumperMo) Close() {
 		DefaultUserDbname, du.dutempsuffix) + " " +
 		fmt.Sprintf(`".print '-- generated monimelt user dumpfile %s.sql'"`, DefaultUserDbname) + " " + ".dump" + " " +
 		fmt.Sprintf(`".print '-- end of monimelt user dumpfile %s.sql'"`,
-			DefaultGlobalDbname) +
+			DefaultUserDbname) +
 		">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
 		DefaultUserDbname, du.dutempsuffix))
 	log.Printf("dumperclose user shcmd=%s\n", shcmd)
