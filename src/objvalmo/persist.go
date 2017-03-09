@@ -418,7 +418,10 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	jcontent := jsonObContent{Jattrs: jattrs, Jcomps: jcomps}
 	var contbuf bytes.Buffer
 	contenc := json.NewEncoder(&contbuf)
+	contbuf.WriteByte('\n')
+	contenc.SetIndent("", " ")
 	contenc.Encode(jcontent)
+	//contbuf.WriteByte('\n')
 	/// encode the payload
 	var paylkindstr string
 	var jpayljson interface{}
@@ -428,7 +431,10 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	var paylbuf bytes.Buffer
 	if len(paylkindstr) > 0 {
 		paylenc := json.NewEncoder(&paylbuf)
+		paylbuf.WriteByte('\n')
+		paylenc.SetIndent("", " ")
 		paylenc.Encode(jpayljson)
+		//paylbuf.WriteByte('\n')
 	}
 	/// should now insert in the appropriate database
 	var stmt *sql.Stmt
