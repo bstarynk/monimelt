@@ -14,6 +14,7 @@ import (
 func main() {
 	hasSerialPtr := flag.Bool("serial", false, "generate serials and obids")
 	nbSerialPtr := flag.Int("nb-serial", 3, "number of serials")
+	loadPtr := flag.String("load", "", "initial load directory")
 	finalDumpPtr := flag.String("final-dump", "", "final dump directory")
 	flag.Parse()
 	log.Printf("Monimelt starting pid %d, Go version %s\n", os.Getpid(), runtime.Version())
@@ -33,6 +34,12 @@ func main() {
 				i, nhi, nlo, oid.ToString(), oid.BucketNum(), oid.Hash())
 		}
 	}
+	//
+	if len(*loadPtr) > 0 {
+		log.Printf("monimelt should initial load from %s\n", *loadPtr)
+		objvalmo.LoadFromDirectory(*loadPtr)
+	}
+	//
 	if len(*finalDumpPtr) > 0 {
 		log.Printf("monimelt should final dump in %s\n", *finalDumpPtr)
 		objvalmo.DumpIntoDirectory(*finalDumpPtr)
