@@ -648,6 +648,7 @@ func finalizeObjectMo(ob *ObjectMo) {
 	obid := ob.obid
 	ob.obattrs = nil
 	ob.obcomps = nil
+	ob.obmtime = 0
 	p := ob.obpayl
 	ob.obpayl = nil
 	if p != nil {
@@ -681,6 +682,7 @@ func FindOrMakeObjectById(id serialmo.IdentMo) (*ObjectMo, bool) {
 		newobptr.obid = id
 		buck.bu_admap[id] = uintptr((unsafe.Pointer)(newobptr))
 		runtime.SetFinalizer(newobptr, finalizeObjectMo)
+		newobptr.UnsyncTouch()
 		return newobptr, false
 	}
 	return (*ObjectMo)((unsafe.Pointer)(ad)), true
@@ -720,6 +722,7 @@ func NewObj() *ObjectMo {
 	newobptr.obid = oid
 	buck.bu_admap[oid] = uintptr((unsafe.Pointer)(newobptr))
 	runtime.SetFinalizer(newobptr, finalizeObjectMo)
+	newobptr.UnsyncTouch()
 	return newobptr
 }
 
