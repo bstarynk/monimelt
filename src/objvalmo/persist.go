@@ -220,7 +220,8 @@ func (du DumperMo) create_tables(globflag bool) {
 	}
 }
 
-func (du DumperMo) AddDumpedObject(pob *ObjectMo) {
+func (du *DumperMo) AddDumpedObject(pob *ObjectMo) {
+	log.Printf("AddDumpedObject start pob=%v du=%#v\n", pob, du)
 	if du.dumode != dumod_Scan {
 		panic("AddDumpedObject in non-scanning dumper")
 	}
@@ -234,7 +235,9 @@ func (du DumperMo) AddDumpedObject(pob *ObjectMo) {
 	if _, found := (*du.dusetobjects)[pob]; found {
 		return
 	}
+	log.Printf("AddDumpedObject pob=%v before dusetobjects=%v\n", pob, du.dusetobjects)
 	(*du.dusetobjects)[pob] = spo
+	log.Printf("AddDumpedObject pob=%v after dusetobjects=%v\n", pob, du.dusetobjects)
 	if du.dufirstchk == nil {
 		nchk := new(dumpChunk)
 		du.dufirstchk = nchk
@@ -298,6 +301,7 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 	du.dutempsuffix = dtempsuf
 	du.duglobaldb = glodb
 	du.duuserdb = usrdb
+	du.dusetobjects = new(map[*ObjectMo]uint8)
 	du.create_tables(GlobalObjects)
 	du.create_tables(UserObjects)
 	du.dustobglob, err = glodb.Prepare(sql_insert_t_objects)
@@ -310,16 +314,19 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 		// this should never happen
 		panic(fmt.Errorf("OpenDumperDirectory failed to prepare global %s t_object insertion - %v", usertemppath, err))
 	}
+	log.Printf("OpenDumperDirectory result du=%#v\n", du)
 	return du
 }
 
 func (du *DumperMo) StartDumpScan() {
+	log.Printf("StartDumpScan begin du=%#v\n", du)
 	if du == nil || du.dumode != dumod_Idle {
 		panic("StartDumpScan on non-idle dumper")
 	}
 	du.dumode = dumod_Scan
 	DumpScanPredefined(du)
 	DumpScanGlobalVariables(du)
+	log.Printf("StartDumpScan end du=%#v\n", du)
 }
 
 func (du *DumperMo) IsDumpedObject(pob *ObjectMo) bool {
@@ -328,12 +335,14 @@ func (du *DumperMo) IsDumpedObject(pob *ObjectMo) bool {
 }
 
 func (du *DumperMo) LoopDumpScan() {
+	log.Printf("LoopDumpScan begin du=%#v\n", du)
 	if du == nil || du.dumode != dumod_Scan {
 		panic("LoopDumpScan on non-scanning dumper")
 	}
 	var chk *dumpChunk
 	var nchk *dumpChunk
 	for chk = du.dufirstchk; chk != nil; chk = nchk {
+		log.Printf("LoopDumpScan chk=%#v\n", chk)
 		nchk = chk.dchnext
 		if chk == du.dulastchk {
 			du.dufirstchk = nil
@@ -350,6 +359,7 @@ func (du *DumperMo) LoopDumpScan() {
 			}
 		}
 	}
+	log.Printf("LoopDumpScan end du=%#v\n", du)
 }
 
 type jsonAttrEntry struct {
@@ -363,6 +373,7 @@ type jsonObContent struct {
 }
 
 func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
+	log.Printf("emitDumpedObject start pob=%v spa=%d\n", pob, spa)
 	if du == nil || du.dumode != dumod_Emit {
 		panic("emitDumpedObject bad dumper")
 	}
@@ -429,6 +440,7 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	if err != nil {
 		panic(fmt.Errorf("emitDumpedObject insertion failed for %s - %v", pobidstr, err))
 	}
+	log.Printf("emitDumpedObject end pob=%v spa=%d\n", pob, spa)
 }
 
 func (du *DumperMo) EmitObjptr(pob *ObjectMo) bool {
@@ -437,6 +449,7 @@ func (du *DumperMo) EmitObjptr(pob *ObjectMo) bool {
 }
 
 func (du *DumperMo) DumpEmit() {
+	log.Printf("DumpEmit start du=%#v\n", du)
 	if du == nil || du.dumode != dumod_Scan {
 		panic("DumpEmit on non-scanning dumper")
 	}
@@ -470,9 +483,11 @@ func (du *DumperMo) DumpEmit() {
 			panic(fmt.Errorf("DumpEmit failed to insert global %s - %v", gname, err))
 		}
 	}
+	log.Printf("DumpEmit end du=%#v\n", du)
 }
 
 func (du *DumperMo) renameWithBackup(fpath string) {
+	log.Printf("renameWithBackup fpath=%s tempsuffix=%s\n", fpath, du.dutempsuffix)
 	if du == nil {
 		panic(fmt.Errorf("renameWithBackup nil du fpath=%q\n", fpath))
 	}
@@ -491,6 +506,7 @@ func (du *DumperMo) renameWithBackup(fpath string) {
 }
 
 func (du *DumperMo) Close() {
+	log.Printf("dumper Close start du=%#v\n", du)
 	if du == nil {
 		return
 	}
@@ -512,16 +528,18 @@ func (du *DumperMo) Close() {
 	}
 	var shcmd string
 	var err error
-	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%.sqlite%s", du.dudirname,
-		DefaultGlobalDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt global dumpfile %s.sql'"`, DefaultGlobalDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%.sql%s", du.dudirname,
-		DefaultGlobalDbname, du.dutempsuffix))
+	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
+		DefaultGlobalDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt global dumpfile %s.sql'"`, DefaultGlobalDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
+			DefaultGlobalDbname, du.dutempsuffix))
+	log.Printf("dumperclose global shcmd=%s\n", shcmd)
 	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
 			shcmd, err))
 	}
-	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%.sqlite%s", du.dudirname,
-		DefaultUserDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt user dumpfile %s.sql'"`, DefaultUserDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%.sql%s", du.dudirname,
+	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
+		DefaultUserDbname, du.dutempsuffix) + " " + fmt.Sprintf(`".print '-- generated monimelt user dumpfile %s.sql'"`, DefaultUserDbname) + " " + ".dump" + " " + ">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
 		DefaultUserDbname, du.dutempsuffix))
+	log.Printf("dumperclose user shcmd=%s\n", shcmd)
 	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
 			shcmd, err))
@@ -531,13 +549,19 @@ func (du *DumperMo) Close() {
 	du.renameWithBackup(DefaultGlobalDbname + ".sqlite")
 	du.renameWithBackup(DefaultUserDbname + ".sqlite")
 	log.Printf("done dump of %d objects in %s\n", nbob, du.dudirname)
+	log.Printf("dumper Close end du=%#v\n", du)
 }
 
 func DumpIntoDirectory(dirname string) {
+	log.Printf("DumpIntoDirectory start dirname=%s\n", dirname)
 	var du *DumperMo
 	du = OpenDumperDirectory(dirname)
 	defer du.Close()
+	log.Printf("DumpIntoDirectory before StartDumpScan du=%#v\n", du)
 	du.StartDumpScan()
+	log.Printf("DumpIntoDirectory before LoopDumpScan du=%#v\n", du)
 	du.LoopDumpScan()
+	log.Printf("DumpIntoDirectory before DumpEmit du=%#v\n", du)
 	du.DumpEmit()
+	log.Printf("DumpIntoDirectory ending du=%#v\n", du)
 }
