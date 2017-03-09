@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"serialmo"
 	"strings"
+	"time"
 )
 
 const DefaultGlobalDbname = "monimelt_state"
@@ -620,32 +621,40 @@ func (du *DumperMo) Close() {
 	}
 	var shcmd string
 	var err error
-	shcmd = (SqliteProgram + " " +
-		fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
-			DefaultGlobalDbname, du.dutempsuffix) + " " +
+	globtempdb := fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
+		DefaultGlobalDbname, du.dutempsuffix)
+	globtempsql := fmt.Sprintf("%s/%s.sql%s", du.dudirname,
+		DefaultGlobalDbname, du.dutempsuffix)
+	shcmd = (SqliteProgram + " " + globtempdb + " " +
 		fmt.Sprintf(`".print '-- generated monimelt global dumpfile %s.sql'"`,
 			DefaultGlobalDbname) + " " + ".dump" + " " +
 		fmt.Sprintf(`".print '-- end of monimelt global dumpfile %s.sql'"`,
 			DefaultGlobalDbname) +
-		">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
-		DefaultGlobalDbname, du.dutempsuffix))
+		" > " + globtempsql)
 	log.Printf("dumperclose global shcmd=%s\n", shcmd)
 	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
 			shcmd, err))
 	}
-	shcmd = (SqliteProgram + " " + fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
-		DefaultUserDbname, du.dutempsuffix) + " " +
+	usertempdb := fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
+		DefaultUserDbname, du.dutempsuffix)
+	usertempsql := fmt.Sprintf("%s/%s.sql%s", du.dudirname,
+		DefaultUserDbname, du.dutempsuffix)
+	shcmd = (SqliteProgram + " " + usertempdb + " " +
 		fmt.Sprintf(`".print '-- generated monimelt user dumpfile %s.sql'"`, DefaultUserDbname) + " " + ".dump" + " " +
 		fmt.Sprintf(`".print '-- end of monimelt user dumpfile %s.sql'"`,
 			DefaultUserDbname) +
-		">" + fmt.Sprintf("%s/%s.sql%s", du.dudirname,
-		DefaultUserDbname, du.dutempsuffix))
+		">" + usertempsql)
 	log.Printf("dumperclose user shcmd=%s\n", shcmd)
 	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
 			shcmd, err))
 	}
+	nowt := time.Now()
+	os.Chtimes(globtempdb, nowt, nowt)
+	os.Chtimes(globtempsql, nowt, nowt)
+	os.Chtimes(usertempdb, nowt, nowt)
+	os.Chtimes(usertempsql, nowt, nowt)
 	du.renameWithBackup(DefaultGlobalDbname + ".sql")
 	du.renameWithBackup(DefaultUserDbname + ".sql")
 	du.renameWithBackup(DefaultGlobalDbname + ".sqlite")
