@@ -97,10 +97,11 @@ func OpenLoaderFromFiles(globalpath string, userpath string) *LoaderMo {
 func (l *LoaderMo) create_objects(globflag bool) {
 	var qr *sql.Rows
 	var err error
+	const sql_selcreated = "SELECT ob_id FROM t_objects"
 	if globflag {
-		qr, err = l.ldglobaldb.Query("SELECT ob_id FROM t_objects")
+		qr, err = l.ldglobaldb.Query(sql_selcreated)
 	} else {
-		qr, err = l.lduserdb.Query("SELECT ob_id FROM t_objects")
+		qr, err = l.lduserdb.Query(sql_selcreated)
 	}
 	if err != nil {
 		panic(fmt.Errorf("loader: create_objects failure %v", err))
@@ -125,6 +126,47 @@ func (l *LoaderMo) create_objects(globflag bool) {
 	}
 }
 
+func (l *LoaderMo) fill_content_objects(globflag bool) {
+	var qr *sql.Rows
+	var err error
+	const sql_selfillcontent = `SELECT ob_id, ob_mtime, ob_jsoncont FROM t_objects`
+	if globflag {
+		qr, err = l.ldglobaldb.Query(sql_selfillcontent)
+	} else {
+		qr, err = l.lduserdb.Query(sql_selfillcontent)
+	}
+	if err != nil {
+		panic(fmt.Errorf("loader: fill_content_objects failure %v", err))
+	}
+	defer qr.Close()
+	for qr.Next() {
+		var idstr string
+		var mtim int64
+		var jcontstr string
+		err = qr.Scan(&idstr, &mtim, &jcontstr)
+		if err != nil {
+			panic(fmt.Errorf("persistmo.fill_content_objects failure %v", err))
+		}
+		oid, err := serialmo.IdFromString(idstr)
+		if err != nil {
+			panic(fmt.Errorf("persistmo.fill_content_objects bad id %s: %v", idstr, err))
+		}
+		pob := (*l.ldobjmap)[oid]
+		if pob == nil {
+			panic(fmt.Errorf("persistmo.fill_content_objects unknown id %s: %v", idstr, err))
+		}
+		var jcont jsonObContent
+		if err := json.Unmarshal(([]byte)(jcontstr), &jcont); err != nil {
+			panic(fmt.Errorf("persistmo.fill_content_objects bad content for id %s: %v", idstr, err))
+		}
+		// do something with jcont
+		log.Printf("fill_content_objects pob=%v mtim=%v jcont=%v\n", pob, mtim, jcont)
+	}
+	if err = qr.Err(); err != nil {
+		panic(fmt.Errorf("persistmo.fill_content_objects err %v", err))
+	}
+}
+
 func (ld *LoaderMo) Load() {
 	{
 		var stabuf [1024]byte
@@ -138,6 +180,10 @@ func (ld *LoaderMo) Load() {
 	ld.create_objects(GlobalObjects)
 	if ld.lduserdb != nil {
 		ld.create_objects(UserObjects)
+	}
+	ld.fill_content_objects(GlobalObjects)
+	if ld.lduserdb != nil {
+		ld.fill_content_objects(UserObjects)
 	}
 	log.Printf("loader Load ld=%v missing fill\n")
 }
