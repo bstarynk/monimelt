@@ -159,18 +159,25 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 		if pob == nil {
 			panic(fmt.Errorf("persistmo.fill_content_objects unknown id %s: %v", idstr, err))
 		}
+		pob.UnsyncPutMtime(mtim)
 		var jcont jsonObContent
 		if err := json.Unmarshal(([]byte)(jcontstr), &jcont); err != nil {
 			panic(fmt.Errorf("persistmo.fill_content_objects bad content for id %s: %v", idstr, err))
 		}
+		nbat := len(jcont.Jattrs)
+		for atix := 0; atix < nbat; atix++ {
+			curatid := jcont.Jattrs[atix].Jat
+			curjval := jcont.Jattrs[atix].Jva
+			log.Printf("atix=%d curatid=%v curjval=%v\n", atix, curatid, curjval)
+		}
 		// do something with jcont
-		log.Printf("fill_content_objects pob=%v mtim=%v jcont=%v\n", pob, mtim, jcont)
+		log.Printf("fill_content_objects pob=%v mtim=%v jcont=%#v\n", pob, mtim, jcont)
 	}
 	if err = qr.Err(); err != nil {
 		panic(fmt.Errorf("persistmo.fill_content_objects err %v", err))
 	}
 	log.Printf("fill_content_objects end globflag=%b\n", globflag)
-}
+} // end fill_content_objects
 
 func (ld *LoaderMo) Load() {
 	{
@@ -190,8 +197,49 @@ func (ld *LoaderMo) Load() {
 	if ld.lduserdb != nil {
 		ld.fill_content_objects(UserObjects)
 	}
-	log.Printf("loader Load ld=%v missing fill\n")
-}
+	ld.fill_payload_objects(GlobalObjects)
+	if ld.lduserdb != nil {
+		ld.fill_payload_objects(UserObjects)
+	}
+
+	log.Printf("loader Load ld=%v missing fill\n", ld)
+} // end Load
+
+func (l *LoaderMo) fill_payload_objects(globflag bool) {
+	log.Printf("fill_payload_objects start globflag=%b\n", globflag)
+	var qr *sql.Rows
+	var err error
+	const sql_selfillcontent = `SELECT ob_id, ob_paylkind, ob_paylcont 
+FROM t_objects WHERE ob_paylkind != ""`
+	if globflag {
+		qr, err = l.ldglobaldb.Query(sql_selfillcontent)
+	} else {
+		qr, err = l.lduserdb.Query(sql_selfillcontent)
+	}
+	if err != nil {
+		panic(fmt.Errorf("loader: fill_payload_objects failure %v", err))
+	}
+	defer qr.Close()
+	for qr.Next() {
+		var idstr string
+		var paylkind string
+		var jpaylstr string
+		err = qr.Scan(&idstr, &paylkind, &jpaylstr)
+		if err != nil {
+			panic(fmt.Errorf("persistmo.fill_payload_objects failure %v", err))
+		}
+		oid, err := serialmo.IdFromString(idstr)
+		if err != nil {
+			panic(fmt.Errorf("persistmo.fill_payload_objects bad id %s: %v", idstr, err))
+		}
+		pob := l.ldobjmap[oid]
+		if pob == nil {
+			panic(fmt.Errorf("persistmo.fill_payload_objects unknown id %s: %v", idstr, err))
+		}
+		log.Printf("fill_payload_objects @@incomplete pob=%v paylkind=%s\n", pob, paylkind)
+	}
+	log.Printf("fill_payload_objects end globflag=%b\n", globflag)
+} // end fill_payload_objects
 
 func (ld *LoaderMo) Close() {
 	{
@@ -213,7 +261,7 @@ func (ld *LoaderMo) Close() {
 	}
 	/// clear the object map
 	ld.ldobjmap = nil
-}
+} // end Close
 
 func LoadFromDirectory(dirname string) {
 	{
@@ -263,7 +311,7 @@ func LoadFromDirectory(dirname string) {
 	defer ld.Close()
 	ld.Load()
 	log.Printf("done LoadFromDirectory %s\n", dirname)
-}
+} // end LoadFromDirectory
 
 ////////////////////////////////////////////////////////////////
 const dump_chunk_len = 7
