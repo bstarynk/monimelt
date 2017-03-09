@@ -35,7 +35,7 @@ func init() {
 type LoaderMo struct {
 	ldglobaldb *sql.DB
 	lduserdb   *sql.DB
-	ldobjmap   *map[serialmo.IdentMo]*ObjectMo
+	ldobjmap   map[serialmo.IdentMo]*ObjectMo
 }
 
 var validpath_regexp *regexp.Regexp
@@ -90,13 +90,14 @@ func OpenLoaderFromFiles(globalpath string, userpath string) *LoaderMo {
 		}
 		l.lduserdb = db
 	}
-	l.ldobjmap = new(map[serialmo.IdentMo]*ObjectMo)
+	l.ldobjmap = make(map[serialmo.IdentMo]*ObjectMo)
 	return l
 }
 
 func (l *LoaderMo) create_objects(globflag bool) {
 	var qr *sql.Rows
 	var err error
+	log.Printf("create_objects start globflag=%b\n", globflag)
 	const sql_selcreated = "SELECT ob_id FROM t_objects"
 	if globflag {
 		qr, err = l.ldglobaldb.Query(sql_selcreated)
@@ -118,15 +119,18 @@ func (l *LoaderMo) create_objects(globflag bool) {
 			panic(fmt.Errorf("persistmo.create_objects bad id %s: %v", idstr, err))
 		}
 		pob := MakeObjectById(oid)
-		(*l.ldobjmap)[oid] = pob
+		l.ldobjmap[oid] = pob
+		log.Printf("create_objects pob=%v\n", pob)
 	}
 	err = qr.Err()
 	if err != nil {
 		panic(fmt.Errorf("persistmo.create_objects final %v", err))
 	}
+	log.Printf("create_objects end globflag=%b\n", globflag)
 }
 
 func (l *LoaderMo) fill_content_objects(globflag bool) {
+	log.Printf("fill_content_objects start globflag=%b\n", globflag)
 	var qr *sql.Rows
 	var err error
 	const sql_selfillcontent = `SELECT ob_id, ob_mtime, ob_jsoncont FROM t_objects`
@@ -151,7 +155,7 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 		if err != nil {
 			panic(fmt.Errorf("persistmo.fill_content_objects bad id %s: %v", idstr, err))
 		}
-		pob := (*l.ldobjmap)[oid]
+		pob := l.ldobjmap[oid]
 		if pob == nil {
 			panic(fmt.Errorf("persistmo.fill_content_objects unknown id %s: %v", idstr, err))
 		}
@@ -165,6 +169,7 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 	if err = qr.Err(); err != nil {
 		panic(fmt.Errorf("persistmo.fill_content_objects err %v", err))
 	}
+	log.Printf("fill_content_objects end globflag=%b\n", globflag)
 }
 
 func (ld *LoaderMo) Load() {
@@ -294,7 +299,7 @@ const sql_create_t_params = `CREATE TABLE IF NOT EXISTS t_params
 
 const sql_create_t_objects = `CREATE TABLE IF NOT EXISTS t_objects
  (ob_id VARCHAR(26) PRIMARY KEY ASC NOT NULL UNIQUE,
-  ob_mtime DATETIME,
+  ob_mtime INT NOT NULL,
   ob_jsoncont TEXT NOT NULL,
   ob_paylkind VARCHAR(40) NOT NULL,
   ob_paylcont TEXT NOT NULL);`
