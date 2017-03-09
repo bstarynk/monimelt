@@ -14,9 +14,9 @@ import (
 func main() {
 	hasSerialPtr := flag.Bool("serial", false, "generate serials and obids")
 	nbSerialPtr := flag.Int("nb-serial", 3, "number of serials")
-	finalDumpPtr := flag.String("final-dump-dir", "", "final dump directory")
+	finalDumpPtr := flag.String("final-dump", "", "final dump directory")
 	flag.Parse()
-	fmt.Printf("Monimelt starting pid %d, Go version %s\n", os.Getpid(), runtime.Version())
+	log.Printf("Monimelt starting pid %d, Go version %s\n", os.Getpid(), runtime.Version())
 	if *hasSerialPtr {
 		n := *nbSerialPtr
 		fmt.Printf("Monimelt %d serials\n", n)
@@ -37,4 +37,5 @@ func main() {
 		log.Printf("monimelt should final dump in %s\n", *finalDumpPtr)
 		objvalmo.DumpIntoDirectory(*finalDumpPtr)
 	}
+	log.Printf("Monimelt ending pid %d\n", os.Getpid())
 }
