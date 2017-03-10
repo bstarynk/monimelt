@@ -202,6 +202,7 @@ func TestDump1(t *testing.T) {
 	ro6.Obref().UnsyncPutAttr(ro2.Obref(), MakeFloatV(3.14))
 	Glob_the_system = ro1.Obref()
 	t.Logf("TestDump1 Glob_the_system=%v\n", Glob_the_system)
+	log.Printf("TestDump1 globalnames=%v\n", NamesGlobalVariables())
 	log.Printf("TestDump1 Glob_the_system is %v\n", Glob_the_system)
 	t.Logf("TestDump1 before dump in %s\n", tempdir)
 	log.Printf("TestDump1 before DumpIntoDirectory tempdir %s\n", tempdir)

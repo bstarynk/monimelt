@@ -580,7 +580,7 @@ func (du *DumperMo) LoopDumpScan() {
 		}
 	}
 	log.Printf("LoopDumpScan end du=%#v\n", du)
-}				// end LoopDumpScan
+} // end LoopDumpScan
 
 type jsonAttrEntry struct {
 	Jat string      `json:"at"`

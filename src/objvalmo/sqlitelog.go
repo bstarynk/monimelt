@@ -6,9 +6,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-
 /*
-#cgo CFLAGS: -O1 -g 
+#cgo CFLAGS: -O1 -g
 #cgo pkg-config: sqlite3
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,7 +25,7 @@ void monimeltSqlLogStderr(void *udp __attribute__((unused)), int err, const char
 
 void goSqlite3EnableLog(void) {
    sqlite3_config(SQLITE_CONFIG_LOG, monimeltSqlLogStderr, NULL);
-   fprintf(stderr, "SQLITE3 LOG ENABLED\n"); 
+   fprintf(stderr, "SQLITE3 LOG ENABLED\n");
    fflush(stderr);
 }
 */

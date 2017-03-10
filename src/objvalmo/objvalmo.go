@@ -919,6 +919,12 @@ func RegisterGlobalVariable(vnam string, advar **ObjectMo) {
 		panic(fmt.Errorf("RegisterGlobalVariable null address for vnam %q", vnam))
 	}
 	glovar_map[vnam] = advar
+	{
+		var stabuf [2048]byte
+		stalen := runtime.Stack(stabuf[:], true)
+		log.Printf("RegisterGlobalVariable glovar_map=%v\n...stack:\n%s\n\n\n",
+			glovar_map, string(stabuf[:stalen]))
+	}
 }
 
 func UnregisterGlobalVariable(vnam string) {
