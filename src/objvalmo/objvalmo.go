@@ -821,6 +821,23 @@ func (pob *ObjectMo) UnsyncSetSpaceNum(sp uint8) *ObjectMo {
 	return pob
 }
 
+func (pob *ObjectMo) UnsyncPutAttr(pobat *ObjectMo, val ValueMo) *ObjectMo {
+	if pob == nil {
+		panic("UnsyncPutAttr nil pob")
+	}
+	if pobat == nil {
+		panic(fmt.Errorf("UnsyncPutAttr pob=%v nil pobat", pob))
+	}
+	if val.TypeV() == TyNilV {
+		panic(fmt.Errorf("UnsyncPutAttr pob=%v pobat=%v nil val", pob, pobat))
+	}
+	if pob.obattrs == nil {
+		pob.obattrs = make(map[*ObjectMo]ValueMo)
+	}
+	pob.obattrs[pobat] = val
+	return pob
+} // end UnsyncPutAttr
+
 func SlicePredefined() []*ObjectMo {
 	predefined_mtx.Lock()
 	defer predefined_mtx.Unlock()
