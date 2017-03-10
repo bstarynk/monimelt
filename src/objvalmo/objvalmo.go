@@ -922,8 +922,8 @@ func RegisterGlobalVariable(vnam string, advar **ObjectMo) {
 	{
 		var stabuf [2048]byte
 		stalen := runtime.Stack(stabuf[:], true)
-		log.Printf("RegisterGlobalVariable glovar_map=%v\n...stack:\n%s\n\n\n",
-			glovar_map, string(stabuf[:stalen]))
+		log.Printf("RegisterGlobalVariable glovar_map=%v advar=%v vnam=%v\n...stack:\n%s\n\n\n",
+			glovar_map, advar, vnam, string(stabuf[:stalen]))
 	}
 }
 
