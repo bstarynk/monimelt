@@ -779,12 +779,12 @@ func (du *DumperMo) Close() {
 		DefaultGlobalDbname, du.dutempsuffix)
 	globtempsql := fmt.Sprintf("%s/%s.sql%s", du.dudirname,
 		DefaultGlobalDbname, du.dutempsuffix)
-	shcmd = (SqliteProgram + " " + globtempdb + " " +
-		fmt.Sprintf(`".print '-- generated monimelt global dumpfile %s.sql'"`,
-			DefaultGlobalDbname) + " " + ".dump" + " " +
-		fmt.Sprintf(`".print '-- end of monimelt global dumpfile %s.sql'"`,
-			DefaultGlobalDbname) +
-		" > " + globtempsql)
+	globstacmt := fmt.Sprintf("-- generated monimelt global dumpfile %s.sql", DefaultGlobalDbname)
+	globstaprint := fmt.Sprintf(".print %q", globstacmt)
+	globendcmt := fmt.Sprintf("-- end of monimelt global dumpfile %s.sql", DefaultGlobalDbname)
+	globendprint := fmt.Sprintf(".print %q", globendcmt)
+	shcmd = (SqliteProgram + " " + globtempdb + " " + globstaprint + " " + ".dump" + " " +
+		globendprint + " > " + globtempsql)
 	log.Printf("dumperclose global shcmd=%s\n", shcmd)
 	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
