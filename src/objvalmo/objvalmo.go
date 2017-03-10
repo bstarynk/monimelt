@@ -838,6 +838,28 @@ func (pob *ObjectMo) UnsyncPutAttr(pobat *ObjectMo, val ValueMo) *ObjectMo {
 	return pob
 } // end UnsyncPutAttr
 
+func (pob *ObjectMo) UnsyncAppendVal(val ValueMo) *ObjectMo {
+	if pob == nil {
+		panic("UnsyncAppendVal nil pob")
+	}
+	if pob.obcomps == nil {
+		pob.obcomps = make([]ValueMo, 0, 7)
+	}
+	pob.obcomps = append(pob.obcomps, val)
+	return pob
+} // end UnsyncAppendVal
+
+func (pob *ObjectMo) UnsyncAddValues(vals ...ValueMo) *ObjectMo {
+	if pob == nil {
+		panic("UnsyncAddValues nil pob")
+	}
+	if pob.obcomps == nil {
+		pob.obcomps = make([]ValueMo, 0, (5+5*len(vals)/4)|7)
+	}
+	pob.obcomps = append(pob.obcomps, vals...)
+	return pob
+} // end UnsyncAddValues
+
 func SlicePredefined() []*ObjectMo {
 	predefined_mtx.Lock()
 	defer predefined_mtx.Unlock()
