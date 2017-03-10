@@ -5,9 +5,9 @@ package objvalmo
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"fmt"
 	jason "github.com/antonholmquist/jason"
+	"log"
 	"math"
 	osexec "os/exec"
 	"serialmo"
@@ -201,8 +201,12 @@ func TestDump1(t *testing.T) {
 	ro4.Obref().UnsyncPutAttr(ro2.Obref(), MakeSetV(ro2.Obref(), ro3.Obref(), ro2.Obref(), ro6.Obref()))
 	ro6.Obref().UnsyncPutAttr(ro2.Obref(), MakeFloatV(3.14))
 	Glob_the_system = ro1.Obref()
+	t.Logf("TestDump1 Glob_the_system=%v\n", Glob_the_system)
+	log.Printf("TestDump1 Glob_the_system is %v\n", Glob_the_system)
 	t.Logf("TestDump1 before dump in %s\n", tempdir)
+	log.Printf("TestDump1 before DumpIntoDirectory tempdir %s\n", tempdir)
 	DumpIntoDirectory(tempdir)
+	log.Printf("TestDump1 after DumpIntoDirectory tempdir %s\n", tempdir)
 	log.Printf("TestDump1 ending...\n")
 	t.Logf("TestDump1 end\n\n\n")
 } // end TestDump1
