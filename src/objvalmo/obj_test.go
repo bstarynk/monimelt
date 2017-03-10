@@ -6,8 +6,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"jason"
+	jason "github.com/antonholmquist/jason"
 	"math"
+	osexec "os/exec"
 	"serialmo"
 	"testing"
 )
@@ -67,7 +68,7 @@ func json_parse(msg string, js string) {
 }
 
 func TestValues(t *testing.T) {
-	fmt.Printf("TestValues start\n")
+	t.Logf("TestValues start\n")
 	s1 := MakeStringV("abc€")
 	s2 := MakeStringV("a\nnewline")
 	fmt.Printf("strings s1=%v of hash %v,  s2=%v of hash %v\n",
@@ -154,4 +155,37 @@ func TestValues(t *testing.T) {
 	json_parse("test-valuenil", `{"value":null}`)
 	json_parse("test-1", " 1")
 	json_parse("test-m23", "-23")
-}
+} // end TestValues
+
+func TestDump1(t *testing.T) {
+	const tempdir = "/tmp/montestdump1"
+	t.Logf("TestDump1 start tempdir=%s\n", tempdir)
+	osexec.Command("rm", "-rvf", tempdir).Run()
+	pr_name := Predef_02hL3RuX4x6_6y6PTK9vZs7()
+	t.Logf("TestDump1 pr_name=%v (%T)\n", pr_name, pr_name)
+	ro1 := NewRefobV()
+	ro2 := NewRefobV()
+	ro3 := NewRefobV()
+	ro4 := NewRefobV()
+	ro5 := NewRefobV()
+	ro6 := NewRefobV()
+	t.Logf("TestDump1 ro1=%v (%T);  ro2=%v (%T)\n",
+		ro1, ro1, ro2, ro2)
+	t.Logf("TestDump1 ro3=%v (%T);  ro4=%v (%T)\n",
+		ro3, ro3, ro4, ro4)
+	t.Logf("TestDump1 ro5=%v (%T);  ro6=%v (%T)\n",
+		ro5, ro5, ro6, ro6)
+	ro1.Obref().UnsyncSetSpaceNum(SpaUser)
+	ro2.Obref().UnsyncSetSpaceNum(SpaUser)
+	ro3.Obref().UnsyncSetSpaceNum(SpaUser)
+	ro4.Obref().UnsyncSetSpaceNum(SpaUser)
+	ro5.Obref().UnsyncSetSpaceNum(SpaUser)
+	ro6.Obref().UnsyncSetSpaceNum(SpaUser)
+	ro1.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro1"))
+	ro2.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro2"))
+	ro3.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro3"))
+	ro4.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro4"))
+	ro5.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro5"))
+	ro6.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro6"))
+	t.Logf("TestDump1 end\n")
+} // end TestDump1
