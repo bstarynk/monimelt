@@ -685,6 +685,11 @@ func (du *DumperMo) DumpEmit() {
 		panic(fmt.Errorf("DumpEmit failed to prepare t_globals insertion %v", err))
 	}
 	defer globstmt.Close()
+	usrglobstmt, err := du.duuserdb.Prepare(sql_insert_t_globals)
+	if err != nil {
+		panic(fmt.Errorf("DumpEmit failed to prepare user t_globals insertion %v", err))
+	}
+	defer usrglobstmt.Close()
 	// emit all objects
 	dso := du.dusetobjects
 	if dso == nil {
@@ -694,7 +699,6 @@ func (du *DumperMo) DumpEmit() {
 		du.emitDumpedObject(pob, sp)
 	}
 	/// emit the global variables
-	/// @@@@ FIXME, perhaps global variables bound to user objects should go into the user database
 	globnames := NamesGlobalVariables()
 	for _, gname := range globnames {
 		gad := GlobalVariableAddress(gname)
@@ -702,16 +706,24 @@ func (du *DumperMo) DumpEmit() {
 			continue
 		}
 		gpob := *gad
-		if gpob == nil || !du.IsDumpedObject(gpob) {
+		if gpob == nil {
 			continue
 		}
-		_, err := globstmt.Exec(gname, gpob.ToString())
-		if err != nil {
-			panic(fmt.Errorf("DumpEmit failed to insert global %s - %v", gname, err))
+		gsp := du.dusetobjects[gpob]
+		if gsp == SpaGlobal || gsp == SpaPredefined {
+			_, err := globstmt.Exec(gname, gpob.ToString())
+			if err != nil {
+				panic(fmt.Errorf("DumpEmit failed to insert global %s - %v", gname, err))
+			}
+		} else if gsp == SpaUser {
+			_, err := usrglobstmt.Exec(gname, gpob.ToString())
+			if err != nil {
+				panic(fmt.Errorf("DumpEmit failed to insert global %s - %v", gname, err))
+			}
 		}
 	}
 	log.Printf("DumpEmit end du=%#v\n", du)
-}
+} // end DumpEmit
 
 func (du *DumperMo) renameWithBackup(fpath string) {
 	log.Printf("renameWithBackup fpath=%s tempsuffix=%s\n", fpath, du.dutempsuffix)
