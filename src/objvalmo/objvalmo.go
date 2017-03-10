@@ -5,6 +5,7 @@ package objvalmo
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"math"
 	"regexp"
 	"runtime"
@@ -952,6 +953,8 @@ func NamesGlobalVariables() []string {
 }
 
 func DumpScanGlobalVariables(du *DumperMo) {
+	log.Printf("DumpScanGlobalVariables start du=%v\n", du)
+	var gcnt int
 	glovar_mtx.Lock()
 	defer glovar_mtx.Unlock()
 	for _, av := range glovar_map {
@@ -959,5 +962,10 @@ func DumpScanGlobalVariables(du *DumperMo) {
 			continue
 		}
 		du.AddDumpedObject(*av)
+		gcnt++
 	}
+	if gcnt == 0 {
+		log.Printf("DumpScanGlobalVariables did not found any global variables\n")
+	}
+	log.Printf("DumpScanGlobalVariables end gcnt=%d du=%v\n", gcnt, du)
 }
