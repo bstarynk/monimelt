@@ -790,9 +790,9 @@ func (du *DumperMo) Close() {
 	  	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
 	  **/
 	var cmd *osexec.Cmd
-	cmd = osexec.Command(SqliteProgram, globoutput, globstaprint, ".dump", globendprint)
+	cmd = osexec.Command(SqliteProgram, globtempdb, globoutput, globstaprint, ".dump", globendprint)
 	if err = cmd.Run(); err != nil {
-		panic(fmt.Errorf("dumper Close failed to run %s - %v",
+		panic(fmt.Errorf("dumper Close failed to run global dump %s - %v",
 			cmd, err))
 	}
 	cmd = nil
@@ -805,9 +805,9 @@ func (du *DumperMo) Close() {
 	userstaprint := fmt.Sprintf(".print %q", userstacmt)
 	userendcmt := fmt.Sprintf("-- end of monimelt user dumpfile %s.sql", DefaultUserDbname)
 	userendprint := fmt.Sprintf(".print %q", userendcmt)
-	cmd = osexec.Command(SqliteProgram, useroutput, userstaprint, ".dump", userendprint)
+	cmd = osexec.Command(SqliteProgram, usertempdb, useroutput, userstaprint, ".dump", userendprint)
 	if err = cmd.Run(); err != nil {
-		panic(fmt.Errorf("dumper Close failed to run %s - %v",
+		panic(fmt.Errorf("dumper Close failed to run user dump %s - %v",
 			cmd, err))
 	}
 	cmd = nil
