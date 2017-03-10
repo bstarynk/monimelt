@@ -425,14 +425,12 @@ func (du DumperMo) create_tables(globflag bool) {
 		panic(fmt.Errorf("create_tables failure in directory %s for t_objects creation %v",
 			du.dudirname, err))
 	}
-	if globflag {
-		_, err = db.Exec(sql_create_t_globals)
-		if err != nil {
-			panic(fmt.Errorf("create_tables failure in directory %s for t_globals creation %v",
-				du.dudirname, err))
-		}
+	_, err = db.Exec(sql_create_t_globals)
+	if err != nil {
+		panic(fmt.Errorf("create_tables failure in directory %s for t_globals creation %v",
+			du.dudirname, err))
 	}
-}
+} // end create_tables
 
 func (du *DumperMo) AddDumpedObject(pob *ObjectMo) {
 	{
