@@ -5,6 +5,7 @@ package objvalmo
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"fmt"
 	jason "github.com/antonholmquist/jason"
 	"math"
@@ -155,11 +156,13 @@ func TestValues(t *testing.T) {
 	json_parse("test-valuenil", `{"value":null}`)
 	json_parse("test-1", " 1")
 	json_parse("test-m23", "-23")
+	t.Logf("end TestValues\n\n\n")
 } // end TestValues
 
 func TestDump1(t *testing.T) {
 	const tempdir = "/tmp/montestdump1"
-	t.Logf("TestDump1 start tempdir=%s\n", tempdir)
+	t.Logf("TestDump1 start tempdir=%s @@@@@\n\n", tempdir)
+	log.Printf("TestDump1 starting...\n")
 	osexec.Command("rm", "-rvf", tempdir).Run()
 	pr_name := Predef_02hL3RuX4x6_6y6PTK9vZs7()
 	t.Logf("TestDump1 pr_name=%v (%T)\n", pr_name, pr_name)
@@ -175,6 +178,8 @@ func TestDump1(t *testing.T) {
 		ro3, ro3, ro4, ro4)
 	t.Logf("TestDump1 ro5=%v (%T);  ro6=%v (%T)\n",
 		ro5, ro5, ro6, ro6)
+	log.Printf("TestDump1 ro1=%v ro2=%v ro3=%v\n", ro1, ro2, ro3)
+	log.Printf("TestDump1 ro4=%v ro5=%v ro6=%v\n", ro4, ro5, ro6)
 	ro1.Obref().UnsyncSetSpaceNum(SpaUser)
 	ro2.Obref().UnsyncSetSpaceNum(SpaUser)
 	ro3.Obref().UnsyncSetSpaceNum(SpaUser)
@@ -198,5 +203,6 @@ func TestDump1(t *testing.T) {
 	Glob_the_system = ro1.Obref()
 	t.Logf("TestDump1 before dump in %s\n", tempdir)
 	DumpIntoDirectory(tempdir)
-	t.Logf("TestDump1 end\n")
+	log.Printf("TestDump1 ending...\n")
+	t.Logf("TestDump1 end\n\n\n")
 } // end TestDump1

@@ -543,6 +543,7 @@ func (du *DumperMo) StartDumpScan() {
 	}
 	du.dumode = dumod_Scan
 	DumpScanPredefined(du)
+	log.Printf("StartDumpScan after scan-predefined du=%v\n", du)
 	DumpScanGlobalVariables(du)
 	log.Printf("StartDumpScan end du=%#v\n", du)
 }
@@ -573,12 +574,13 @@ func (du *DumperMo) LoopDumpScan() {
 			curpob := chk.dchobjects[vix]
 			chk.dchobjects[vix] = nil
 			if curpob != nil {
+				log.Printf("LoopDumpScan vix=%d curpob=%v\n", vix, curpob)
 				curpob.DumpScanInsideObject(du)
 			}
 		}
 	}
 	log.Printf("LoopDumpScan end du=%#v\n", du)
-}
+}				// end LoopDumpScan
 
 type jsonAttrEntry struct {
 	Jat string      `json:"at"`
