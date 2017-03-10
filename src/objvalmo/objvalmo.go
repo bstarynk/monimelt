@@ -957,10 +957,12 @@ func DumpScanGlobalVariables(du *DumperMo) {
 	var gcnt int
 	glovar_mtx.Lock()
 	defer glovar_mtx.Unlock()
+	log.Printf("DumpScanGlobalVariables glovar_map=%#v\n", glovar_map)
 	for _, av := range glovar_map {
 		if *av == nil {
 			continue
 		}
+		log.Printf("DumpScanGlobalVariables av=%v *av=%v\n", av, *av)
 		du.AddDumpedObject(*av)
 		gcnt++
 	}
