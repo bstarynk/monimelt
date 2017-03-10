@@ -773,37 +773,44 @@ func (du *DumperMo) Close() {
 		du.duglobaldb.Close()
 		du.duglobaldb = nil
 	}
-	var shcmd string
 	var err error
 	globtempdb := fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
 		DefaultGlobalDbname, du.dutempsuffix)
 	globtempsql := fmt.Sprintf("%s/%s.sql%s", du.dudirname,
 		DefaultGlobalDbname, du.dutempsuffix)
+	globoutput := fmt.Sprintf(".output %s", globtempsql)
 	globstacmt := fmt.Sprintf("-- generated monimelt global dumpfile %s.sql", DefaultGlobalDbname)
 	globstaprint := fmt.Sprintf(".print %q", globstacmt)
 	globendcmt := fmt.Sprintf("-- end of monimelt global dumpfile %s.sql", DefaultGlobalDbname)
 	globendprint := fmt.Sprintf(".print %q", globendcmt)
-	shcmd = (SqliteProgram + " " + globtempdb + " " + globstaprint + " " + ".dump" + " " +
-		globendprint + " > " + globtempsql)
-	log.Printf("dumperclose global shcmd=%s\n", shcmd)
-	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
+	/**was
+	          shcmd = (SqliteProgram + " " + globtempdb + " " + globstaprint + " " + ".dump" + " " +
+	  		globendprint + " > " + globtempsql)
+	  	log.Printf("dumperclose global shcmd=%s\n", shcmd)
+	  	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
+	  **/
+	var cmd *osexec.Cmd
+	cmd = osexec.Command(SqliteProgram, globoutput, globstaprint, ".dump", globendprint)
+	if err = cmd.Run(); err != nil {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
-			shcmd, err))
+			cmd, err))
 	}
+	cmd = nil
 	usertempdb := fmt.Sprintf("%s/%s.sqlite%s", du.dudirname,
 		DefaultUserDbname, du.dutempsuffix)
 	usertempsql := fmt.Sprintf("%s/%s.sql%s", du.dudirname,
 		DefaultUserDbname, du.dutempsuffix)
-	shcmd = (SqliteProgram + " " + usertempdb + " " +
-		fmt.Sprintf(`".print '-- generated monimelt user dumpfile %s.sql'"`, DefaultUserDbname) + " " + ".dump" + " " +
-		fmt.Sprintf(`".print '-- end of monimelt user dumpfile %s.sql'"`,
-			DefaultUserDbname) +
-		">" + usertempsql)
-	log.Printf("dumperclose user shcmd=%s\n", shcmd)
-	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
+	useroutput := fmt.Sprintf(".output %s", usertempsql)
+	userstacmt := fmt.Sprintf("-- generated monimelt user dumpfile %s.sql", DefaultUserDbname)
+	userstaprint := fmt.Sprintf(".print %q", userstacmt)
+	userendcmt := fmt.Sprintf("-- end of monimelt user dumpfile %s.sql", DefaultUserDbname)
+	userendprint := fmt.Sprintf(".print %q", userendcmt)
+	cmd = osexec.Command(SqliteProgram, useroutput, userstaprint, ".dump", userendprint)
+	if err = cmd.Run(); err != nil {
 		panic(fmt.Errorf("dumper Close failed to run %s - %v",
-			shcmd, err))
+			cmd, err))
 	}
+	cmd = nil
 	nowt := du.dutime
 	os.Chtimes(globtempdb, nowt, nowt)
 	os.Chtimes(globtempsql, nowt, nowt)
