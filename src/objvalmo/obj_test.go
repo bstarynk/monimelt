@@ -187,5 +187,21 @@ func TestDump1(t *testing.T) {
 	ro4.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro4"))
 	ro5.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro5"))
 	ro6.Obref().UnsyncPutAttr(pr_name, MakeStringV("ro6"))
+	ro1.Obref().UnsyncAddValues(MakeRefobV(ro1),
+		MakeRefobV(ro2),
+		MakeRefobV(ro3),
+		MakeRefobV(ro4),
+		MakeRefobV(ro5),
+		MakeRefobV(ro6))
+	ro1.Obref().UnsyncPutAttr(ro2, MakeStringV("some string here for ro1"))
+	ro2.Obref().UnsyncPutAttr(ro1, MakeRefobV(ro3))
+	ro2.Obref().UnsyncPutAttr(ro5, MakeIntV(123))
+	ro3.Obref().UnsyncPutAttr(ro2, MakeIntV(1))
+	ro3.Obref().UnsyncPutAttr(ro3, MakeTupleV(ro1, ro2, ro1, ro3, ro5))
+	ro4.Obref().UnsyncPutAttr(ro2, MakeSetV(ro2, ro3, ro2, ro6))
+	ro6.Obref().UnsyncPutAttr(ro2, MakeFloatV(3.14))
+	Glob_the_system = ro1
+	t.Logf("TestDump1 before dump in %s\n", tempdir)
+	DumpIntoDirectory(tempdir)
 	t.Logf("TestDump1 end\n")
 } // end TestDump1
