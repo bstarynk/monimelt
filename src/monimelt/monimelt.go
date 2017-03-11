@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime"
 	"serialmo"
+	"time"
 )
 
 func main() {
@@ -42,6 +43,7 @@ func main() {
 		log.Printf("monimelt did initial load from %s\n", *loadPtr)
 	}
 	//
+	time.Sleep(30 * time.Millisecond)
 	if len(*tinyDump1Ptr) > 0 {
 		log.Printf("monimelt should dotinydump1 in %s\n", *tinyDump1Ptr)
 		objvalmo.DoTinyDump1(*tinyDump1Ptr)
