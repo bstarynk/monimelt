@@ -181,32 +181,33 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 		if err := json.Unmarshal(([]byte)(jcontstr), &jcont); err != nil {
 			panic(fmt.Errorf("persistmo.fill_content_objects bad content for id %s: %v", idstr, err))
 		}
+		log.Printf("@@@fill_content_objects pob=%v mtim=%v jcont=%#v %T\n\n", pob, mtim, jcont, jcont)
 		nbat := len(jcont.Jattrs)
 		for atix := 0; atix < nbat; atix++ {
 			curatid := jcont.Jattrs[atix].Jat
 			curjval := jcont.Jattrs[atix].Jva
-			log.Printf("atix=%d curatid=%v curjval=%v\n", atix, curatid, curjval)
+			log.Printf("fill_content_objects atix=%d curatid=%v curjval=%v\n", atix, curatid, curjval)
+			pobat, err := l.ParseObjptr(curatid)
+			log.Printf("fill_content_objects atix=%d pobat=%v err=%v\n", atix, pobat, err)
+			curjaval := curjval.(jason.Value)
+			log.Printf("fill_content_objects atix=%d curjaval=%v\n", atix, curjaval)
+			atval, err := JasonParseValue(l, curjaval)
+			log.Printf("fill_content_objects pob %v atix=%d pobat=%v atval=%v err=%v\n", pob, atix, pobat, atval, err)
+			if err == nil {
+				pob.UnsyncPutAttr(pobat, atval)
+			}
 		}
 		// do something with jcont
-		log.Printf("@@@fill_content_objects pob=%v mtim=%v jcont=%#v %T\n\n", pob, mtim, jcont, jcont)
-		for pix, jcurpair := range jcont.Jattrs {
-			log.Printf("fill_content_objects pob=%v pix=%d jcurpair=%v %T\n",
-				pob, pix, jcurpair, jcurpair)
-			pobat, err := l.ParseObjptr(jcurpair.Jat)
-			log.Printf("fill_content_objects pob=%v pix#%d pobat=%v/%T, err=%v\n",
-				pob, pix, pobat, pobat, err)
-			jpairva := jcurpair.Jva
-			jpjva, ok := jpairva.(jason.Value)
-			log.Printf("fill_content_objects pob=%v pix#%d jpairva=%v jpjva=%v ok=%t\n",
-				pob, pix, jpairva, jpjva, ok)
-			atval, err := JasonParseValue(l, jpjva)
-			log.Printf("fill_content_objects pob=%v pix#%d atval=%v/%T, err=%v\n",
-				pob, pix, atval, err)
-
-		}
 		for cix, jcurcomp := range jcont.Jcomps {
 			log.Printf("fill_content_objects pob=%v cix=%d jcurcomp=%v %T\n",
 				pob, cix, jcurcomp, jcurcomp)
+			curcomp := jcurcomp.(jason.Value)
+			compval, err := JasonParseValue(l, curcomp)
+			log.Printf("fill_content_objects pob=%v cix=%d compval=%v %T err=%v\n",
+				pob, cix, curcomp, curcomp, err)
+			if err == nil {
+				pob.UnsyncAppendVal(compval)
+			}
 		}
 	}
 	if err = qr.Err(); err != nil {
