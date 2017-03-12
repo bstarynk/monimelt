@@ -790,12 +790,8 @@ func (pob *ObjectMo) DumpScanInsideObject(du *DumperMo) {
 	}
 }
 
-var predefined_map map[serialmo.IdentMo]*ObjectMo
+var predefined_map map[serialmo.IdentMo]*ObjectMo = make(map[serialmo.IdentMo]*ObjectMo)
 var predefined_mtx sync.Mutex
-
-func init() {
-	predefined_map = make(map[serialmo.IdentMo]*ObjectMo)
-}
 
 func (pob *ObjectMo) UnsyncSetSpaceNum(sp uint8) *ObjectMo {
 	if pob == nil {
@@ -892,16 +888,11 @@ func DumpScanPredefined(du *DumperMo) {
 ////    RegisterGlobalVariable("foo", &Glob_foo)
 //// see generated file globals.go
 
-var glovar_map map[string]**ObjectMo
-var glovar_regexp *regexp.Regexp
-var glovar_mtx sync.Mutex
-
 const glovar_regexp_str = `^[a-zA-Z_][a-zA-Z0-9_]*$`
 
-func init() {
-	glovar_map = make(map[string]**ObjectMo)
-	glovar_regexp = regexp.MustCompile(glovar_regexp_str)
-}
+var glovar_map map[string]**ObjectMo = make(map[string]**ObjectMo)
+var glovar_regexp *regexp.Regexp = regexp.MustCompile(glovar_regexp_str)
+var glovar_mtx sync.Mutex
 
 func RegisterGlobalVariable(vnam string, advar **ObjectMo) {
 	glovar_mtx.Lock()

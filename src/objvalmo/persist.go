@@ -25,7 +25,7 @@ const SqliteProgram = "sqlite3"
 const GlobalObjects = true
 const UserObjects = false
 
-func init() {
+func initPersist() {
 	EnableSqliteLog()
 	libv, libvnum, srcid := gosqlite.Version()
 	log.Printf("persist-init libv=%s libvnum=%d srcid=%s\n",
