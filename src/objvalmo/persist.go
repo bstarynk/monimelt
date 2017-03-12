@@ -608,6 +608,7 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	defer pob.obmtx.Unlock()
 	/// dump the attrbitues
 	nbat := len(pob.obattrs)
+	log.Printf("emitDumpedObject pob=%v nbat=%d\n", pob, nbat)
 	var jattrs []jsonAttrEntry
 	jattrs = make([]jsonAttrEntry, nbat)
 	for atob, atva := range pob.obattrs {
@@ -618,14 +619,19 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 			continue
 		}
 		jpair := jsonAttrEntry{Jat: atob.ToString(), Jva: ValToJson(du, atva)}
+		log.Printf("emitDumpedObject pob=%v atob=%v atva=%v jpair=%v\n",
+			pob, atob, atva, jpair)
 		jattrs = append(jattrs, jpair)
 	}
 	/// dump the components
 	nbcomp := len(pob.obcomps)
+	log.Printf("emitDumpedObject pob=%v nbcomp=%d\n", pob, nbcomp)
 	var jcomps []interface{}
 	jcomps = make([]interface{}, nbcomp)
-	for _, cva := range pob.obcomps {
+	for cix, cva := range pob.obcomps {
 		jva := ValToJson(du, cva)
+		log.Printf("emitDumpedObject pob=%v cix=%s cva=%v jva=%v\n",
+			cix, cva, jva)
 		jcomps = append(jcomps, jva)
 	}
 	/// construct and encode the content
