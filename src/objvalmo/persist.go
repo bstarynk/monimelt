@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	jason "github.com/antonholmquist/jason"
 	gosqlite "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
@@ -194,11 +195,13 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 			pobat, err := l.ParseObjptr(jcurpair.Jat)
 			log.Printf("fill_content_objects pob=%v pix#%d pobat=%v/%T, err=%v\n",
 				pob, pix, pobat, pobat, err)
-			/**@@@ FIXME
-						atval, err := JasonParseValue(l,jcurpair.Jva)
-						log.Printf("fill_content_objects pob=%v pix#%d atval=%v/%T, err=%v\n",
-							pob, pix, atval, err)
-			                        ***/
+			jpairva := jcurpair.Jva
+			jpjva, ok := jpairva.(jason.Value)
+			log.Printf("fill_content_objects pob=%v pix#%d jpairva=%v jpjva=%v ok=%t\n",
+				pob, pix, jpairva, jpjva, ok)
+			atval, err := JasonParseValue(l, jpjva)
+			log.Printf("fill_content_objects pob=%v pix#%d atval=%v/%T, err=%v\n",
+				pob, pix, atval, err)
 
 		}
 		for cix, jcurcomp := range jcont.Jcomps {
