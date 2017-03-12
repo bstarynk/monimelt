@@ -770,25 +770,31 @@ func (pob *ObjectMo) SpaceNum() uint8 {
 }
 
 func (pob *ObjectMo) DumpScanInsideObject(du *DumperMo) {
+	log.Printf("DumpScanInsideObject start pob=%v\n", pob)
+	defer log.Printf("DumpScanInsideObject end pob=%v\n", pob)
 	if pob == nil || du == nil {
 		panic("DumpScanInsideObject corruption")
 	}
 	pob.obmtx.Lock()
 	defer pob.obmtx.Unlock()
+	log.Printf("DumpScanInsideObject inside pob=%v\n", pob)
 	for patob, pval := range pob.obattrs {
+		log.Printf("DumpScanInsideObject in pob=%v patob=%v pval=%v\n", pob, patob, pval)
 		du.AddDumpedObject(patob)
 		if !du.IsDumpedObject(patob) {
 			continue
 		}
 		pval.DumpScan(du)
 	}
-	for _, cval := range pob.obcomps {
+	for cix, cval := range pob.obcomps {
+		log.Printf("DumpScanInsideObject in pob=%v cix=%d cval=%v\n", pob, cix, cval)
 		cval.DumpScan(du)
 	}
 	if pob.obpayl != nil {
+		log.Printf("DumpScanInsideObject in pob=%v payload %v\n", pob, pob.obpayl)
 		(*pob.obpayl).DumpScanPayl(pob, du)
 	}
-}
+} // end DumpScanInsideObject
 
 var predefined_map map[serialmo.IdentMo]*ObjectMo = make(map[serialmo.IdentMo]*ObjectMo)
 var predefined_mtx sync.Mutex

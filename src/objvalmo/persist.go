@@ -433,23 +433,21 @@ func (du DumperMo) create_tables(globflag bool) {
 } // end create_tables
 
 func (du *DumperMo) AddDumpedObject(pob *ObjectMo) {
-	{
-		var stabuf [1024]byte
-		stalen := runtime.Stack(stabuf[:], false)
-		log.Printf("AddDumpedObject start pob=%v du=%#v\n...stack:\n%s\n\n\n",
-			pob, du, string(stabuf[:stalen]))
-	}
+	log.Printf("AddDumpedObject start pob=%v\n", pob)
+	defer log.Printf("AddDumpedObject end pob=%v\n", pob)
 	if du.dumode != dumod_Scan {
 		panic("AddDumpedObject in non-scanning dumper")
 	}
 	if pob == nil {
 		return
 	}
-	spo := pob.SpaceNum()
+	spo := pob.UnsyncSpaceNum() /// should be unsync
 	if spo == SpaTransient {
 		return
 	}
+	log.Printf("AddDumpedObject for pob=%v du.dusetobjects=%v\n", pob, du.dusetobjects)
 	if _, found := du.dusetobjects[pob]; found {
+		log.Printf("AddDumpedObject found pob=%v\n", pob)
 		return
 	}
 	log.Printf("AddDumpedObject pob=%v before dusetobjects=%p=%#v\n", pob, du.dusetobjects, du.dusetobjects)
@@ -468,6 +466,7 @@ func (du *DumperMo) AddDumpedObject(pob *ObjectMo) {
 			break
 		}
 	}
+	log.Printf("AddDumpedObject pob=%v lchk=%#v putix=%d\n", pob, lchk, putix)
 	if putix >= 0 {
 		lchk.dchobjects[putix] = pob
 		return
@@ -476,8 +475,8 @@ func (du *DumperMo) AddDumpedObject(pob *ObjectMo) {
 	lchk.dchnext = nchk
 	du.dulastchk = nchk
 	nchk.dchobjects[0] = pob
-	du.dulastchk = nchk
-}
+	log.Printf("AddDumpedObject pob=%v nchk=%#v", pob, nchk)
+} // end AddDumpedObject
 
 func OpenDumperDirectory(dirpath string) *DumperMo {
 	if !validpath(dirpath) {
@@ -534,10 +533,11 @@ func OpenDumperDirectory(dirpath string) *DumperMo {
 	}
 	log.Printf("OpenDumperDirectory result du=%#v\n", du)
 	return du
-}
+} // end OpenDumperDirectory
 
 func (du *DumperMo) StartDumpScan() {
 	log.Printf("StartDumpScan begin du=%#v\n", du)
+	defer log.Printf("StartDumpScan end du=%#v\n", du)
 	if du == nil || du.dumode != dumod_Idle {
 		panic("StartDumpScan on non-idle dumper")
 	}
@@ -545,8 +545,7 @@ func (du *DumperMo) StartDumpScan() {
 	DumpScanPredefined(du)
 	log.Printf("StartDumpScan after scan-predefined du=%v\n", du)
 	DumpScanGlobalVariables(du)
-	log.Printf("StartDumpScan end du=%#v\n", du)
-}
+} // end StartDumpScan
 
 func (du *DumperMo) IsDumpedObject(pob *ObjectMo) bool {
 	_, found := du.dusetobjects[pob]
@@ -555,6 +554,7 @@ func (du *DumperMo) IsDumpedObject(pob *ObjectMo) bool {
 
 func (du *DumperMo) LoopDumpScan() {
 	log.Printf("LoopDumpScan begin du=%#v\n", du)
+	defer log.Printf("LoopDumpScan end du=%#v\n", du)
 	if du == nil || du.dumode != dumod_Scan {
 		panic("LoopDumpScan on non-scanning dumper")
 	}
@@ -579,7 +579,6 @@ func (du *DumperMo) LoopDumpScan() {
 			}
 		}
 	}
-	log.Printf("LoopDumpScan end du=%#v\n", du)
 } // end LoopDumpScan
 
 type jsonAttrEntry struct {
@@ -594,6 +593,7 @@ type jsonObContent struct {
 
 func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	log.Printf("emitDumpedObject start pob=%v spa=%d\n", pob, spa)
+	defer log.Printf("emitDumpedObject end pob=%v spa=%d\n", pob, spa)
 	if du == nil || du.dumode != dumod_Emit {
 		panic("emitDumpedObject bad dumper")
 	}
@@ -666,8 +666,7 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	if err != nil {
 		panic(fmt.Errorf("emitDumpedObject insertion failed for %s - %v", pobidstr, err))
 	}
-	log.Printf("emitDumpedObject end pob=%v spa=%d\n", pob, spa)
-}
+} // end emitDumpedObject
 
 func (du *DumperMo) EmitObjptr(pob *ObjectMo) bool {
 	_, found := du.dusetobjects[pob]
@@ -676,6 +675,7 @@ func (du *DumperMo) EmitObjptr(pob *ObjectMo) bool {
 
 func (du *DumperMo) DumpEmit() {
 	log.Printf("DumpEmit start du=%#v\n", du)
+	defer log.Printf("DumpEmit end du=%#v\n", du)
 	if du == nil || du.dumode != dumod_Scan {
 		panic("DumpEmit on non-scanning dumper")
 	}
@@ -722,7 +722,6 @@ func (du *DumperMo) DumpEmit() {
 			}
 		}
 	}
-	log.Printf("DumpEmit end du=%#v\n", du)
 } // end DumpEmit
 
 func (du *DumperMo) renameWithBackup(fpath string) {
@@ -742,7 +741,7 @@ func (du *DumperMo) renameWithBackup(fpath string) {
 	if err := os.Rename(tmpath, newpath); err != nil {
 		panic(fmt.Errorf("renameWithBackup dumpdir %s failed for %s  -> %s - %v", du.dudirname, tmpath, newpath, err))
 	}
-}
+} // end renameWithBackup
 
 func (du *DumperMo) Close() {
 	{
@@ -751,6 +750,7 @@ func (du *DumperMo) Close() {
 		log.Printf("dumper Close start du=%#v stack:\n%s\n\n\n",
 			du, string(stabuf[:stalen]))
 	}
+	defer log.Printf("dumper Close end\n")
 	if du == nil {
 		return
 	}
@@ -785,12 +785,6 @@ func (du *DumperMo) Close() {
 	globstaprint := fmt.Sprintf(".print %q", globstacmt)
 	globendcmt := fmt.Sprintf("-- end of monimelt global dumpfile %s.sql", DefaultGlobalDbname)
 	globendprint := fmt.Sprintf(".print %q", globendcmt)
-	/**was
-	          shcmd = (SqliteProgram + " " + globtempdb + " " + globstaprint + " " + ".dump" + " " +
-	  		globendprint + " > " + globtempsql)
-	  	log.Printf("dumperclose global shcmd=%s\n", shcmd)
-	  	if err = osexec.Command("/bin/sh", "-c", shcmd).Run(); err != nil {
-	  **/
 	var cmd *osexec.Cmd
 	cmd = osexec.Command(SqliteProgram, globtempdb, globoutput, globstaprint, ".dump", globendprint)
 	if err = cmd.Run(); err != nil {
@@ -823,11 +817,11 @@ func (du *DumperMo) Close() {
 	du.renameWithBackup(DefaultGlobalDbname + ".sqlite")
 	du.renameWithBackup(DefaultUserDbname + ".sqlite")
 	log.Printf("done dump of %d objects in %s\n", nbob, du.dudirname)
-	log.Printf("dumper Close end du=%#v\n", du)
-}
+} // end dumper Close
 
 func DumpIntoDirectory(dirname string) {
 	log.Printf("DumpIntoDirectory start dirname=%s\n", dirname)
+	defer log.Printf("DumpIntoDirectory ended dirname=%s\n", dirname)
 	var du *DumperMo
 	du = OpenDumperDirectory(dirname)
 	defer du.Close()
@@ -837,5 +831,5 @@ func DumpIntoDirectory(dirname string) {
 	du.LoopDumpScan()
 	log.Printf("DumpIntoDirectory before DumpEmit du=%#v\n", du)
 	du.DumpEmit()
-	log.Printf("DumpIntoDirectory ending du=%#v\n", du)
-}
+	log.Printf("DumpIntoDirectory final du=%#v\n", du)
+} // end DumpIntoDirectory
