@@ -593,7 +593,7 @@ type jsonObContent struct {
 
 func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	log.Printf("emitDumpedObject start pob=%v spa=%d\n", pob, spa)
-	defer log.Printf("emitDumpedObject end pob=%v spa=%d\n", pob, spa)
+	defer log.Printf("emitDumpedObject end pob=%v spa=%d\n\n", pob, spa)
 	if du == nil || du.dumode != dumod_Emit {
 		panic("emitDumpedObject bad dumper")
 	}
@@ -610,7 +610,7 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	nbat := len(pob.obattrs)
 	log.Printf("emitDumpedObject pob=%v nbat=%d\n", pob, nbat)
 	var jattrs []jsonAttrEntry
-	jattrs = make([]jsonAttrEntry, nbat)
+	jattrs = make([]jsonAttrEntry, 0, nbat)
 	for atob, atva := range pob.obattrs {
 		if atva == nil {
 			continue
@@ -627,20 +627,22 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	nbcomp := len(pob.obcomps)
 	log.Printf("emitDumpedObject pob=%v nbcomp=%d\n", pob, nbcomp)
 	var jcomps []interface{}
-	jcomps = make([]interface{}, nbcomp)
+	jcomps = make([]interface{}, 0, nbcomp)
 	for cix, cva := range pob.obcomps {
 		jva := ValToJson(du, cva)
-		log.Printf("emitDumpedObject pob=%v cix=%s cva=%v jva=%v\n",
-			cix, cva, jva)
+		log.Printf("emitDumpedObject pob=%v cix=%d cva=%v jva=%v\n",
+			pob, cix, cva, jva)
 		jcomps = append(jcomps, jva)
 	}
 	/// construct and encode the content
 	jcontent := jsonObContent{Jattrs: jattrs, Jcomps: jcomps}
+	log.Printf("emitDumpedObject pob=%v jcontent=%v\n", pob, jcontent)
 	var contbuf bytes.Buffer
 	contenc := json.NewEncoder(&contbuf)
 	contbuf.WriteByte('\n')
 	contenc.SetIndent("", " ")
 	contenc.Encode(jcontent)
+	log.Printf("emitDumpedObject pob=%v contbuf=%s\n", pob, contbuf.String())
 	//contbuf.WriteByte('\n')
 	/// encode the payload
 	var paylkindstr string
@@ -826,16 +828,16 @@ func (du *DumperMo) Close() {
 } // end dumper Close
 
 func DumpIntoDirectory(dirname string) {
-	log.Printf("DumpIntoDirectory start dirname=%s\n", dirname)
-	defer log.Printf("DumpIntoDirectory ended dirname=%s\n", dirname)
+	log.Printf("DumpIntoDirectory start dirname=%s\n\n", dirname)
+	defer log.Printf("DumpIntoDirectory ended dirname=%s\n\n", dirname)
 	var du *DumperMo
 	du = OpenDumperDirectory(dirname)
 	defer du.Close()
-	log.Printf("DumpIntoDirectory before StartDumpScan du=%#v\n", du)
+	log.Printf("==== DumpIntoDirectory before StartDumpScan du=%#v\n\n", du)
 	du.StartDumpScan()
-	log.Printf("DumpIntoDirectory before LoopDumpScan du=%#v\n", du)
+	log.Printf("==== DumpIntoDirectory before LoopDumpScan du=%#v\n\n", du)
 	du.LoopDumpScan()
-	log.Printf("DumpIntoDirectory before DumpEmit du=%#v\n", du)
+	log.Printf("==== DumpIntoDirectory before DumpEmit du=%#v\n\n", du)
 	du.DumpEmit()
-	log.Printf("DumpIntoDirectory final du=%#v\n", du)
+	log.Printf("==== DumpIntoDirectory final du=%#v\n\n", du)
 } // end DumpIntoDirectory
