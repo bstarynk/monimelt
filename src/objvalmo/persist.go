@@ -183,6 +183,9 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 		}
 		log.Printf("@@@fill_content_objects pob=%v mtim=%v jcont=%#v %T\n\n", pob, mtim, jcont, jcont)
 		nbat := len(jcont.Jattrs)
+		if pob.obattrs == nil && nbat > 0 {
+			pob.obattrs = make(map[*ObjectMo]ValueMo, (nbat+1)|7)
+		}
 		for atix := 0; atix < nbat; atix++ {
 			curatid := jcont.Jattrs[atix].Jat
 			curjval := jcont.Jattrs[atix].Jva
@@ -198,6 +201,10 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 			}
 		}
 		// do something with jcont
+		nbcomps := len(jcont.Jcomps)
+		if pob.obcomps == nil && nbcomps > 0 {
+			pob.obcomps = make([]ValueMo, 0, (nbcomps+1)|3)
+		}
 		for cix, jcurcomp := range jcont.Jcomps {
 			log.Printf("fill_content_objects pob=%v cix=%d jcurcomp=%v %T\n",
 				pob, cix, jcurcomp, jcurcomp)
