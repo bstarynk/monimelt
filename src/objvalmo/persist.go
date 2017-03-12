@@ -92,12 +92,13 @@ func OpenLoaderFromFiles(globalpath string, userpath string) *LoaderMo {
 	}
 	l.ldobjmap = make(map[serialmo.IdentMo]*ObjectMo)
 	return l
-}
+} /// end OpenLoaderFromFiles
 
 func (l *LoaderMo) create_objects(globflag bool) {
+	log.Printf("create_objects start globflag=%t\n", globflag)
+	defer log.Printf("create_objects end globflag=%t\n\n", globflag)
 	var qr *sql.Rows
 	var err error
-	log.Printf("create_objects start globflag=%b\n", globflag)
 	const sql_selcreated = "SELECT ob_id FROM t_objects"
 	if globflag {
 		qr, err = l.ldglobaldb.Query(sql_selcreated)
@@ -126,11 +127,11 @@ func (l *LoaderMo) create_objects(globflag bool) {
 	if err != nil {
 		panic(fmt.Errorf("persistmo.create_objects final %v", err))
 	}
-	log.Printf("create_objects end globflag=%b\n", globflag)
-}
+} // end create_objects
 
 func (l *LoaderMo) fill_content_objects(globflag bool) {
-	log.Printf("fill_content_objects start globflag=%b\n", globflag)
+	log.Printf("fill_content_objects start globflag=%t\n", globflag)
+	defer log.Printf("fill_content_objects end globflag=%t\n", globflag)
 	var qr *sql.Rows
 	var err error
 	const sql_selfillcontent = `SELECT ob_id, ob_mtime, ob_jsoncont FROM t_objects`
@@ -171,16 +172,24 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 			log.Printf("atix=%d curatid=%v curjval=%v\n", atix, curatid, curjval)
 		}
 		// do something with jcont
-		log.Printf("fill_content_objects pob=%v mtim=%v jcont=%#v\n", pob, mtim, jcont)
+		log.Printf("@@@fill_content_objects pob=%v mtim=%v jcont=%#v %T\n\n", pob, mtim, jcont, jcont)
+		for pix, jcurpair := range jcont.Jattrs {
+			log.Printf("fill_content_objects pob=%v pix=%d jcurpair=%v %T\n",
+				pob, pix, jcurpair, jcurpair)
+		}
+		for cix, jcurcomp := range jcont.Jcomps {
+			log.Printf("fill_content_objects pob=%v cix=%d jcurcomp=%v %T\n",
+				pob, cix, jcurcomp, jcurcomp)
+		}
 	}
 	if err = qr.Err(); err != nil {
 		panic(fmt.Errorf("persistmo.fill_content_objects err %v", err))
 	}
-	log.Printf("fill_content_objects end globflag=%b\n", globflag)
 } // end fill_content_objects
 
 func (l *LoaderMo) fill_payload_objects(globflag bool) {
-	log.Printf("fill_payload_objects start globflag=%b\n", globflag)
+	log.Printf("fill_payload_objects start globflag=%t\n", globflag)
+	defer log.Printf("fill_payload_objects end globflag=%t\n", globflag)
 	var qr *sql.Rows
 	var err error
 	const sql_selfillcontent = `SELECT ob_id, ob_paylkind, ob_paylcont 
@@ -212,11 +221,12 @@ FROM t_objects WHERE ob_paylkind != ""`
 		}
 		log.Printf("fill_payload_objects @@incomplete pob=%v paylkind=%s\n", pob, paylkind)
 	}
-	log.Printf("fill_payload_objects end globflag=%b\n", globflag)
+	log.Printf("fill_payload_objects end globflag=%t\n", globflag)
 } // end fill_payload_objects
 
 func (l *LoaderMo) bind_globals(globflag bool) {
-	log.Printf("bind_globals start globflag=%b\n", globflag)
+	log.Printf("bind_globals start globflag=%t\n", globflag)
+	defer log.Printf("bind_globals end globflag=%t\n\n", globflag)
 	var qr *sql.Rows
 	var err error
 	const sql_selglobals = `SELECT glob_name, glob_oid FROM t_globals WHERE glob_oid!=""`
@@ -250,10 +260,10 @@ func (l *LoaderMo) bind_globals(globflag bool) {
 		}
 		*pglovar = glpob
 	}
-	log.Printf("bind_globals end globflag=%b\n", globflag)
 } // end bind_globals
 
 func (ld *LoaderMo) Load() {
+	defer log.Printf("Load end ld=%v\n", ld)
 	{
 		var stabuf [1024]byte
 		stalen := runtime.Stack(stabuf[:], false)
@@ -267,20 +277,22 @@ func (ld *LoaderMo) Load() {
 	if ld.lduserdb != nil {
 		ld.create_objects(UserObjects)
 	}
+	log.Printf("Load after create_objects ld=%v\n", ld)
 	ld.fill_content_objects(GlobalObjects)
 	if ld.lduserdb != nil {
 		ld.fill_content_objects(UserObjects)
 	}
+	log.Printf("Load after fill_content_objects ld=%v\n", ld)
 	ld.fill_payload_objects(GlobalObjects)
 	if ld.lduserdb != nil {
 		ld.fill_payload_objects(UserObjects)
 	}
+	log.Printf("Load after fill_payload_objects ld=%v\n", ld)
 	ld.bind_globals(GlobalObjects)
 	if ld.lduserdb != nil {
 		ld.bind_globals(UserObjects)
 	}
-
-	log.Printf("loader Load ld=%v missing fill\n", ld)
+	log.Printf("Load after bind_globals ld=%v\n", ld)
 } // end Load
 
 func (ld *LoaderMo) Close() {
@@ -306,6 +318,7 @@ func (ld *LoaderMo) Close() {
 } // end Close
 
 func LoadFromDirectory(dirname string) {
+	defer log.Printf("LoadFromDirectory %s end\n\n", dirname)
 	{
 		var stabuf [2048]byte
 		stalen := runtime.Stack(stabuf[:], true)
