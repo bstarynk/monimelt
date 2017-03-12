@@ -94,6 +94,21 @@ func OpenLoaderFromFiles(globalpath string, userpath string) *LoaderMo {
 	return l
 } /// end OpenLoaderFromFiles
 
+func (l *LoaderMo) ParseObjptr(oidstr string) (*ObjectMo, error) {
+	var pob *ObjectMo
+	log.Printf("loader ParseObjptr oidstr=%s\n", oidstr)
+	defer log.Printf("loader ParseObjptr oidstr=%s pob=%v", oidstr, pob)
+	oid, err := serialmo.IdFromString(oidstr)
+	if err != nil {
+		return nil, err
+	}
+	pob = l.ldobjmap[oid]
+	if pob == nil {
+		return nil, fmt.Errorf("loader ParseObjptr not found %q", oidstr)
+	}
+	return pob, nil
+} // end loader ParseObjptr
+
 func (l *LoaderMo) create_objects(globflag bool) {
 	log.Printf("create_objects start globflag=%t\n", globflag)
 	defer log.Printf("create_objects end globflag=%t\n\n", globflag)
@@ -176,6 +191,15 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 		for pix, jcurpair := range jcont.Jattrs {
 			log.Printf("fill_content_objects pob=%v pix=%d jcurpair=%v %T\n",
 				pob, pix, jcurpair, jcurpair)
+			pobat, err := l.ParseObjptr(jcurpair.Jat)
+			log.Printf("fill_content_objects pob=%v pix#%d pobat=%v/%T, err=%v\n",
+				pob, pix, pobat, pobat, err)
+			/**@@@ FIXME
+						atval, err := JasonParseValue(l,jcurpair.Jva)
+						log.Printf("fill_content_objects pob=%v pix#%d atval=%v/%T, err=%v\n",
+							pob, pix, atval, err)
+			                        ***/
+
 		}
 		for cix, jcurcomp := range jcont.Jcomps {
 			log.Printf("fill_content_objects pob=%v cix=%d jcurcomp=%v %T\n",
@@ -263,13 +287,13 @@ func (l *LoaderMo) bind_globals(globflag bool) {
 } // end bind_globals
 
 func (ld *LoaderMo) Load() {
-	defer log.Printf("Load end ld=%v\n", ld)
 	{
 		var stabuf [1024]byte
 		stalen := runtime.Stack(stabuf[:], false)
 		log.Printf("loader Load start ld=%#v\n...stack:\n%s\n\n\n",
 			ld, string(stabuf[:stalen]))
 	}
+	defer log.Printf("Load end ld=%v\n", ld)
 	if ld == nil {
 		return
 	}
