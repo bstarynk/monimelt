@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	jason "github.com/antonholmquist/jason"
+	"log"
 	"math"
 	"serialmo"
 	"strconv"
@@ -179,23 +180,29 @@ func TrivialValParser() JsonSimpleValParser {
 }
 
 func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
+	var resval ValueMo
+	log.Printf("JasonParseValue start jval %v (%T)\n", jval, jval)
+	defer log.Printf("JasonParseValue end jval %v resval %v\n\n", jval, resval)
 	var err error
-	//fmt.Printf("JasonParseValue start jval %v (%T)\n", jval, jval)
 	err = jval.Null()
 	//fmt.Printf("JasonParseValue jval %v (%T) err=%v\n", jval, jval, err)
 	if err == nil {
-		return nil, nil
+		resval = nil
+		return resval, nil
 	} else if num, err := jval.Number(); err == nil {
 		ns := num.String()
 		if strings.ContainsRune(ns, '.') || strings.ContainsRune(ns, 'e') || strings.ContainsRune(ns, 'e') {
 			fv, _ := num.Float64()
-			return MakeFloatV(fv), nil
+			resval = MakeFloatV(fv)
+			return resval, nil
 		} else {
 			iv, _ := num.Int64()
-			return MakeIntV(int(iv)), nil
+			resval = MakeIntV(int(iv))
+			return resval, nil
 		}
 	} else if str, err := jval.String(); err == nil {
-		return MakeStringV(str), nil
+		resval = MakeStringV(str)
+		return resval, nil
 	} else {
 		job, err := jval.Object()
 		if err != nil {
@@ -204,17 +211,21 @@ func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
 		if obs, err := job.GetString("oid"); err == nil {
 			pob, err := vpm.ParseObjptr(obs)
 			if pob != nil && err == nil {
-				return MakeRefobV(pob), nil
+				resval = MakeRefobV(pob)
+				return resval, nil
 			} else if err != nil {
 				return nil, err
 			} else {
-				return nil, nil
+				resval = nil
+				return resval, nil
 			}
 		} else if flos, err := job.GetString("float"); err == nil {
 			if flos == "+Inf" {
-				return MakeFloatV(math.Inf(+1)), nil
+				resval = MakeFloatV(math.Inf(+1))
+				return resval, nil
 			} else if flos == "-Inf" {
-				return MakeFloatV(math.Inf(-1)), nil
+				resval = MakeFloatV(math.Inf(-1))
+				return resval, nil
 			}
 		} else if oelems, err := job.GetStringArray("set"); err == nil {
 			l := len(oelems)
@@ -227,7 +238,8 @@ func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
 					return nil, err
 				}
 			}
-			return MakeSetSliceV(obseq), nil
+			resval = MakeSetSliceV(obseq)
+			return resval, nil
 		} else if ocomps, err := job.GetStringArray("tup"); err == nil {
 			l := len(ocomps)
 			obseq := make([]*ObjectMo, 0, l)
@@ -239,7 +251,8 @@ func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
 					return nil, err
 				}
 			}
-			return MakeTupleSliceV(obseq), nil
+			resval = MakeTupleSliceV(obseq)
+			return resval, nil
 		} else if jval, err := job.GetValue("value"); err == nil {
 			return JasonParseValue(vpm, *jval)
 		}
