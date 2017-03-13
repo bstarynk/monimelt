@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"runtime"
 	"serialmo"
+	"sort"
 	"strings"
 	"time"
 )
@@ -684,11 +685,12 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	pobidstr := pob.ToString()
 	pob.obmtx.Lock()
 	defer pob.obmtx.Unlock()
-	/// dump the attrbitues
+	/// dump the attributes
 	nbat := len(pob.obattrs)
 	log.Printf("emitDumpedObject pob=%v nbat=%d\n", pob, nbat)
-	var jattrs []jsonAttrEntry
-	jattrs = make([]jsonAttrEntry, 0, nbat)
+	/// collect the dumpable attributes
+	var attrvec []*ObjectMo
+	attrvec = make([]*ObjectMo, 0, nbat+1)
 	for atob, atva := range pob.obattrs {
 		if atva == nil {
 			continue
@@ -696,6 +698,18 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 		if !du.EmitObjptr(atob) {
 			continue
 		}
+		attrvec = append(attrvec, atob)
+	}
+	// sort the dumpable attributes
+	sort.Slice(attrvec, func(i, j int) bool {
+		return LessObptr(attrvec[i], attrvec[j])
+	})
+	nbdumpat := len(attrvec)
+	// collect in order the attribute entries
+	var jattrs []jsonAttrEntry
+	jattrs = make([]jsonAttrEntry, 0, nbdumpat)
+	for _, atob := range attrvec {
+		atva := pob.obattrs[atob]
 		jpair := jsonAttrEntry{Jat: atob.ToString(), Jva: ValToJson(du, atva)}
 		log.Printf("emitDumpedObject pob=%v atob=%v atva=%v jpair=%v\n",
 			pob, atob, atva, jpair)
