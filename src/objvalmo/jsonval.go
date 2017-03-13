@@ -19,7 +19,11 @@ type jsonIdent struct {
 }
 
 type jsonInt struct {
-	Joint int64 `json:"int"`
+	Jint string `json:"int"`
+}
+
+type jsonFloat struct {
+	Jfloat string `json:"float"`
 }
 
 type jsonSet struct {
@@ -70,29 +74,29 @@ func (mf myJsonFloat) MarshalJSON() ([]byte, error) {
 	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q first\n", f, x, s)
 	if x == f && len(s) < 20 {
-		return []byte(`{"float":` + s + `}`), nil
+		return []byte(`{"float":"` + s + `"}`), nil
 	}
 	s = fmt.Sprintf("%.9f", f)
 	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q second/f\n", f, x, s)
 	if x == f && len(s) < 25 {
-		return []byte(`{"float":` + s + `}`), nil
+		return []byte(`{"float":"` + s + `"}`), nil
 	}
 	s = fmt.Sprintf("%.9e", f)
 	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q second/e\n", f, x, s)
 	if x == f {
-		return []byte(`{"float":` + s + `}`), nil
+		return []byte(`{"float":"` + s + `"}`), nil
 	}
 	s = fmt.Sprintf("%.15e", f)
 	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q third\n", f, x, s)
 	if x == f {
-		return []byte(`{"float":` + s + `}`), nil
+		return []byte(`{"float":"` + s + `"}`), nil
 	}
 	s = fmt.Sprintf("%.28E", f)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q last\n", f, x, s)
-	return []byte(`{"float":` + s + `}`), nil
+	return []byte(`{"float":"` + s + `"}`), nil
 }
 
 func (fv FloatV) MarshalJSON() ([]byte, error) {
@@ -131,7 +135,12 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 	case TyIntV:
 		{
 			iv := v.(IntV)
-			res = iv.Int()
+			i := iv.Int()
+			if i > -1000000000 && i < 1000000000 {
+				res = i
+			} else {
+				res = jsonInt{Jint: fmt.Sprintf("%d", i)}
+			}
 			return res
 		}
 	case TyStringV:
@@ -143,7 +152,7 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 	case TyFloatV:
 		{
 			fv := v.(FloatV)
-			res = myJsonFloat(fv.Float())
+			res = myJsonFloat(fv)
 			return res
 		}
 	case TyRefobV:
@@ -234,19 +243,40 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				resval = MakeRefobV(pob)
 				return resval, nil
 			}
-		} else if flos, ok := jmap["float"]; ok {
-			log.Printf("JasonParseVal flos=%#v (%T)\n", flos, flos)
+		} else if jflos, ok := jmap["float"]; ok {
+			var flos string
+			log.Printf("JasonParseVal jflos=%#v (%T)\n", jflos, jflos)
+			if flos, ok = jflos.(string); !ok {
+				err = fmt.Errorf("JasonParseVal bad float %#v (%T)", jflos, jflos)
+				return nil, err
+			}
 			if flos == "+Inf" {
 				resval = MakeFloatV(math.Inf(+1))
 				return resval, nil
 			} else if flos == "-Inf" {
 				resval = MakeFloatV(math.Inf(-1))
 				return resval, nil
+			} else {
+				fnum, err := strconv.ParseFloat(flos, 64)
+				if err != nil {
+					return nil, err
+				}
+				resval = MakeFloatV(fnum)
+				return resval, nil
 			}
-			panic(fmt.Errorf("JasonParseVal dont handle flos=%#v (%T)\n", flos, flos))
-		} else if ints, ok := jmap["int"]; ok {
-			log.Printf("JasonParseVal ints=%#v (%T)\n", ints, ints)
-			panic(fmt.Errorf("JasonParseVal dont handle ints=%#v (%T)\n", ints, ints))
+		} else if jints, ok := jmap["int"]; ok {
+			var intstr string
+			log.Printf("JasonParseVal jints=%#v (%T)\n", jints, jints)
+			if intstr, ok = jints.(string); !ok {
+				err = fmt.Errorf("JasonParseVal bad jints %#v (%T)", jints, jints)
+				return nil, err
+			}
+			intnum, err := strconv.ParseInt(intstr, 0, 64)
+			if err != nil {
+				return nil, err
+			}
+			resval = MakeIntV(int(intnum))
+			return resval, nil
 		} else if jelemset, ok := jmap["set"]; ok {
 			if jelems, ok := jelemset.([]string); ok {
 				l := len(jelems)
@@ -329,6 +359,19 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				resval = MakeFloatV(math.Inf(-1))
 				return resval, nil
 			}
+			fnum, err := strconv.ParseFloat(flos, 64)
+			if err != nil {
+				return nil, err
+			}
+			resval = MakeFloatV(fnum)
+			return resval, nil
+		} else if intstr, err := job.GetString("int"); err == nil {
+			intnum, err := strconv.ParseInt(intstr, 0, 64)
+			if err != nil {
+				return nil, err
+			}
+			resval = MakeIntV(int(intnum))
+			return resval, nil
 		} else if oelems, err := job.GetStringArray("set"); err == nil {
 			l := len(oelems)
 			obseq := make([]*ObjectMo, 0, l)
