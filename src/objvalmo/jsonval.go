@@ -199,6 +199,55 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 	} else if jflo, ok := jv.(float64); ok {
 		resval = MakeFloatV(jflo)
 		return resval, nil
+	} else if jmap, ok := jv.(map[string]interface{}); ok {
+		log.Printf("JasonParseVal jmap %#v (%T)\n", jmap, jmap)
+		if joid, ok := jmap["oid"]; ok {
+			pob, err := vpm.ParseObjptr(joid.(string))
+			if pob != nil && err == nil {
+				resval = MakeRefobV(pob)
+				return resval, nil
+			}
+		} else if flos, ok := jmap["float"]; ok {
+			if flos == "+Inf" {
+				resval = MakeFloatV(math.Inf(+1))
+				return resval, nil
+			} else if flos == "-Inf" {
+				resval = MakeFloatV(math.Inf(-1))
+				return resval, nil
+			}
+		} else if jelemset, ok := jmap["set"]; ok {
+			if jelems, ok := jelemset.([]string); ok {
+				l := len(jelems)
+				obseq := make([]*ObjectMo, 0, l)
+				for ix := 0; ix < l; ix++ {
+					pob, err := vpm.ParseObjptr(jelems[ix])
+					if pob != nil && err == nil {
+						obseq = append(obseq, pob)
+					} else if err != nil {
+						return nil, err
+					}
+				}
+				resval = MakeSetSliceV(obseq)
+				return resval, nil
+			}
+		} else if jcomptup, ok := jmap["tup"]; ok {
+			if jcomps, ok := jcomptup.([]string); ok {
+				l := len(jcomps)
+				obseq := make([]*ObjectMo, 0, l)
+				for ix := 0; ix < l; ix++ {
+					pob, err := vpm.ParseObjptr(jcomps[ix])
+					if pob != nil && err == nil {
+						obseq = append(obseq, pob)
+					} else if err != nil {
+						return nil, err
+					}
+				}
+				resval = MakeTupleSliceV(obseq)
+				return resval, nil
+			}
+		}
+		err = fmt.Errorf("JasonParseVal unexpected jmap %#v (%T)", jmap, jmap)
+		return nil, err
 	}
 	jval, ok := jv.(jason.Value)
 	if !ok {
