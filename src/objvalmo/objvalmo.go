@@ -705,6 +705,7 @@ func MakeObjectByTwoNums(hi uint64, lo uint64) *ObjectMo {
 func MakePredefinedObj(hi uint64, lo uint64) *ObjectMo {
 	pob := MakeObjectByTwoNums(hi, lo)
 	pob.UnsyncSetSpaceNum(SpaPredefined)
+	log.Printf("MakePredefinedobj pob=%v\n", pob)
 	return pob
 }
 

@@ -704,17 +704,20 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	sort.Slice(attrvec, func(i, j int) bool {
 		return LessObptr(attrvec[i], attrvec[j])
 	})
+	log.Printf("emitDumpedObject pob=%v sorted attrvec=%v\n", pob, attrvec)
 	nbdumpat := len(attrvec)
 	// collect in order the attribute entries
 	var jattrs []jsonAttrEntry
 	jattrs = make([]jsonAttrEntry, 0, nbdumpat)
 	for _, atob := range attrvec {
 		atva := pob.obattrs[atob]
+		log.Printf("emitDumpedObject pob=%v atob=%v atva=%v\n", pob, atob, atva)
 		jpair := jsonAttrEntry{Jat: atob.ToString(), Jva: ValToJson(du, atva)}
 		log.Printf("emitDumpedObject pob=%v atob=%v atva=%v jpair=%v\n",
 			pob, atob, atva, jpair)
 		jattrs = append(jattrs, jpair)
 	}
+	log.Printf("emitDumpedObject pob=%v jattrs=%v\n\n", pob, jattrs)
 	/// dump the components
 	nbcomp := len(pob.obcomps)
 	log.Printf("emitDumpedObject pob=%v nbcomp=%d\n", pob, nbcomp)
@@ -726,6 +729,7 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 			pob, cix, cva, jva)
 		jcomps = append(jcomps, jva)
 	}
+	log.Printf("emitDumpedObject pob=%v jcomps=%v\n\n", pob, jcomps)
 	/// construct and encode the content
 	jcontent := jsonObContent{Jattrs: jattrs, Jcomps: jcomps}
 	log.Printf("emitDumpedObject pob=%v jcontent=%v\n", pob, jcontent)
@@ -805,6 +809,7 @@ func (du *DumperMo) DumpEmit() {
 	sort.Slice(dumpvec, func(i, j int) bool {
 		return LessObptr(dumpvec[i], dumpvec[j])
 	})
+	log.Printf("DumpEmit sorted dumpvec=%v\n", dumpvec)
 	// emit the dumped objects in good order
 	for _, pob := range dumpvec {
 		sp := dso[pob]

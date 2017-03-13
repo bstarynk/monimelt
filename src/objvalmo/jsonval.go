@@ -297,6 +297,9 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				}
 				resval = MakeSetSliceV(obseq)
 				return resval, nil
+			} else {
+				err = fmt.Errorf("JasonParseVal bad jelemset %#v (%T)", jelemset, jelemset)
+				return nil, err
 			}
 		} else if jcomptup, ok := jmap["tup"]; ok {
 			if jcomps, ok := jcomptup.([]string); ok {
@@ -312,6 +315,9 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				}
 				resval = MakeTupleSliceV(obseq)
 				return resval, nil
+			} else {
+				err = fmt.Errorf("JasonParseVal bad jcomptup %#v (%T)", jcomptup, jcomptup)
+				return nil, err
 			}
 		}
 		err = fmt.Errorf("JasonParseVal unexpected jmap %#v (%T)", jmap, jmap)
