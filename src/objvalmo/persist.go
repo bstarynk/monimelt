@@ -139,7 +139,15 @@ func (l *LoaderMo) create_objects(globflag bool) {
 		}
 		pob = MakeObjectById(oid)
 		l.ldobjmap[oid] = pob
-		log.Printf("create_objects pob=%v\n", pob)
+		if pob.obspace == SpaTransient {
+			if globflag {
+				pob.obspace = SpaGlobal
+			} else {
+				pob.obspace = SpaUser
+			}
+		}
+		log.Printf("create_objects pob=%v /%T oid=%v\n", pob, pob, oid)
+		pob = nil
 	}
 	err = qr.Err()
 	if err != nil {
@@ -148,8 +156,9 @@ func (l *LoaderMo) create_objects(globflag bool) {
 } // end create_objects
 
 func (l *LoaderMo) fill_content_objects(globflag bool) {
+	var cntob int
 	log.Printf("fill_content_objects start globflag=%t\n", globflag)
-	defer log.Printf("fill_content_objects end globflag=%t\n", globflag)
+	defer log.Printf("fill_content_objects end globflag=%t cntob=%d\n", globflag, cntob)
 	var qr *sql.Rows
 	var err error
 	const sql_selfillcontent = `SELECT ob_id, ob_mtime, ob_jsoncont FROM t_objects`
@@ -178,6 +187,7 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 		if pob == nil {
 			panic(fmt.Errorf("persistmo.fill_content_objects unknown id %s: %v", idstr, err))
 		}
+		cntob++
 		pob.UnsyncPutMtime(mtim)
 		var jcont jsonObContent
 		if err := json.Unmarshal(([]byte)(jcontstr), &jcont); err != nil {
@@ -203,6 +213,7 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 				pob.UnsyncPutAttr(pobat, atval)
 			}
 		}
+		log.Printf("@@@fill_content_objects pob=%v obattrs=%v (%T)\n", pob, pob.obattrs, pob.obattrs)
 		// do something with jcont
 		nbcomps := len(jcont.Jcomps)
 		if pob.obcomps == nil && nbcomps > 0 {
@@ -218,6 +229,9 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 				pob.UnsyncAppendVal(compval)
 			}
 		}
+		log.Printf("@@@fill_content_objects pob=%v obcomps=%v (%T)\n", pob, pob.obcomps, pob.obcomps)
+		///
+		log.Printf("fill_content_objects pob=%v (%T) done cntob#%d: %#v\n\n", pob, pob, cntob, pob)
 	}
 	if err = qr.Err(); err != nil {
 		panic(fmt.Errorf("persistmo.fill_content_objects err %v", err))
