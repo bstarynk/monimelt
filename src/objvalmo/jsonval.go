@@ -233,7 +233,13 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 		return resval, nil
 	} else if jflo, ok := jv.(float64); ok {
 		log.Printf("JasonParseVal jflo=%g (%T)\n", jflo, jflo)
-		resval = MakeFloatV(jflo)
+		var intnum int
+		intnum = int(jflo)
+		if float64(intnum) == jflo {
+			resval = MakeIntV(intnum)
+		} else {
+			resval = MakeFloatV(jflo)
+		}
 		return resval, nil
 	} else if jmap, ok := jv.(map[string]interface{}); ok {
 		log.Printf("JasonParseVal jmap %#v (%T)\n", jmap, jmap)
