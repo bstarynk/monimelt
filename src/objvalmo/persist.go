@@ -96,23 +96,28 @@ func OpenLoaderFromFiles(globalpath string, userpath string) *LoaderMo {
 
 func (l *LoaderMo) ParseObjptr(oidstr string) (*ObjectMo, error) {
 	var pob *ObjectMo
+	var err error
+	var ok bool
 	log.Printf("loader ParseObjptr oidstr=%s\n", oidstr)
-	defer log.Printf("loader ParseObjptr oidstr=%s pob=%v", oidstr, pob)
+	defer log.Printf("loader ParseObjptr oidstr=%s pob=%v (%T) err=%v", oidstr, pob, pob, err)
 	oid, err := serialmo.IdFromString(oidstr)
 	if err != nil {
 		return nil, err
 	}
-	pob = l.ldobjmap[oid]
-	if pob == nil {
-		return nil, fmt.Errorf("loader ParseObjptr not found %q", oidstr)
+	pob, ok = l.ldobjmap[oid]
+	log.Printf("loader ParseObjptr oid=%v pob=%v (%T) ok=%t pob:%#v\n", oid, pob, pob, ok, pob)
+	if !ok {
+		err = fmt.Errorf("loader ParseObjptr not found %q", oidstr)
+		return nil, err
 	}
 	return pob, nil
 } // end loader ParseObjptr
 
 func (l *LoaderMo) create_objects(globflag bool) {
 	var pob *ObjectMo
+	var cnt int
 	log.Printf("create_objects start globflag=%t\n", globflag)
-	defer log.Printf("create_objects end globflag=%t pob=%#v\n\n", globflag, pob)
+	defer log.Printf("create_objects end globflag=%t cnt=%d\n\n", globflag, cnt)
 	var qr *sql.Rows
 	var err error
 	const sql_selcreated = "SELECT ob_id FROM t_objects"
@@ -147,11 +152,15 @@ func (l *LoaderMo) create_objects(globflag bool) {
 			}
 		}
 		log.Printf("create_objects pob=%v /%T oid=%v\n", pob, pob, oid)
+		cnt++
 		pob = nil
 	}
 	err = qr.Err()
 	if err != nil {
 		panic(fmt.Errorf("persistmo.create_objects final %v", err))
+	}
+	if cnt == 0 {
+		log.Printf("create_objects globflag=%t zero count\n", globflag)
 	}
 } // end create_objects
 
@@ -239,8 +248,9 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 } // end fill_content_objects
 
 func (l *LoaderMo) fill_payload_objects(globflag bool) {
+	var cnt int
 	log.Printf("fill_payload_objects start globflag=%t\n", globflag)
-	defer log.Printf("fill_payload_objects end globflag=%t\n", globflag)
+	defer log.Printf("fill_payload_objects end globflag=%t cnt=%d\n", globflag, cnt)
 	var qr *sql.Rows
 	var err error
 	const sql_selfillcontent = `SELECT ob_id, ob_paylkind, ob_paylcont 
@@ -271,13 +281,14 @@ FROM t_objects WHERE ob_paylkind != ""`
 			panic(fmt.Errorf("persistmo.fill_payload_objects unknown id %s: %v", idstr, err))
 		}
 		log.Printf("fill_payload_objects @@incomplete pob=%v paylkind=%s\n", pob, paylkind)
+		cnt++
 	}
-	log.Printf("fill_payload_objects end globflag=%t\n", globflag)
 } // end fill_payload_objects
 
 func (l *LoaderMo) bind_globals(globflag bool) {
+	var cnt int
 	log.Printf("bind_globals start globflag=%t\n", globflag)
-	defer log.Printf("bind_globals end globflag=%t\n\n", globflag)
+	defer log.Printf("bind_globals end globflag=%t cnt=%d\n\n", globflag, cnt)
 	var qr *sql.Rows
 	var err error
 	const sql_selglobals = `SELECT glob_name, glob_oid FROM t_globals WHERE glob_oid!=""`
@@ -312,6 +323,7 @@ func (l *LoaderMo) bind_globals(globflag bool) {
 		}
 		log.Printf("bind_globals globflag=%t globname=%q glpob=%v\n", globflag, globname, glpob)
 		*pglovar = glpob
+		cnt++
 	}
 } // end bind_globals
 
@@ -345,7 +357,7 @@ func (ld *LoaderMo) Load() {
 	if ld.lduserdb != nil {
 		ld.bind_globals(UserObjects)
 	}
-	log.Printf("Load after bind_globals ld=%v\n", ld)
+	log.Printf("Load after bind_globals ld=%#v\n", ld)
 } // end Load
 
 func (ld *LoaderMo) Close() {
