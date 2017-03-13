@@ -31,5 +31,9 @@ fi
 if [ -f "$dbfile" ] ; then
     mv -v --backup "$dbfile" "$dbfile~"
 fi
+if [ ! -f "$sqlfile" ]; then
+	echo missing SQL file "$sqlfile"
+	exit 1
+fi
 sqlite3 "$dbfile" <  "$sqlfile"
 touch -r "$sqlfile" "$dbfile"
