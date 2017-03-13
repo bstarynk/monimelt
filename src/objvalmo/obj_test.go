@@ -60,7 +60,7 @@ func json_parse(msg string, js string) {
 	}
 	fmt.Printf("json_parse %s: jv %v // %T\n", msg, jv, jv)
 	tp := TrivialValParser()
-	v, err := JasonParseValue(tp, *jv)
+	v, err := JasonParseVal(tp, *jv)
 	if err != nil {
 		fmt.Printf("json_parse failure %s: %v\n\n", msg, err)
 	} else {

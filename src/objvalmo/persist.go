@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	jason "github.com/antonholmquist/jason"
 	gosqlite "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
@@ -192,9 +191,7 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 			log.Printf("fill_content_objects atix=%d curatid=%v curjval=%v\n", atix, curatid, curjval)
 			pobat, err := l.ParseObjptr(curatid)
 			log.Printf("fill_content_objects atix=%d pobat=%v err=%v\n", atix, pobat, err)
-			curjaval := curjval.(jason.Value)
-			log.Printf("fill_content_objects atix=%d curjaval=%v\n", atix, curjaval)
-			atval, err := JasonParseValue(l, curjaval)
+			atval, err := JasonParseVal(l, curjval)
 			log.Printf("fill_content_objects pob %v atix=%d pobat=%v atval=%v err=%v\n", pob, atix, pobat, atval, err)
 			if err == nil {
 				pob.UnsyncPutAttr(pobat, atval)
@@ -208,10 +205,9 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 		for cix, jcurcomp := range jcont.Jcomps {
 			log.Printf("fill_content_objects pob=%v cix=%d jcurcomp=%v %T\n",
 				pob, cix, jcurcomp, jcurcomp)
-			curcomp := jcurcomp.(jason.Value)
-			compval, err := JasonParseValue(l, curcomp)
+			compval, err := JasonParseVal(l, jcurcomp)
 			log.Printf("fill_content_objects pob=%v cix=%d compval=%v %T err=%v\n",
-				pob, cix, curcomp, curcomp, err)
+				pob, cix, compval, compval, err)
 			if err == nil {
 				pob.UnsyncAppendVal(compval)
 			}

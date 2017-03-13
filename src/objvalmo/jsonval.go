@@ -179,13 +179,34 @@ func TrivialValParser() JsonSimpleValParser {
 	return JsonSimpleValParser{}
 }
 
-func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
+func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 	var resval ValueMo
-	log.Printf("JasonParseValue start jval %v (%T)\n", jval, jval)
-	defer log.Printf("JasonParseValue end jval %v resval %v\n\n", jval, resval)
 	var err error
+	log.Printf("JasonParseVal start jv %v (%T)\n", jv, jv)
+	defer log.Printf("JasonParseVal end jv (%T) %v resval %v (%T) err %v\n\n", jv, jv, resval, resval, err)
+	if jv == nil {
+		resval = nil
+		return resval, nil
+	} else if jstr, ok := jv.(string); ok {
+		resval = MakeStringV(jstr)
+		return resval, nil
+	} else if jint, ok := jv.(int); ok {
+		resval = MakeIntV(jint)
+		return resval, nil
+	} else if jintl, ok := jv.(int64); ok {
+		resval = MakeIntV(int(jintl))
+		return resval, nil
+	} else if jflo, ok := jv.(float64); ok {
+		resval = MakeFloatV(jflo)
+		return resval, nil
+	}
+	jval, ok := jv.(jason.Value)
+	if !ok {
+		err = fmt.Errorf("JasonParseVal invalid jv %v (%T) not jason.Value", jv, jv)
+		return resval, err
+	}
 	err = jval.Null()
-	//fmt.Printf("JasonParseValue jval %v (%T) err=%v\n", jval, jval, err)
+	//fmt.Printf("JasonParseVal jval %v (%T) err=%v\n", jval, jval, err)
 	if err == nil {
 		resval = nil
 		return resval, nil
@@ -254,8 +275,8 @@ func JasonParseValue(vpm JsonValParserMo, jval jason.Value) (ValueMo, error) {
 			resval = MakeTupleSliceV(obseq)
 			return resval, nil
 		} else if jval, err := job.GetValue("value"); err == nil {
-			return JasonParseValue(vpm, *jval)
+			return JasonParseVal(vpm, *jval)
 		}
 	}
-	return nil, fmt.Errorf("JasonParseValue invalid jval: %v", jval)
+	return nil, fmt.Errorf("JasonParseVal invalid jval: %v (%T)", jval, jval)
 }
