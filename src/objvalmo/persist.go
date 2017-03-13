@@ -795,7 +795,19 @@ func (du *DumperMo) DumpEmit() {
 	if dso == nil {
 		panic("DumpEmit: nil dusetobjects")
 	}
-	for pob, sp := range dso {
+	// collect the dumped objects to sort them
+	nbobject := len(dso)
+	dumpvec := make([]*ObjectMo, 0, nbobject+1)
+	for pob, _ := range dso {
+		dumpvec = append(dumpvec, pob)
+	}
+	// sort the dumped vector
+	sort.Slice(dumpvec, func(i, j int) bool {
+		return LessObptr(dumpvec[i], dumpvec[j])
+	})
+	// emit the dumped objects in good order
+	for _, pob := range dumpvec {
+		sp := dso[pob]
 		du.emitDumpedObject(pob, sp)
 	}
 	/// emit the global variables
