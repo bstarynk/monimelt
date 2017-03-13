@@ -188,11 +188,14 @@ func (l *LoaderMo) fill_content_objects(globflag bool) {
 		for atix := 0; atix < nbat; atix++ {
 			curatid := jcont.Jattrs[atix].Jat
 			curjval := jcont.Jattrs[atix].Jva
-			log.Printf("fill_content_objects atix=%d curatid=%v curjval=%v\n", atix, curatid, curjval)
+			log.Printf("fill_content_objects atix=%d curatid=%v curjval=%v (%T)\n",
+				atix, curatid, curjval, curjval)
 			pobat, err := l.ParseObjptr(curatid)
-			log.Printf("fill_content_objects atix=%d pobat=%v err=%v\n", atix, pobat, err)
+			log.Printf("fill_content_objects atix=%d pobat=%v (%T) err=%v curjval=%v (%T)\n",
+				atix, pobat, pobat, err, curjval, curjval)
 			atval, err := JasonParseVal(l, curjval)
-			log.Printf("fill_content_objects pob %v atix=%d pobat=%v atval=%v err=%v\n", pob, atix, pobat, atval, err)
+			log.Printf("fill_content_objects pob %v atix=%d pobat=%v atval=%v (%T) err=%v curjval=%v (%T)\n",
+				pob, atix, pobat, atval, atval, err, curjval, curjval)
 			if err == nil {
 				pob.UnsyncPutAttr(pobat, atval)
 			}
