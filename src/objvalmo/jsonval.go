@@ -182,21 +182,26 @@ func TrivialValParser() JsonSimpleValParser {
 func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 	var resval ValueMo
 	var err error
-	log.Printf("JasonParseVal start jv %v (%T)\n", jv, jv)
-	defer log.Printf("JasonParseVal end jv (%T) %v resval %v (%T) err %v\n\n", jv, jv, resval, resval, err)
+	log.Printf("JasonParseVal start jv %#v (%T)\n", jv, jv)
+	defer log.Printf("JasonParseVal end jv %#v (%T) resval %#v (%T) err %v\n\n", jv, jv, resval, resval, err)
 	if jv == nil {
 		resval = nil
 		return resval, nil
 	} else if jstr, ok := jv.(string); ok {
+		log.Printf("JasonParseVal jstr=%q\n", jstr)
 		resval = MakeStringV(jstr)
+		log.Printf("JasonParseVal string resval=%#v (%T)\n", resval, resval)
 		return resval, nil
 	} else if jint, ok := jv.(int); ok {
+		log.Printf("JasonParseVal jint=%d\n", jint)
 		resval = MakeIntV(jint)
 		return resval, nil
 	} else if jintl, ok := jv.(int64); ok {
+		log.Printf("JasonParseVal jintl=%d\n", jintl)
 		resval = MakeIntV(int(jintl))
 		return resval, nil
 	} else if jflo, ok := jv.(float64); ok {
+		log.Printf("JasonParseVal jflo=%g (%T)\n", jflo, jflo)
 		resval = MakeFloatV(jflo)
 		return resval, nil
 	} else if jmap, ok := jv.(map[string]interface{}); ok {

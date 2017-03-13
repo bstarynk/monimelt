@@ -110,8 +110,9 @@ func (l *LoaderMo) ParseObjptr(oidstr string) (*ObjectMo, error) {
 } // end loader ParseObjptr
 
 func (l *LoaderMo) create_objects(globflag bool) {
+	var pob *ObjectMo
 	log.Printf("create_objects start globflag=%t\n", globflag)
-	defer log.Printf("create_objects end globflag=%t\n\n", globflag)
+	defer log.Printf("create_objects end globflag=%t pob=%#v\n\n", globflag, pob)
 	var qr *sql.Rows
 	var err error
 	const sql_selcreated = "SELECT ob_id FROM t_objects"
@@ -125,16 +126,18 @@ func (l *LoaderMo) create_objects(globflag bool) {
 	}
 	defer qr.Close()
 	for qr.Next() {
+		pob = nil
 		var idstr string
 		err = qr.Scan(&idstr)
 		if err != nil {
 			panic(fmt.Errorf("persistmo.create_objects failure %v", err))
 		}
 		oid, err := serialmo.IdFromString(idstr)
+		log.Printf("create_objects idstr=%q oid=%#v\n", idstr, oid)
 		if err != nil {
 			panic(fmt.Errorf("persistmo.create_objects bad id %s: %v", idstr, err))
 		}
-		pob := MakeObjectById(oid)
+		pob = MakeObjectById(oid)
 		l.ldobjmap[oid] = pob
 		log.Printf("create_objects pob=%v\n", pob)
 	}
@@ -280,6 +283,7 @@ func (l *LoaderMo) bind_globals(globflag bool) {
 		if err != nil {
 			panic(fmt.Errorf("persistmo.bind_globals failure %v", err))
 		}
+		log.Printf("bind_globals globflag=%t globname=%q globidstr=%q\n", globflag, globname, globidstr)
 		gloid, err := serialmo.IdFromString(globidstr)
 		if err != nil {
 			panic(fmt.Errorf("persistmo.bind_globals bad id %s: %v", globidstr, err))
@@ -292,6 +296,7 @@ func (l *LoaderMo) bind_globals(globflag bool) {
 		if pglovar == nil {
 			panic(fmt.Errorf("persistmo.bind_globals unknown global %s", globname))
 		}
+		log.Printf("bind_globals globflag=%t globname=%q glpob=%v\n", globflag, globname, glpob)
 		*pglovar = glpob
 	}
 } // end bind_globals
@@ -303,7 +308,7 @@ func (ld *LoaderMo) Load() {
 		log.Printf("loader Load start ld=%#v\n...stack:\n%s\n\n\n",
 			ld, string(stabuf[:stalen]))
 	}
-	defer log.Printf("Load end ld=%v\n", ld)
+	defer log.Printf("Load end ld=%v\n\n", ld)
 	if ld == nil {
 		return
 	}
@@ -352,11 +357,11 @@ func (ld *LoaderMo) Close() {
 } // end Close
 
 func LoadFromDirectory(dirname string) {
-	defer log.Printf("LoadFromDirectory %s end\n\n", dirname)
+	defer log.Printf("LoadFromDirectory %s end *****\n\n", dirname)
 	{
 		var stabuf [2048]byte
 		stalen := runtime.Stack(stabuf[:], true)
-		log.Printf("LoadFromDirectory dirname=%s\n...stack:\n%s\n\n\n",
+		log.Printf("LoadFromDirectory dirname=%s *****\n...stack:\n%s\n\n\n",
 			dirname, string(stabuf[:stalen]))
 	}
 	if dirname == "" {
