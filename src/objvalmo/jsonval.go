@@ -18,6 +18,10 @@ type jsonIdent struct {
 	Joid string `json:"oid"`
 }
 
+type jsonInt struct {
+	Joint int64 `json:"int"`
+}
+
 type jsonSet struct {
 	Jset []string `json:"set"`
 }
@@ -51,6 +55,7 @@ func (jse JsonSimpleValEmitter) EmitObjptr(pob *ObjectMo) bool {
 type myJsonFloat float64
 
 func (mf myJsonFloat) MarshalJSON() ([]byte, error) {
+	x := math.NaN()
 	f := float64(mf)
 	if math.IsNaN(f) {
 		return []byte("null"), nil
@@ -62,40 +67,48 @@ func (mf myJsonFloat) MarshalJSON() ([]byte, error) {
 		return []byte(`{"float":"-Inf"}`), nil
 	}
 	s := fmt.Sprintf("%.4f", f)
-	x := math.NaN()
 	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q first\n", f, x, s)
 	if x == f && len(s) < 20 {
-		return []byte(s), nil
+		return []byte(`{"float":` + s + `}`), nil
 	}
 	s = fmt.Sprintf("%.9f", f)
 	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q second/f\n", f, x, s)
 	if x == f && len(s) < 25 {
-		return []byte(s), nil
+		return []byte(`{"float":` + s + `}`), nil
 	}
 	s = fmt.Sprintf("%.9e", f)
 	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q second/e\n", f, x, s)
 	if x == f {
-		return []byte(s), nil
+		return []byte(`{"float":` + s + `}`), nil
 	}
 	s = fmt.Sprintf("%.15e", f)
 	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q third\n", f, x, s)
 	if x == f {
-		return []byte(s), nil
+		return []byte(`{"float":` + s + `}`), nil
 	}
 	s = fmt.Sprintf("%.28E", f)
-	x, _ = strconv.ParseFloat(s, 64)
 	//fmt.Printf("myJsonFloat f=%f x=%f s=%q last\n", f, x, s)
-	return []byte(s), nil
+	return []byte(`{"float":` + s + `}`), nil
 }
 
 func (fv FloatV) MarshalJSON() ([]byte, error) {
 	fmt.Printf("FloatV MarshalJSON fv=%v\n", fv)
 	return myJsonFloat(fv.Float()).MarshalJSON()
 }
+
+func (iv IntV) MarshalJSON() ([]byte, error) {
+	log.Printf("IntV MarshalJSON iv=%v\n", iv)
+	i := iv.Int()
+	if i > -1000000000 && i < 1000000000 {
+		return ([]byte)(fmt.Sprintf("%d", i)), nil
+	} else {
+		return ([]byte)(fmt.Sprintf(`{"int":"%d"}`, i)), nil
+	}
+} // end IntV MarshalJSON
 
 func sequenceToJsonTuple(vem JsonValEmitterMo, seqv SequenceV) []string {
 	ls := seqv.Length()
@@ -111,21 +124,27 @@ func sequenceToJsonTuple(vem JsonValEmitterMo, seqv SequenceV) []string {
 }
 
 func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
+	var res interface{}
+	log.Printf("ValToJson v=%#v (%T)\n", v, v)
+	defer log.Printf("ValToJson v=%v (%T) res=%v (%T)\n", v, v, res, res)
 	switch v.TypeV() {
 	case TyIntV:
 		{
 			iv := v.(IntV)
-			return iv.Int()
+			res = iv.Int()
+			return res
 		}
 	case TyStringV:
 		{
 			sv := v.(StringV)
-			return sv.ToString()
+			res = sv.ToString()
+			return res
 		}
 	case TyFloatV:
 		{
 			fv := v.(FloatV)
-			return myJsonFloat(fv.Float())
+			res = myJsonFloat(fv.Float())
+			return res
 		}
 	case TyRefobV:
 		{
@@ -134,17 +153,20 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 				return nil
 			}
 			obid := obv.IdOb()
-			return jsonIdent{Joid: obid.ToString()}
+			res = jsonIdent{Joid: obid.ToString()}
+			return res
 		}
 	case TySetV:
 		{
 			setv := v.(SetV)
-			return jsonSet{Jset: sequenceToJsonTuple(vem, setv.SequenceV)}
+			res = jsonSet{Jset: sequenceToJsonTuple(vem, setv.SequenceV)}
+			return res
 		}
 	case TyTupleV:
 		{
 			tupv := v.(TupleV)
-			return jsonTuple{Jtup: sequenceToJsonTuple(vem, tupv.SequenceV)}
+			res = jsonTuple{Jtup: sequenceToJsonTuple(vem, tupv.SequenceV)}
+			return res
 		}
 	}
 	panic("objvalmo.ToJson incomplete")
@@ -213,6 +235,7 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				return resval, nil
 			}
 		} else if flos, ok := jmap["float"]; ok {
+			log.Printf("JasonParseVal flos=%#v (%T)\n", flos, flos)
 			if flos == "+Inf" {
 				resval = MakeFloatV(math.Inf(+1))
 				return resval, nil
@@ -220,6 +243,10 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				resval = MakeFloatV(math.Inf(-1))
 				return resval, nil
 			}
+			panic(fmt.Errorf("JasonParseVal dont handle flos=%#v (%T)\n", flos, flos))
+		} else if ints, ok := jmap["int"]; ok {
+			log.Printf("JasonParseVal ints=%#v (%T)\n", ints, ints)
+			panic(fmt.Errorf("JasonParseVal dont handle ints=%#v (%T)\n", ints, ints))
 		} else if jelemset, ok := jmap["set"]; ok {
 			if jelems, ok := jelemset.([]string); ok {
 				l := len(jelems)
