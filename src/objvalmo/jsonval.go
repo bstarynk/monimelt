@@ -319,14 +319,20 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				return nil, err
 			}
 		} else if jcomptup, ok := jmap["tup"]; ok {
-			///@@@ handle tuples like sets above
 			log.Printf("JasonParseVal tup jv=%v jcomptup=%v (%T)",
 				jv, jcomptup, jcomptup)
-			if jcomps, ok := jcomptup.([]string); ok {
+			if jcomps, ok := jcomptup.([]interface{}); ok {
 				l := len(jcomps)
 				obseq := make([]*ObjectMo, 0, l)
 				for ix := 0; ix < l; ix++ {
-					pob, err := vpm.ParseObjptr(jcomps[ix])
+					jcurcompstr, ok := jcomps[ix].(string)
+					if !ok {
+						err = fmt.Errorf("JasonParseVal bad jcomptup %#v (%T) ix=%d", jcomptup, jcomptup, ix)
+						log.Printf("JasonParseVal tup!err=%v jv=%v\n",
+							err, jv)
+						return nil, err
+					}
+					pob, err := vpm.ParseObjptr(jcurcompstr)
 					if pob != nil && err == nil {
 						obseq = append(obseq, pob)
 					} else if err != nil {
