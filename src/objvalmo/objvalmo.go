@@ -1004,3 +1004,44 @@ func DumpScanGlobalVariables(du *DumperMo) {
 	}
 	log.Printf("DumpScanGlobalVariables end gcnt=%d du=%v\n", gcnt, du)
 }
+
+////////////////////////////////////////////////////////////////
+//// payload support. They should be registered, at init
+//// time, using RegisterPayload. For example:
+////    RegisterPayload("symbol", symbol_paylfun)
+
+const payload_regexp_str = `^[a-zA-Z_][a-zA-Z0-9_]*$`
+
+type PayloadBuilderMo func(string, *ObjectMo) *PayloadMo
+
+var payload_map map[string]PayloadBuilderMo = make(map[string]PayloadBuilderMo, 100)
+var payload_regexp *regexp.Regexp = regexp.MustCompile(payload_regexp_str)
+var payload_mtx sync.Mutex
+
+func RegisterPayload(pname string, pbuilder PayloadBuilderMo) {
+	if len(pname) == 0 {
+		panic("RegisterPayload empty pname")
+	}
+	if pbuilder == nil {
+		panic(fmt.Errorf("RegisterPayload nil builder for pname %s", pname))
+	}
+	payload_mtx.Lock()
+	defer payload_mtx.Unlock()
+	if payload_regexp == nil {
+		payload_regexp = regexp.MustCompile(payload_regexp_str)
+	}
+	if payload_map == nil {
+		payload_map = make(map[string]PayloadBuilderMo)
+	}
+
+	if !payload_regexp.MatchString(pname) {
+		panic(fmt.Errorf("RegisterPayload invalid pname %q", pname))
+	}
+	payload_map[pname] = pbuilder
+	{
+		var stabuf [2048]byte
+		stalen := runtime.Stack(stabuf[:], true)
+		log.Printf("RegisterPayload payload_map=%v @%p pbuilder=%p pname=%v\n...stack:\n%s\n\n\n",
+			payload_map, &payload_map, pbuilder, pname, string(stabuf[:stalen]))
+	}
+} // end of RegisterPayload
