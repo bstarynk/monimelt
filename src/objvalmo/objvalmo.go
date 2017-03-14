@@ -1045,3 +1045,9 @@ func RegisterPayload(pname string, pbuilder PayloadBuilderMo) {
 			payload_map, &payload_map, pbuilder, pname, string(stabuf[:stalen]))
 	}
 } // end of RegisterPayload
+
+func PayloadBuilder(pname string) PayloadBuilderMo {
+	payload_mtx.Lock()
+	defer payload_mtx.Unlock()
+	return payload_map[pname]
+} // end PayloadBuilder
