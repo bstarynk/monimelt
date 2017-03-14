@@ -129,7 +129,8 @@ func sequenceToJsonTuple(vem JsonValEmitterMo, seqv SequenceV) []string {
 
 func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 	var res interface{}
-	log.Printf("ValToJson v=%#v (%T)\n", v, v)
+	vty := v.TypeV()
+	log.Printf("ValToJson v=%#v vty:%d (%T)\n", v, vty, v)
 	defer log.Printf("ValToJson v=%v (%T) res=%v (%T)\n", v, v, res, res)
 	switch v.TypeV() {
 	case TyIntV:
@@ -169,16 +170,18 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 		{
 			setv := v.(SetV)
 			res = jsonSet{Jset: sequenceToJsonTuple(vem, setv.SequenceV)}
+			log.Printf("ValToJson setv=%v res=%v\n", setv, res)
 			return res
 		}
 	case TyTupleV:
 		{
 			tupv := v.(TupleV)
 			res = jsonTuple{Jtup: sequenceToJsonTuple(vem, tupv.SequenceV)}
+			log.Printf("ValToJson tupv=%v res=%v\n", tupv, res)
 			return res
 		}
 	}
-	panic("objvalmo.ToJson incomplete")
+	panic(fmt.Errorf("objvalmo.ToJson incomplete v=%v", v))
 	return nil
 }
 
@@ -214,7 +217,7 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 	var resval ValueMo
 	var err error
 	log.Printf("JasonParseVal start jv %#v (%T)\n", jv, jv)
-	defer log.Printf("JasonParseVal end jv %#v (%T) resval %#v (%T) err %v\n\n", jv, jv, resval, resval, err)
+	defer log.Printf("JasonParseVal end jv %v (%T) resval %#v (%T) err %v\n\n", jv, jv, resval, resval, err)
 	if jv == nil {
 		resval = nil
 		return resval, nil
@@ -284,6 +287,8 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 			resval = MakeIntV(int(intnum))
 			return resval, nil
 		} else if jelemset, ok := jmap["set"]; ok {
+			log.Printf("JasonParseVal set jv=%v jelemset=%v (%T)",
+				jv, jelemset, jelemset)
 			if jelems, ok := jelemset.([]string); ok {
 				l := len(jelems)
 				obseq := make([]*ObjectMo, 0, l)
@@ -302,6 +307,8 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				return nil, err
 			}
 		} else if jcomptup, ok := jmap["tup"]; ok {
+			log.Printf("JasonParseVal tup jv=%v jcomptup=%v (%T)",
+				jv, jcomptup, jcomptup)
 			if jcomps, ok := jcomptup.([]string); ok {
 				l := len(jcomps)
 				obseq := make([]*ObjectMo, 0, l)
