@@ -568,6 +568,7 @@ func sortedFilteredObptr(arr []*ObjectMo) ordSliceObptr {
 type SetVMo interface {
 	SequenceVMo
 	isSetV() // private
+	SetContains(ob *ObjectMo) bool
 }
 
 type SetV struct {
@@ -607,6 +608,34 @@ func MakeSetRefobSlice(refobjs []RefobV) SetV {
 func (set SetV) String() string {
 	return set.seqToString('{', '}')
 }
+
+func (set SetV) SetContains(pob *ObjectMo) bool {
+	if pob == nil {
+		return false
+	}
+	var lo, hi, md int
+	lo = 0
+	hi = len(set.scomps)
+	for lo+4 < hi {
+		md = (lo + hi) / 2
+		midpob := set.scomps[md]
+		if midpob == pob {
+			return true
+		}
+		if LessObptr(midpob, pob) {
+			lo = md
+		} else {
+			hi = md
+		}
+	}
+	for md = lo; md < hi; md++ {
+		midpob := set.scomps[md]
+		if midpob == pob {
+			return true
+		}
+	}
+	return false
+} // end SetContains
 
 ////////////////////////////////////////////////////////////////
 type bucketTy struct {
