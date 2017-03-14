@@ -281,7 +281,16 @@ FROM t_objects WHERE ob_paylkind != ""`
 		if pob == nil {
 			panic(fmt.Errorf("persistmo.fill_payload_objects unknown id %s: %v", idstr, err))
 		}
-		log.Printf("fill_payload_objects @@incomplete pob=%v paylkind=%s\n", pob, paylkind)
+		pb, err := PayloadBuilder(paylkind)
+		if pb == nil || err != nil {
+			panic(fmt.Errorf("persistmo.fill_payload_objects pob %v bad paylkind %q - %s",
+				pob, paylkind, err))
+		}
+		payl := pb(paylkind, pob)
+		pob.obpayl = payl
+		if len(jpaylstr) > 0 {
+			(*payl).LoadPayl(pob, l, jpaylstr)
+		}
 		cnt++
 	}
 } // end fill_payload_objects

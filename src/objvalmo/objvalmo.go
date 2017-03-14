@@ -48,6 +48,7 @@ type PayloadMo interface {
 	DestroyPayl(*ObjectMo)
 	DumpScanPayl(*ObjectMo, *DumperMo)
 	DumpEmitPayl(*ObjectMo, *DumperMo) (string, interface{})
+	LoadPayl(*ObjectMo, *LoaderMo, string)
 }
 
 type ValueMo interface {
