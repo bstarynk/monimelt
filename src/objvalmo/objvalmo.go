@@ -1046,8 +1046,41 @@ func RegisterPayload(pname string, pbuilder PayloadBuilderMo) {
 	}
 } // end of RegisterPayload
 
-func PayloadBuilder(pname string) PayloadBuilderMo {
+func PayloadBuilder(pname string) (PayloadBuilderMo, error) {
 	payload_mtx.Lock()
 	defer payload_mtx.Unlock()
-	return payload_map[pname]
+	pb, ok := payload_map[pname]
+	if !ok {
+		log.Printf("PayloadBuilder unknown pname=%q", pname)
+		return nil, fmt.Errorf("unknown PayloadBuilder %q", pname)
+	}
+	return pb, nil
 } // end PayloadBuilder
+
+func (pob *ObjectMo) UnsyncPayloadClear() *ObjectMo {
+	if pob == nil {
+		panic("UnsyncPayloadClear nil pob")
+	}
+	pl := pob.obpayl
+	if pl == nil {
+		return pob
+	}
+	pob.obpayl = nil
+	(*pl).DestroyPayl(pob)
+	return pob
+} // end UnsyncPayloadClear
+
+func (pob *ObjectMo) UnsyncPayloadInstall(pname string) *ObjectMo {
+	if pob == nil {
+		panic(fmt.Errorf("UnsyncPayloadInstall nil pob for pname %s", pname))
+	}
+	if pob.obpayl != nil {
+		pob.UnsyncPayloadClear()
+	}
+	pb, err := PayloadBuilder(pname)
+	if err != nil {
+		panic(fmt.Errorf("UnsyncPayloadInstall pname=%q %s", pname, err))
+	}
+	pob.obpayl = pb(pname, pob)
+	return pob
+} // end UnsyncPayloadInstall
