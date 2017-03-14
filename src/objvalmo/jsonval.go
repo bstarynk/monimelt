@@ -289,11 +289,19 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 		} else if jelemset, ok := jmap["set"]; ok {
 			log.Printf("JasonParseVal set jv=%v jelemset=%v (%T)",
 				jv, jelemset, jelemset)
-			if jelems, ok := jelemset.([]string); ok {
+			if jelems, ok := jelemset.([]interface{}); ok {
 				l := len(jelems)
 				obseq := make([]*ObjectMo, 0, l)
 				for ix := 0; ix < l; ix++ {
-					pob, err := vpm.ParseObjptr(jelems[ix])
+					jcurelemstr, ok := jelems[ix].(string)
+					if !ok {
+						err = fmt.Errorf("JasonParseVal bad jelemset %#v (%T) ix=%d", jelemset, jelemset, ix)
+						log.Printf("JasonParseVal set!err=%v jv=%v\n",
+							err, jv)
+						return nil, err
+
+					}
+					pob, err := vpm.ParseObjptr(jcurelemstr)
 					if pob != nil && err == nil {
 						obseq = append(obseq, pob)
 					} else if err != nil {
@@ -301,12 +309,17 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 					}
 				}
 				resval = MakeSetSliceV(obseq)
+				log.Printf("JasonParseVal set resval=%v jv=%v\n",
+					resval, jv)
 				return resval, nil
 			} else {
 				err = fmt.Errorf("JasonParseVal bad jelemset %#v (%T)", jelemset, jelemset)
+				log.Printf("JasonParseVal set!err=%v jv=%v\n",
+					err, jv)
 				return nil, err
 			}
 		} else if jcomptup, ok := jmap["tup"]; ok {
+			///@@@ handle tuples like sets above
 			log.Printf("JasonParseVal tup jv=%v jcomptup=%v (%T)",
 				jv, jcomptup, jcomptup)
 			if jcomps, ok := jcomptup.([]string); ok {
@@ -321,6 +334,8 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 					}
 				}
 				resval = MakeTupleSliceV(obseq)
+				log.Printf("JasonParseVal tup resval=%v jv=%v\n",
+					resval, jv)
 				return resval, nil
 			} else {
 				err = fmt.Errorf("JasonParseVal bad jcomptup %#v (%T)", jcomptup, jcomptup)
