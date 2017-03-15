@@ -22,6 +22,9 @@ const (
 	TyFloatV
 	TyStringV
 	TyRefobV
+	TyColIntV //@@@ incomplete
+	//TyColStringV
+	//TyColRefV
 	TySetV
 	TyTupleV
 )
@@ -323,6 +326,77 @@ func (rob RefobV) String() string {
 
 func (rob RefobV) DumpScan(du *DumperMo) {
 	du.AddDumpedObject(rob.roptr)
+}
+
+//////////////// colored integer values
+type ColIntVMo interface {
+	ValueMo
+	isColIntV()
+	ColorRef() *ObjectMo
+	Int() int
+	Int64() int64
+	ColorId() serialmo.IdentMo
+}
+
+type ColIntV struct {
+	colroptr *ObjectMo
+	colint   int64
+}
+
+func (ColIntV) isColIntV() {}
+func (ci ColIntV) TypeV() uint {
+	return TyColIntV
+}
+
+func (ci ColIntV) ColorRef() *ObjectMo {
+	return ci.colroptr
+}
+
+func (ci ColIntV) Int() int     { return int(ci.colint) }
+func (ci ColIntV) Int64() int64 { return int64(ci.colint) }
+func (ci ColIntV) Hash() serialmo.HashMo {
+	var h serialmo.HashMo
+	hc := HashObptr(ci.colroptr)
+	h = serialmo.HashMo((17 * uint32(hc)) ^ uint32(13*ci.colint))
+	if h == 0 {
+		h = (hc & 0xffffff) + serialmo.HashMo(ci.colint&0xfffff) + 10
+	}
+	return h
+}
+
+func MakeColInt(colorpob *ObjectMo, num int64) ColIntV {
+	if colorpob == nil {
+		panic("MakeColInt nil colorpob")
+	}
+	return ColIntV{colroptr: colorpob, colint: num}
+}
+
+func MakeColRefInt(coloref RefobV, num int64) ColIntV {
+	return MakeColInt(coloref.Obref(), num)
+}
+
+func (ci ColIntV) ToString() string {
+	return fmt.Sprintf("%%%s%+d", ci.colroptr.obid.ToString(), ci.colint)
+}
+
+func LessColInt(cil ColIntV, cir ColIntV) bool {
+	if cil.colroptr == cir.colroptr {
+		return cil.colint < cir.colint
+	} else {
+		return LessObptr(cil.colroptr, cir.colroptr)
+	}
+}
+
+func LessEqualColInt(cil ColIntV, cir ColIntV) bool {
+	if cil.colroptr == cir.colroptr {
+		return cil.colint <= cir.colint
+	} else {
+		return LessObptr(cil.colroptr, cir.colroptr)
+	}
+}
+
+func (ci ColIntV) DumpScan(du *DumperMo) {
+	du.AddDumpedObject(ci.colroptr)
 }
 
 //////////////// sequence values
