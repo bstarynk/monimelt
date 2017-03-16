@@ -246,13 +246,16 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 		return resval, nil
 	} else if jmap, ok := jv.(map[string]interface{}); ok {
 		log.Printf("JasonParseVal jmap %#v (%T)\n", jmap, jmap)
+		//// object reference: {"oid":....}
 		if joid, ok := jmap["oid"]; ok {
 			pob, err := vpm.ParseObjptr(joid.(string))
 			if pob != nil && err == nil {
 				resval = MakeRefobV(pob)
 				return resval, nil
 			}
-		} else if jflos, ok := jmap["float"]; ok {
+		} else
+		//// floating point value: {"float": ...}
+		if jflos, ok := jmap["float"]; ok {
 			var flos string
 			log.Printf("JasonParseVal jflos=%#v (%T)\n", jflos, jflos)
 			if flos, ok = jflos.(string); !ok {
@@ -273,7 +276,9 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				resval = MakeFloatV(fnum)
 				return resval, nil
 			}
-		} else if jints, ok := jmap["int"]; ok {
+		} else
+		//// integer value: {"int": ...}
+		if jints, ok := jmap["int"]; ok {
 			var intstr string
 			log.Printf("JasonParseVal jints=%#v (%T)\n", jints, jints)
 			if intstr, ok = jints.(string); !ok {
@@ -286,7 +291,9 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 			}
 			resval = MakeIntV(int(intnum))
 			return resval, nil
-		} else if jelemset, ok := jmap["set"]; ok {
+		} else
+		//// set value: {"set": [ ... ] }
+		if jelemset, ok := jmap["set"]; ok {
 			log.Printf("JasonParseVal set jv=%v jelemset=%v (%T)",
 				jv, jelemset, jelemset)
 			if jelems, ok := jelemset.([]interface{}); ok {
@@ -318,7 +325,9 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 					err, jv)
 				return nil, err
 			}
-		} else if jcomptup, ok := jmap["tup"]; ok {
+		} else
+		//// tuple value: { "tup" : [ ... ] }
+		if jcomptup, ok := jmap["tup"]; ok {
 			log.Printf("JasonParseVal tup jv=%v jcomptup=%v (%T)",
 				jv, jcomptup, jcomptup)
 			if jcomps, ok := jcomptup.([]interface{}); ok {
@@ -347,7 +356,42 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				err = fmt.Errorf("JasonParseVal bad jcomptup %#v (%T)", jcomptup, jcomptup)
 				return nil, err
 			}
+		} else
+		/// colored integer value { "colori": <int> ; "colorob" : <obref> }
+		if jcolori, ok := jmap["colori"]; ok {
+			var ic int64
+			var colpob *ObjectMo
+			if fic, ok := jcolori.(float64); ok {
+				ic = int64(fic)
+			} else if lic, ok := jcolori.(int64); ok {
+				ic = lic
+			} else if nic, ok := jcolori.(int); ok {
+				ic = int64(nic)
+			} else if sic, ok := jcolori.(string); ok {
+				if inum, err := strconv.ParseInt(sic, 0, 64); err == nil {
+					ic = inum
+				} else {
+					return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorint %v", jmap, err)
+				}
+			} else {
+				return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorint %v (strange \"colori\")", jmap, err)
+			}
+			if jcid, ok := jmap["colorob"]; ok {
+				if jcidstr, ok := jcid.(string); ok {
+					if colpob, err = vpm.ParseObjptr(jcidstr); err != nil {
+						return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorint wrong \"colorob\" %v", jmap, err)
+					}
+				} else {
+					return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorint strange \"colorob\"", jmap)
+				}
+
+			} else {
+				return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorint missing \"colorob\"", jmap)
+			}
+			resval = MakeColInt(colpob, ic)
+			return resval, nil
 		}
+		//// otherwise, error
 		err = fmt.Errorf("JasonParseVal unexpected jmap %#v (%T)", jmap, jmap)
 		return nil, err
 	}
