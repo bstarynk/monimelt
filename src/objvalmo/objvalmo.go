@@ -22,8 +22,8 @@ const (
 	TyFloatV
 	TyStringV
 	TyRefobV
-	TyColIntV //@@@ incomplete
-	//TyColStringV
+	TyColIntV
+	TyColStringV
 	//TyColRefV
 	TySetV
 	TyTupleV
@@ -400,6 +400,80 @@ func LessEqualColInt(cil ColIntV, cir ColIntV) bool {
 }
 
 func (ci ColIntV) DumpScan(du *DumperMo) {
+	du.AddDumpedObject(ci.colroptr)
+}
+
+//////////////// colored string values
+type ColStringVMo interface {
+	ValueMo
+	isColStringV()
+	ColorRef() *ObjectMo
+	ColoredString() string
+	ColorId() serialmo.IdentMo
+}
+
+type ColStringV struct {
+	colroptr *ObjectMo
+	colstr   string
+	colhash  serialmo.HashMo
+}
+
+func (ColStringV) isColStringV() {}
+
+func (ci ColStringV) TypeV() uint {
+	return TyColStringV
+}
+
+func (ci ColStringV) ColorRef() *ObjectMo {
+	return ci.colroptr
+}
+
+func (ci ColStringV) ColorId() serialmo.IdentMo {
+	return ci.colroptr.obid
+}
+
+func (ci ColStringV) Hash() serialmo.HashMo {
+	return ci.colhash
+}
+
+func MakeColString(colorpob *ObjectMo, str string) ColStringV {
+	if colorpob == nil {
+		panic("MakeColString nil colorpob")
+	}
+	hs := StringHash(str)
+	hc := colorpob.obid.Hash()
+	h := (37 * hs) ^ (11 * hc)
+	if h == 0 {
+		h = (hs & 0xffffff) + 3*(hc&0xffffff) + 10
+	}
+	return ColStringV{colroptr: colorpob, colstr: str, colhash: h}
+}
+
+func MakeColRefStr(coloref RefobV, str string) ColStringV {
+	return MakeColString(coloref.Obref(), str)
+}
+
+func (ci ColStringV) ToString() string {
+	return fmt.Sprintf("%%%s%q", ci.colroptr.obid.ToString(), ci.colstr)
+}
+
+func LessColString(cil ColStringV, cir ColStringV) bool {
+	if cil.colroptr == cir.colroptr {
+		return cil.colstr < cir.colstr
+	} else {
+		return LessObptr(cil.colroptr, cir.colroptr)
+	}
+}
+
+func LessEqualColstr(cil ColStringV, cir ColStringV) bool {
+	if cil.colroptr == cir.colroptr {
+		return cil.colstr <= cir.colstr
+	} else {
+		return LessObptr(cil.colroptr, cir.colroptr)
+	}
+}
+
+func (ci ColStringV) DumpScan(du *DumperMo) {
 	du.AddDumpedObject(ci.colroptr)
 }
 

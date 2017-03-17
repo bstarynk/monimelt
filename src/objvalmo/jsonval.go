@@ -39,6 +39,11 @@ type jsonColInt struct {
 	Jcolorob string `json:"colorob"`
 }
 
+type jsonColString struct {
+	Jcolorstr string `json:"colorstr"`
+	Jcolorob  string `json:"colorob"`
+}
+
 type JsonValEmitterMo interface {
 	EmitObjptr(*ObjectMo) bool
 }
@@ -180,6 +185,16 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 			}
 			cobid := civ.ColorId()
 			res = jsonColInt{Jcolori: civ.colint, Jcolorob: cobid.ToString()}
+			return res
+		}
+	case TyColStringV:
+		{
+			csv := v.(ColStringV)
+			if !vem.EmitObjptr(csv.ColorRef()) {
+				return nil
+			}
+			cobid := csv.ColorId()
+			res = jsonColString{Jcolorstr: csv.colstr, Jcolorob: cobid.ToString()}
 			return res
 		}
 	case TySetV:
@@ -405,6 +420,30 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 				return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorint missing \"colorob\"", jmap)
 			}
 			resval = MakeColInt(colpob, ic)
+			return resval, nil
+		} else
+		/// colored string value { "colorstr": <string> ; "colorob" : <obref> }
+		if jcolorstr, ok := jmap["colorstr"]; ok {
+			var colstr string
+			var colpob *ObjectMo
+			if str, ok := jcolorstr.(string); ok {
+				colstr = str
+			} else {
+				return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorstr %v (strange \"colorstr\")", jmap, jcolorstr)
+			}
+			if jcid, ok := jmap["colorob"]; ok {
+				if jcidstr, ok := jcid.(string); ok {
+					if colpob, err = vpm.ParseObjptr(jcidstr); err != nil {
+						return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorstr wrong \"colorob\" %v", jmap, err)
+					}
+				} else {
+					return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorstr strange \"colorob\"", jmap)
+				}
+
+			} else {
+				return nil, fmt.Errorf("JasonParseVal jmap %#v bad colorstr missing \"colorob\"", jmap)
+			}
+			resval = MakeColString(colpob, colstr)
 			return resval, nil
 		}
 		//// otherwise, error
