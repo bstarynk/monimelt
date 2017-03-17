@@ -24,7 +24,7 @@ const (
 	TyRefobV
 	TyColIntV
 	TyColStringV
-	//TyColRefV
+	TyColRefV
 	TySetV
 	TyTupleV
 )
@@ -475,6 +475,92 @@ func LessEqualColstr(cil ColStringV, cir ColStringV) bool {
 
 func (ci ColStringV) DumpScan(du *DumperMo) {
 	du.AddDumpedObject(ci.colroptr)
+}
+
+//////////////// colored reference values
+type ColRefVMo interface {
+	ValueMo
+	isColRefV()
+	ColorRef() *ObjectMo
+	ObjRef() *ObjectMo
+	ColorId() serialmo.IdentMo
+	ObjId() serialmo.IdentMo
+}
+
+type ColRefV struct {
+	colroptr *ObjectMo
+	obroptr  *ObjectMo
+}
+
+func (ColRefV) isColRefV() {}
+
+func (ci ColRefV) TypeV() uint {
+	return TyColRefV
+}
+
+func (ci ColRefV) ColorRef() *ObjectMo {
+	return ci.colroptr
+}
+
+func (ci ColRefV) ColorId() serialmo.IdentMo {
+	return ci.colroptr.obid
+}
+
+func (ci ColRefV) ObjRef() *ObjectMo {
+	return ci.obroptr
+}
+
+func (ci ColRefV) ObjId() serialmo.IdentMo {
+	return ci.obroptr.obid
+}
+
+func (ci ColRefV) Hash() serialmo.HashMo {
+	hc := ci.colroptr.obid.Hash()
+	ho := ci.obroptr.obid.Hash()
+	h := (47 * hc) ^ (59 * ho)
+	if h == 0 {
+		h = 3*(hc&0xfffff) + 11*(ho&0xffffff) + 120
+	}
+	return h
+}
+
+func MakeColRef(colorpob *ObjectMo, pob *ObjectMo) ColRefV {
+	if colorpob == nil {
+		panic("MakeColRef nil colorpob")
+	}
+	if pob == nil {
+		panic("MakeColRef nil pob")
+	}
+	return ColRefV{colroptr: colorpob, obroptr: pob}
+}
+
+func MakeColRefRef(coloref RefobV, oref RefobV) ColRefV {
+	return MakeColRef(coloref.Obref(), oref.Obref())
+}
+
+func (ci ColRefV) ToString() string {
+	return fmt.Sprintf("%%%s/%s", ci.colroptr.obid.ToString(), ci.obroptr.obid.ToString())
+}
+
+func LessColRef(cil ColRefV, cir ColRefV) bool {
+	if cil.colroptr == cir.colroptr {
+		return LessObptr(cil.obroptr, cir.obroptr)
+	} else {
+		return LessObptr(cil.colroptr, cir.colroptr)
+	}
+}
+
+func LessEqualColRef(cil ColRefV, cir ColRefV) bool {
+	if cil.colroptr == cir.colroptr {
+		return LessEqualObptr(cil.obroptr, cir.obroptr)
+	} else {
+		return LessEqualObptr(cil.colroptr, cir.colroptr)
+	}
+}
+
+func (ci ColRefV) DumpScan(du *DumperMo) {
+	du.AddDumpedObject(ci.colroptr)
+	du.AddDumpedObject(ci.obroptr)
 }
 
 //////////////// sequence values

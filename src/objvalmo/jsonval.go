@@ -44,6 +44,11 @@ type jsonColString struct {
 	Jcolorob  string `json:"colorob"`
 }
 
+type jsonColRef struct {
+	Jcoloref string `json:"coloref"`
+	Jcolorob string `json:"colorob"`
+}
+
 type JsonValEmitterMo interface {
 	EmitObjptr(*ObjectMo) bool
 }
@@ -445,6 +450,42 @@ func JasonParseVal(vpm JsonValParserMo, jv interface{}) (ValueMo, error) {
 			}
 			resval = MakeColString(colpob, colstr)
 			return resval, nil
+		} else
+		//// colored reference value { "coloref" : <reference> , "colorob" : <color> }
+		if jcoloref, hascolorefok := jmap["coloref"]; hascolorefok {
+			var colorefids string
+			var colorobids string
+			var colerr error
+			var jcolorob interface{}
+			var refpob *ObjectMo
+			var colpob *ObjectMo
+			var strcolorefok bool
+			var strcolorobok bool
+			var hascolorobok bool
+			if colorefids, strcolorefok = jcoloref.(string); !strcolorefok {
+				colerr = fmt.Errorf("bad coloref %v", jcoloref)
+				goto badcoloref
+			}
+			if jcolorob, hascolorobok = jmap["colorob"]; !hascolorobok {
+				colerr = fmt.Errorf("no colorob")
+				goto badcoloref
+			}
+			if colorobids, strcolorobok = jcolorob.(string); !strcolorobok {
+				colerr = fmt.Errorf("bad colorob %v", jcolorob)
+				goto badcoloref
+			}
+			if refpob, colerr = vpm.ParseObjptr(colorefids); colerr != nil {
+				colerr = fmt.Errorf("invalid coloref %v", colerr)
+				goto badcoloref
+			}
+			if colpob, colerr = vpm.ParseObjptr(colorobids); colerr != nil {
+				colerr = fmt.Errorf("invalid colorob %v", colerr)
+				goto badcoloref
+			}
+			resval = MakeColRef(colpob, refpob)
+			return resval, nil
+		badcoloref:
+			return nil, fmt.Errorf("bad coloref %v : %v", jcoloref, colerr)
 		}
 		//// otherwise, error
 		err = fmt.Errorf("JasonParseVal unexpected jmap %#v (%T)", jmap, jmap)
