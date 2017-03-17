@@ -48,11 +48,14 @@ type ObjectMo struct {
 }
 
 type PayloadMo interface {
-	DestroyPayl(*ObjectMo)
-	DumpScanPayl(*ObjectMo, *DumperMo)
-	DumpEmitPayl(*ObjectMo, *DumperMo) (string, interface{})
-	LoadPayl(*ObjectMo, *LoaderMo, string)
-}
+	DestroyPayl(pob*ObjectMo)
+	DumpScanPayl(pob*ObjectMo, du*DumperMo)
+	DumpEmitPayl(pob*ObjectMo, du*DumperMo) (string, interface{})
+	LoadPayl(pob*ObjectMo, ld*LoaderMo, paylcont string)
+	GetPayl(pob*ObjectMo, attrpob*ObjectMo) ValueMo
+	PutPayl(pob*ObjectMo, attrpob*ObjectMo, val ValueMo) error
+	DoPayl(pob*ObjectMo, selpob*ObjectMo, args... ValueMo) error
+}				// end PayloadMo
 
 type ValueMo interface {
 	TypeV() uint
@@ -1323,5 +1326,6 @@ func (pob *ObjectMo) UnsyncPayloadInstall(pname string) *ObjectMo {
 		panic(fmt.Errorf("UnsyncPayloadInstall pname=%q %s", pname, err))
 	}
 	pob.obpayl = pb(pname, pob)
+	//pob.obpayl = (*PayloadMo) (&(pb(pname, pob)))
 	return pob
 } // end UnsyncPayloadInstall
