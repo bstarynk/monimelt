@@ -44,18 +44,18 @@ type ObjectMo struct {
 	obmtime int64
 	obattrs map[*ObjectMo]ValueMo
 	obcomps []ValueMo
-	obpayl  *PayloadMo
+	obpayl  PayloadMo
 }
 
 type PayloadMo interface {
-	DestroyPayl(pob*ObjectMo)
-	DumpScanPayl(pob*ObjectMo, du*DumperMo)
-	DumpEmitPayl(pob*ObjectMo, du*DumperMo) (string, interface{})
-	LoadPayl(pob*ObjectMo, ld*LoaderMo, paylcont string)
-	GetPayl(pob*ObjectMo, attrpob*ObjectMo) ValueMo
-	PutPayl(pob*ObjectMo, attrpob*ObjectMo, val ValueMo) error
-	DoPayl(pob*ObjectMo, selpob*ObjectMo, args... ValueMo) error
-}				// end PayloadMo
+	DestroyPayl(pob *ObjectMo)
+	DumpScanPayl(pob *ObjectMo, du *DumperMo)
+	DumpEmitPayl(pob *ObjectMo, du *DumperMo) (string, interface{})
+	LoadPayl(pob *ObjectMo, ld *LoaderMo, paylcont string)
+	GetPayl(pob *ObjectMo, attrpob *ObjectMo) ValueMo
+	PutPayl(pob *ObjectMo, attrpob *ObjectMo, val ValueMo) error
+	DoPayl(pob *ObjectMo, selpob *ObjectMo, args ...ValueMo) error
+} // end PayloadMo
 
 type ValueMo interface {
 	TypeV() uint
@@ -924,7 +924,7 @@ func finalizeObjectMo(ob *ObjectMo) {
 	p := ob.obpayl
 	ob.obpayl = nil
 	if p != nil {
-		(*p).DestroyPayl(ob)
+		(p).DestroyPayl(ob)
 	}
 	bn := obid.BucketNum()
 	buck := &bucketsob[bn]
@@ -1064,7 +1064,7 @@ func (pob *ObjectMo) DumpScanInsideObject(du *DumperMo) {
 	}
 	if pob.obpayl != nil {
 		log.Printf("DumpScanInsideObject in pob=%v payload %v\n", pob, pob.obpayl)
-		(*pob.obpayl).DumpScanPayl(pob, du)
+		(pob.obpayl).DumpScanPayl(pob, du)
 	}
 } // end DumpScanInsideObject
 
@@ -1254,7 +1254,7 @@ func DumpScanGlobalVariables(du *DumperMo) {
 
 const payload_regexp_str = `^[a-zA-Z_][a-zA-Z0-9_]*$`
 
-type PayloadBuilderMo func(string, *ObjectMo) *PayloadMo
+type PayloadBuilderMo func(string, *ObjectMo) PayloadMo
 
 var payload_map map[string]PayloadBuilderMo = make(map[string]PayloadBuilderMo, 100)
 var payload_regexp *regexp.Regexp = regexp.MustCompile(payload_regexp_str)
@@ -1308,11 +1308,9 @@ func (pob *ObjectMo) UnsyncPayloadClear() *ObjectMo {
 		return pob
 	}
 	pob.obpayl = nil
-	(*pl).DestroyPayl(pob)
+	(pl).DestroyPayl(pob)
 	return pob
 } // end UnsyncPayloadClear
-
-
 
 func (pob *ObjectMo) UnsyncPayloadInstall(pname string) *ObjectMo {
 	if pob == nil {

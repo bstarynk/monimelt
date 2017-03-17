@@ -41,12 +41,13 @@ func (sy *SymbolPy) DoPayl(pob *ObjectMo, selpob *ObjectMo, args ...ValueMo) err
 	panic("symbol's DoPayl unimplemented")
 } // end symbol's DoPayl
 
-func buildSymbol(kind string, pob *ObjectMo) *PayloadMo {
+func buildSymbol(kind string, pob *ObjectMo) PayloadMo {
 	log.Printf("buildSymbol kind=%v pob=%v\n", kind, pob)
 	var sy *SymbolPy
 	sy = new(SymbolPy)
 	log.Printf("buildSymbol pob=%v sy=%#v\n", pob, sy)
-	panic("buildSymbol dont know how to return sy")
+	return sy
+	// panic("buildSymbol dont know how to return sy")
 }
 
 func initSymbol() {

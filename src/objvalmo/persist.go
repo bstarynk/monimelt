@@ -289,7 +289,7 @@ FROM t_objects WHERE ob_paylkind != ""`
 		payl := pb(paylkind, pob)
 		pob.obpayl = payl
 		if len(jpaylstr) > 0 {
-			(*payl).LoadPayl(pob, l, jpaylstr)
+			(payl).LoadPayl(pob, l, jpaylstr)
 		}
 		cnt++
 	}
@@ -753,7 +753,7 @@ func (du *DumperMo) emitDumpedObject(pob *ObjectMo, spa uint8) {
 	var paylkindstr string
 	var jpayljson interface{}
 	if pob.obpayl != nil {
-		paylkindstr, jpayljson = (*pob.obpayl).DumpEmitPayl(pob, du)
+		paylkindstr, jpayljson = (pob.obpayl).DumpEmitPayl(pob, du)
 	}
 	var paylbuf bytes.Buffer
 	if len(paylkindstr) > 0 {
