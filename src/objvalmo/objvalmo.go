@@ -352,6 +352,10 @@ func (ci ColIntV) ColorRef() *ObjectMo {
 	return ci.colroptr
 }
 
+func (ci ColIntV) ColorId() serialmo.IdentMo {
+	return ci.colroptr.obid
+}
+
 func (ci ColIntV) Int() int     { return int(ci.colint) }
 func (ci ColIntV) Int64() int64 { return int64(ci.colint) }
 func (ci ColIntV) Hash() serialmo.HashMo {
