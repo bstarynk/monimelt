@@ -33,6 +33,12 @@ type jsonSet struct {
 type jsonTuple struct {
 	Jtup []string `json:"tup"`
 }
+
+type jsonColInt struct {
+	Jcolori  int64  `json:"colori"`
+	Jcolorob string `json:"colorob"`
+}
+
 type JsonValEmitterMo interface {
 	EmitObjptr(*ObjectMo) bool
 }
@@ -164,6 +170,16 @@ func ValToJson(vem JsonValEmitterMo, v ValueMo) interface{} {
 			}
 			obid := obv.IdOb()
 			res = jsonIdent{Joid: obid.ToString()}
+			return res
+		}
+	case TyColIntV:
+		{
+			civ := v.(ColIntV)
+			if !vem.EmitObjptr(civ.ColorRef()) {
+				return nil
+			}
+			cobid := civ.ColorId()
+			res = jsonColInt{Jcolori: civ.colint, Jcolorob: cobid.ToString()}
 			return res
 		}
 	case TySetV:
