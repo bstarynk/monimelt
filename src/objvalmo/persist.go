@@ -269,6 +269,7 @@ FROM t_objects WHERE ob_paylkind != ""`
 		var idstr string
 		var paylkind string
 		var jpaylstr string
+		var jpayl interface{}
 		err = qr.Scan(&idstr, &paylkind, &jpaylstr)
 		if err != nil {
 			panic(fmt.Errorf("persistmo.fill_payload_objects failure %v", err))
@@ -281,16 +282,18 @@ FROM t_objects WHERE ob_paylkind != ""`
 		if pob == nil {
 			panic(fmt.Errorf("persistmo.fill_payload_objects unknown id %s: %v", idstr, err))
 		}
-		pb, err := PayloadBuilder(paylkind)
-		if pb == nil || err != nil {
+		pl, err := PayloadLoader(paylkind)
+		if pl == nil || err != nil {
 			panic(fmt.Errorf("persistmo.fill_payload_objects pob %v bad paylkind %q - %s",
 				pob, paylkind, err))
 		}
-		payl := pb(paylkind, pob)
-		pob.obpayl = payl
-		if len(jpaylstr) > 0 {
-			(payl).LoadPayl(pob, l, jpaylstr)
+		if jpaylstr != "" {
+			if err := json.Unmarshal(([]byte)(jpaylstr), &jpayl); err != nil {
+				panic(fmt.Errorf("persistmo.fill_payload_objects id %s bad jpaylstr %s: %v", idstr, jpaylstr, err))
+			}
 		}
+		payl := pl(paylkind, pob, l, jpayl)
+		pob.obpayl = payl
 		cnt++
 	}
 } // end fill_payload_objects

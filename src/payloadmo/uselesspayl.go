@@ -10,7 +10,7 @@ import (
 )
 
 type UselessPy struct {
-}
+} // end UselessPy
 
 func (sy *UselessPy) DestroyPayl(pob *ObjectMo) {
 } // end useless's DestroyPayl
@@ -21,9 +21,6 @@ func (sy *UselessPy) DumpScanPayl(pob *ObjectMo, du *DumperMo) {
 func (sy *UselessPy) DumpEmitPayl(pob *ObjectMo, du *DumperMo) (pykind string, json interface{}) {
 	return "useless", nil
 } // end useless's DumpEmitPayl
-
-func (sy *UselessPy) LoadPayl(pob *ObjectMo, ld *LoaderMo, paylcont string) {
-} // end useless's LoadPayl
 
 func (sy *UselessPy) GetPayl(pob *ObjectMo, attrpob *ObjectMo) ValueMo {
 	return nil
@@ -37,6 +34,12 @@ func (sy *UselessPy) DoPayl(pob *ObjectMo, selpob *ObjectMo, args ...ValueMo) er
 	return fmt.Errorf("useless DoPayl pob=%v selpob=%v args=%v", pob, selpob, args)
 } // end useless's DoPayl
 
+func loadUseless(kind string, pob *ObjectMo, ld *LoaderMo, jcont interface{}) PayloadMo {
+	log.Printf("loadUseless kind=%v pob=%v, cont:%v\n", kind, pob, jcont)
+	panic(fmt.Errorf("loadUseless kind=%v pob=%v, cont:%v\n", kind, pob, jcont))
+}
+
 func initUseless() {
 	log.Printf("initUseless")
+	RegisterPayload("useless", PayloadLoaderMo(loadUseless))
 } // end initUseless

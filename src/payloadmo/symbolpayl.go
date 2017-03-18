@@ -26,8 +26,14 @@ func (sy *SymbolPy) DumpEmitPayl(pob *ObjectMo, du *DumperMo) (pykind string, pj
 	panic("symbol's DumpEmitPayl unimplemented")
 } // end symbol's DumpEmitPayl
 
-func (sy *SymbolPy) LoadPayl(pob *ObjectMo, ld *LoaderMo, paylcont string) {
-} // end symbol's LoadPayl
+func loadSymbol(kind string, pob *ObjectMo, ld *LoaderMo, jcont interface{}) PayloadMo {
+	log.Printf("loadSymbol kind=%v pob=%v, jcont:%v\n", kind, pob, jcont)
+	var sy *SymbolPy
+	sy = new(SymbolPy)
+	log.Printf("loadSymbol pob=%v sy=%#v\n", pob, sy)
+	return sy
+	// panic("loadSymbol dont know how to return sy")
+} // end loadSymbol
 
 func (sy *SymbolPy) GetPayl(pob *ObjectMo, attrpob *ObjectMo) ValueMo {
 	panic("symbol's GetPayl unimplemented")
@@ -41,16 +47,7 @@ func (sy *SymbolPy) DoPayl(pob *ObjectMo, selpob *ObjectMo, args ...ValueMo) err
 	panic("symbol's DoPayl unimplemented")
 } // end symbol's DoPayl
 
-func buildSymbol(kind string, pob *ObjectMo) PayloadMo {
-	log.Printf("buildSymbol kind=%v pob=%v\n", kind, pob)
-	var sy *SymbolPy
-	sy = new(SymbolPy)
-	log.Printf("buildSymbol pob=%v sy=%#v\n", pob, sy)
-	return sy
-	// panic("buildSymbol dont know how to return sy")
-}
-
 func initSymbol() {
 	log.Printf("initSymbol")
-	RegisterPayload("symbol", PayloadBuilderMo(buildSymbol))
+	RegisterPayload("symbol", PayloadLoaderMo(loadSymbol))
 } // end initSymbol

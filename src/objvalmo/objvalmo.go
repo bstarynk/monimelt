@@ -51,7 +51,6 @@ type PayloadMo interface {
 	DestroyPayl(pob *ObjectMo)
 	DumpScanPayl(pob *ObjectMo, du *DumperMo)
 	DumpEmitPayl(pob *ObjectMo, du *DumperMo) (string, interface{})
-	LoadPayl(pob *ObjectMo, ld *LoaderMo, paylcont string)
 	GetPayl(pob *ObjectMo, attrpob *ObjectMo) ValueMo
 	PutPayl(pob *ObjectMo, attrpob *ObjectMo, val ValueMo) error
 	DoPayl(pob *ObjectMo, selpob *ObjectMo, args ...ValueMo) error
@@ -1250,22 +1249,22 @@ func DumpScanGlobalVariables(du *DumperMo) {
 ////////////////////////////////////////////////////////////////
 //// payload support. They should be registered, at init
 //// time, using RegisterPayload. For example:
-////    RegisterPayload("symbol", symbol_paylfun)
+////    RegisterPayload("symbol", symbol_loader)
 
 const payload_regexp_str = `^[a-zA-Z_][a-zA-Z0-9_]*$`
 
-type PayloadBuilderMo func(string, *ObjectMo) PayloadMo
+type PayloadLoaderMo func(pkind string, pob *ObjectMo, ld *LoaderMo, jcont interface{}) PayloadMo
 
-var payload_map map[string]PayloadBuilderMo = make(map[string]PayloadBuilderMo, 100)
+var payload_map map[string]PayloadLoaderMo = make(map[string]PayloadLoaderMo, 100)
 var payload_regexp *regexp.Regexp = regexp.MustCompile(payload_regexp_str)
 var payload_mtx sync.Mutex
 
-func RegisterPayload(pname string, pbuilder PayloadBuilderMo) {
+func RegisterPayload(pname string, ploader PayloadLoaderMo) {
 	if len(pname) == 0 {
 		panic("RegisterPayload empty pname")
 	}
-	if pbuilder == nil {
-		panic(fmt.Errorf("RegisterPayload nil builder for pname %s", pname))
+	if ploader == nil {
+		panic(fmt.Errorf("RegisterPayload nil loader for pname %s", pname))
 	}
 	payload_mtx.Lock()
 	defer payload_mtx.Unlock()
@@ -1273,31 +1272,31 @@ func RegisterPayload(pname string, pbuilder PayloadBuilderMo) {
 		payload_regexp = regexp.MustCompile(payload_regexp_str)
 	}
 	if payload_map == nil {
-		payload_map = make(map[string]PayloadBuilderMo)
+		payload_map = make(map[string]PayloadLoaderMo)
 	}
 
 	if !payload_regexp.MatchString(pname) {
 		panic(fmt.Errorf("RegisterPayload invalid pname %q", pname))
 	}
-	payload_map[pname] = pbuilder
+	payload_map[pname] = ploader
 	{
 		var stabuf [2048]byte
 		stalen := runtime.Stack(stabuf[:], true)
-		log.Printf("RegisterPayload payload_map=%v @%p pbuilder=%p pname=%v\n...stack:\n%s\n\n\n",
-			payload_map, &payload_map, pbuilder, pname, string(stabuf[:stalen]))
+		log.Printf("RegisterPayload payload_map=%v @%p ploader=%p pname=%v\n...stack:\n%s\n\n\n",
+			payload_map, &payload_map, ploader, pname, string(stabuf[:stalen]))
 	}
 } // end of RegisterPayload
 
-func PayloadBuilder(pname string) (PayloadBuilderMo, error) {
+func PayloadLoader(pname string) (PayloadLoaderMo, error) {
 	payload_mtx.Lock()
 	defer payload_mtx.Unlock()
 	pb, ok := payload_map[pname]
 	if !ok {
-		log.Printf("PayloadBuilder unknown pname=%q", pname)
-		return nil, fmt.Errorf("unknown PayloadBuilder %q", pname)
+		log.Printf("PayloadLoader unknown pname=%q", pname)
+		return nil, fmt.Errorf("unknown PayloadLoader %q", pname)
 	}
 	return pb, nil
-} // end PayloadBuilder
+} // end PayloadLoader
 
 func (pob *ObjectMo) UnsyncPayloadClear() *ObjectMo {
 	if pob == nil {
@@ -1311,19 +1310,3 @@ func (pob *ObjectMo) UnsyncPayloadClear() *ObjectMo {
 	(pl).DestroyPayl(pob)
 	return pob
 } // end UnsyncPayloadClear
-
-func (pob *ObjectMo) UnsyncPayloadInstall(pname string) *ObjectMo {
-	if pob == nil {
-		panic(fmt.Errorf("UnsyncPayloadInstall nil pob for pname %s", pname))
-	}
-	if pob.obpayl != nil {
-		pob.UnsyncPayloadClear()
-	}
-	pb, err := PayloadBuilder(pname)
-	if err != nil {
-		panic(fmt.Errorf("UnsyncPayloadInstall pname=%q %s", pname, err))
-	}
-	pob.obpayl = pb(pname, pob)
-	//pob.obpayl = (*PayloadMo) (&(pb(pname, pob)))
-	return pob
-} // end UnsyncPayloadInstall
