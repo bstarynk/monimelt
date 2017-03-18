@@ -998,6 +998,13 @@ func NewObj() *ObjectMo {
 	return newobptr
 }
 
+func (pob *ObjectMo) ObId() serialmo.IdentMo {
+	if pob == nil {
+		return serialmo.TheEmptyId()
+	}
+	return pob.obid
+}
+
 func (pob *ObjectMo) UnsyncTouch() {
 	pob.obmtime = time.Now().Unix()
 }

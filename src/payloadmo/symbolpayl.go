@@ -6,15 +6,36 @@ import (
 	. "objvalmo"
 	//"bytes"
 	"fmt"
+	llrb "github.com/petar/GoLLRB/llrb"
 	"log"
-	//"serialmo"
+	"regexp"
+	"serialmo"
+	"sync"
 )
 
 type SymbolPy struct {
 	syname  string
+	syowner *ObjectMo
 	syproxy *ObjectMo
 	sydata  ValueMo
 }
+
+func lessSymbol(a, b interface{}) bool {
+	var sya = a.(SymbolPy)
+	var syb = b.(SymbolPy)
+	return sya.syname < syb.syname
+}
+
+func (syl SymbolPy) Less(syr llrb.Item) bool {
+	return syl.syname < syr.(SymbolPy).syname
+}
+
+const symb_regexp_str = `^[a-zA-Z_][a-zA-Z0-9_]*$`
+
+var symb_regexp *regexp.Regexp = regexp.MustCompile(symb_regexp_str)
+var symb_mtx sync.Mutex
+var symb_dict llrb.LLRB
+var symb_map map[serialmo.IdentMo]*SymbolPy
 
 type jsonSymbol struct {
 	Jsyname  string      `json:"syname"`
@@ -22,7 +43,57 @@ type jsonSymbol struct {
 	Jsydata  interface{} `json:"sydata"`
 } // end jsonSymbol
 
+func GetObjectSymbolNamed(nam string) *ObjectMo {
+	symb_mtx.Lock()
+	defer symb_mtx.Unlock()
+	pseudosy := SymbolPy{syname: nam, syowner: nil, syproxy: nil, sydata: nil}
+	itsy := symb_dict.Get(pseudosy)
+	if itsy == nil {
+		return nil
+	}
+	return itsy.(SymbolPy).syowner
+} // end GetObjectSymbolNamed
+
+func GetSymbolNamed(nam string) *SymbolPy {
+	symb_mtx.Lock()
+	defer symb_mtx.Unlock()
+	pseudosy := SymbolPy{syname: nam, syowner: nil, syproxy: nil, sydata: nil}
+	itsy := symb_dict.Get(pseudosy)
+	if itsy == nil {
+		return nil
+	}
+	return (itsy.(*SymbolPy))
+} // end GetSymbolNamed
+
+func HasSymbolNamed(nam string) bool {
+	symb_mtx.Lock()
+	defer symb_mtx.Unlock()
+	pseudosy := SymbolPy{syname: nam, syowner: nil, syproxy: nil, sydata: nil}
+	return symb_dict.Has(pseudosy)
+} // end HasSymbolNamed
+
+/// return the new added symbol
+func AddNewSymbol(nam string, pob *ObjectMo) *SymbolPy {
+	if pob == nil || nam == "" || !symb_regexp.MatchString(nam) {
+		return nil
+	}
+	symb_mtx.Lock()
+	defer symb_mtx.Unlock()
+	sy := &SymbolPy{syname: nam, syowner: pob, syproxy: nil, sydata: nil}
+	itsy := symb_dict.Get(sy)
+	if itsy != nil {
+		return nil
+	}
+	newsy := symb_dict.ReplaceOrInsert(sy).(*SymbolPy)
+	symb_map[pob.ObId()] = newsy
+	return newsy
+} // end AddNewSymbol
+
 func (sy *SymbolPy) DestroyPayl(pob *ObjectMo) {
+	symb_mtx.Lock()
+	defer symb_mtx.Unlock()
+	symb_dict.Delete(sy)
+	delete(symb_map, pob.ObId())
 	sy.syname = ""
 	sy.syproxy = nil
 	sy.sydata = nil
@@ -93,10 +164,9 @@ func loadSymbol(kind string, pob *ObjectMo, ld *LoaderMo, jcont interface{}) Pay
 		}
 	}
 	var sy *SymbolPy
-	sy = new(SymbolPy)
-	sy.syname = syname
-	sy.syproxy = syproxpob
+	sy = AddNewSymbol(syname, pob)
 	sy.sydata = sydata
+	sy.syproxy = syproxpob
 	log.Printf("loadSymbol pob=%v sy=%#v\n", pob, sy)
 	return sy
 } // end loadSymbol

@@ -22,7 +22,6 @@ const NbDigitsSerialMo = 11
 const BaseSerialMo = 62
 const MaxBucketMo = 10 * 62
 
-
 type HashMo uint32
 
 func (h HashMo) String() string {
@@ -165,6 +164,10 @@ func FromCheckedUint64(u uint64) SerialMo {
 
 func (id IdentMo) EmptyId() bool {
 	return uint64(id.IdHi) == 0 && uint64(id.IdLo) == 0
+}
+
+func TheEmptyId() IdentMo {
+	return IdentMo{IdHi: 0, IdLo: 0}
 }
 
 func (id IdentMo) ValidId() bool {
