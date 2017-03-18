@@ -52,11 +52,53 @@ func (sy *SymbolPy) DumpEmitPayl(pob *ObjectMo, du *DumperMo) (pykind string, pj
 
 func loadSymbol(kind string, pob *ObjectMo, ld *LoaderMo, jcont interface{}) PayloadMo {
 	log.Printf("loadSymbol kind=%v pob=%v, jcont:%v\n", kind, pob, jcont)
+	var syname string
+	var syproxidstr string
+	var syproxpob *ObjectMo
+	var sydata ValueMo
+	var jsyname interface{}
+	var jsyproxy interface{}
+	var jsydata interface{}
+	var jcontmap map[string]interface{}
+	var ok bool
+	var err error
+	jcontmap, ok = jcont.(map[string]interface{})
+	if !ok {
+		panic(fmt.Errorf("loadSymbol pob=%v bad jcont=%v", pob, jcont))
+	}
+	jsyname, ok = jcontmap["syname"]
+	if !ok {
+		panic(fmt.Errorf("loadSymbol pob=%v missing syname in jcontmap=%v", pob, jcontmap))
+	}
+	syname, ok = jsyname.(string)
+	if !ok {
+		panic(fmt.Errorf("loadSymbol pob=%v bad syname in jcontmap=%v", pob, jcontmap))
+	}
+	jsyproxy, ok = jcontmap["syproxy"]
+	if ok {
+		syproxidstr, ok = jsyproxy.(string)
+		if !ok {
+			panic(fmt.Errorf("loadSymbol pob=%v bad syproxy in jcontmap=%v", pob, jcontmap))
+		}
+		syproxpob, err = ld.ParseObjptr(syproxidstr)
+		if err != nil {
+			panic(fmt.Errorf("loadSymbol pob=%v wrong syproxy in jcontmap=%v", pob, jcontmap))
+		}
+	}
+	jsydata, ok = jcontmap["sydata"]
+	if ok {
+		sydata, err = JasonParseVal(ld, jsydata)
+		if err != nil {
+			panic(fmt.Errorf("loadSymbol pob=%v bad sydata in jcontmap=%v : %v", pob, jcontmap, err))
+		}
+	}
 	var sy *SymbolPy
 	sy = new(SymbolPy)
+	sy.syname = syname
+	sy.syproxy = syproxpob
+	sy.sydata = sydata
 	log.Printf("loadSymbol pob=%v sy=%#v\n", pob, sy)
-	panic("loadSymbol dont know how to return sy")
-	//return sy
+	return sy
 } // end loadSymbol
 
 func (sy *SymbolPy) GetPayl(pob *ObjectMo, attrpob *ObjectMo) ValueMo {
