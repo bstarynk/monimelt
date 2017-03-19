@@ -24,6 +24,14 @@ these dependencies is `gb vendor`.
 
 We require [Go 1.8](https://beta.golang.org/doc/go1.8) at least (on Linux/x86-64) because we need plugins.
 
+So the command to build this is `gb build` and its produces the
+`bin/monimelt` executable.
+
+Once dependencies have been installed and built, we have been able to
+use the standard `go build` to compile this, e.g. with
+`GOPATH=$PWD:$PWD/vendor go build -v monimelt` (producing the
+`./monimelt` executable)
+
 ### external dependencies
 
 We depend on several **external packages** (including indirect dependencies)
@@ -48,6 +56,7 @@ tool knows then (thru our *git-versionned*
     # run once
     gb vendor fetch github.com/mattn/go-sqlite3
     gb vendor fetch github.com/antonholmquist/jason
+    gb vendor fetch github.com/petar/GoLLRB/llrb
 
 Actually, you could avoid doing the above, since
 [`vendor/manifest`](vendor/manifest) keeps the version, repository,
