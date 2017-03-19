@@ -74,6 +74,9 @@ func HasSymbolNamed(nam string) bool {
 
 /// return the new added symbol
 func AddNewSymbol(nam string, pob *ObjectMo) *SymbolPy {
+	var newsy *SymbolPy
+	log.Printf("AddNewSymbol nam=%q pob=%v start\n", nam, pob)
+	defer log.Printf("AddNewSymbol pob=%v newsy=%v end\n", pob, newsy)
 	if pob == nil || nam == "" || !symb_regexp.MatchString(nam) {
 		return nil
 	}
@@ -84,7 +87,10 @@ func AddNewSymbol(nam string, pob *ObjectMo) *SymbolPy {
 	if itsy != nil {
 		return nil
 	}
-	newsy := symb_dict.ReplaceOrInsert(sy).(*SymbolPy)
+	log.Printf("AddNewSymbol pob=%v sy=%#v\n", pob, sy)
+	replsy := symb_dict.ReplaceOrInsert(sy)
+	log.Printf("AddNewSymbol pob=%v replsy=%#v (%T)\n", pob, replsy, replsy)
+	newsy = replsy.(*SymbolPy)
 	symb_map[pob.ObId()] = newsy
 	return newsy
 } // end AddNewSymbol
