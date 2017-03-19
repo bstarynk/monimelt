@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	osexec "os/exec"
 	"plugin"
 	"runtime"
