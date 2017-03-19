@@ -32,38 +32,43 @@ We depend on several **external packages** (including indirect dependencies)
 + `go-sqlite3`, from [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3), is an [Sqlite3](http://sqlite.org/) driver.
 
 
++ `llrb`, from
+[github.com/petar/GoLLRB/llrb](https://github.com/petar/GoLLRB/llrb]
+is a red-black tree implementation (useful for the dictionnary of
+symbols).
+
 + [Sqlite3](http://sqlite.org/) should be available from your Linux
 distribution, with its `sqlite3` command and (on Debian and Ubuntu...)
 `libsqlite3-dev` development package
 
 #### installation of external dependencies
 
-Once and for all, you need to install the external dependencies above,
-using `gb vendor restore` or else with the following shell commands
-(if you need to run them, be sure to `rm -rf vendor/` first). The `gb`
-tool knows then (thru our *git-versionned*
-[`vendor/manifest`](vendor/manifest) file).
+Our dependencies are described as [git
+submodules](https://git-scm.com/docs/git-submodule) in the
+`.gitmodules` file. They might go into `vendor/` (in a way inspired by
+[gb](https://getgb.io/). For example the
+[go-sqlite3](https://github.com/mattn/go-sqlite3) package could go
+into `vendor/src/github.com/mattn/go-sqlite3/` etc....).
 
-    # run once
-    gb vendor fetch github.com/mattn/go-sqlite3
-    gb vendor fetch github.com/antonholmquist/jason
-    gb vendor fetch github.com/petar/GoLLRB/llrb
+You could use `git submodule update --init` to download the external
+dependencies. Actually we don't recommend doing that at first, and
+leave the `go` tool to download and install them.
 
-Actually, you could avoid doing the above, since
-[`vendor/manifest`](vendor/manifest) keeps the version, repository,
-revision, branch of dependencies, and **simply run `gb vendor restore`**
-(from a pristine cloned repository of this `monimelt/`)
+But we recommend having some Go workspace (e.g. with `export
+GOPATH=$HOME/mygoworkspace/` ...) and run *once*
+`./get-monimelt-dependencies.sh` (but have a look into that small
+shell script before running it)
 
 #### building the `monimelt` binary
 
-    gb build
+The `./build-monimelt.sh` script (have a look inside it) will build
+the `monimelt` executable inside the current directory. if `$HOME/bin`
+is in your path, you might run once
 
-will also compile the dependencies when needed and build the
-`monimelt` executable. The `monimelt` binary is now available on
-`bin/monimelt`, but since `$HOME/bin/` is in our `$PATH` we add a
-symlink
+    ln -sv $PWD/monimelt $HOME/bin/
 
-    ln -sv $PWD/bin/monimelt $HOME/bin/
+if you don't want to add `.` to your `$PATH` (which often is a
+security hole).
 
 #### the global state Sqlite database
 
