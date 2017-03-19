@@ -1,15 +1,15 @@
 ## monimelt .gitmodules file
 
 [submodule "jason"]
-  path = vendor/src/github.com/antonholmquist/jason
-  url = https://github.com/antonholmquist/jason
+  path = vendor/src/github.com/antonholmquist/jason/
+  url = https://github.com/antonholmquist/jason/
 
 [submodule "go-sqlite3"]
-  path = vendor/src/github.com/mattn/go-sqlite3
-  url = https://github.com/mattn/go-sqlite3
+  path = vendor/src/github.com/mattn/go-sqlite3/
+  url = https://github.com/mattn/go-sqlite3/
 
 [submodule "llrb"]
-  path = vendor/src/github.com/petar/GoLLRB/llrb
-  url = https://github.com/petar/GoLLRB
+  path = vendor/src/github.com/petar/GoLLRB/llrb/
+  url = https://github.com/petar/GoLLRB/llrb/
 
 ## eof .gitmodules in monimelt
