@@ -7,6 +7,8 @@ import (
 	"log"
 	"objvalmo"
 	"os"
+	osexec "os/exec"
+	"plugin"
 	"runtime"
 	"serialmo"
 	"time"
@@ -17,6 +19,7 @@ func main() {
 	nbSerialPtr := flag.Int("nb-serial", 3, "number of serials")
 	loadPtr := flag.String("load", "", "initial load directory")
 	tinyDump1Ptr := flag.String("tiny-dump1", "", "directory to dump with DoTinyDump1")
+	pluginRunPtr := flag.String("run-plugin", "", "Go source file to compile and load as plugin")
 	finalDumpPtr := flag.String("final-dump", "", "final dump directory")
 	flag.Parse()
 	log.Printf("Monimelt starting pid %d, Go version %s\n", os.Getpid(), runtime.Version())
@@ -45,13 +48,65 @@ func main() {
 	//
 	time.Sleep(30 * time.Millisecond)
 	if len(*tinyDump1Ptr) > 0 {
+		time.Sleep(10 * time.Millisecond)
 		log.Printf("monimelt should dotinydump1 in %s\n", *tinyDump1Ptr)
 		objvalmo.DoTinyDump1(*tinyDump1Ptr)
 		log.Printf("monimelt did dotinydump1 in %s\n", *tinyDump1Ptr)
 
 	}
 	//
+	if len(*pluginRunPtr) > 3 {
+		var pluginsrc string
+		var err error
+		var cmd *osexec.Cmd
+		var plug *plugin.Plugin
+		var symb plugin.Symbol
+		pluginsrc = *pluginRunPtr
+		time.Sleep(10 * time.Millisecond)
+		log.Printf("monimelt should run as plugin %s\n", pluginsrc)
+		lenplugin := len(pluginsrc)
+		sharedpath := pluginsrc[0:lenplugin-3] + ".so"
+		if _, err := os.Stat(sharedpath); err == nil {
+			if err = os.Remove(sharedpath); err != nil {
+				log.Printf("failed to remove shared %q - %v\n", sharedpath, err)
+				goto pluginend
+			} else {
+				log.Printf("did remove shared %q\n", sharedpath)
+			}
+		}
+		if pluginsrc[lenplugin-3:] != ".go" {
+			log.Printf("plugin %q not ending with .go\n", pluginsrc)
+		}
+		if _, err := os.Stat(pluginsrc); err != nil {
+			log.Printf("missing plugin source %s - %v", pluginsrc, err)
+			goto pluginend
+		}
+		cmd = osexec.Command("./build-plugin-monimelt.sh", pluginsrc)
+		if err = cmd.Run(); err != nil {
+			log.Printf("plugin %s build failure; %v\n", pluginsrc, err)
+			goto pluginend
+		}
+		if plug, err = plugin.Open(sharedpath); err != nil {
+			log.Printf("plugin %s open %s failure: %v\n", sharedpath, err)
+			goto pluginend
+		}
+		if symb, err = plug.Lookup("monimelt_do"); err == nil {
+			log.Printf("plugin %s has 'monimelt_do' %v\n", sharedpath, symb)
+			if fsy, ok := symb.(func()); ok {
+				log.Printf("before running fsy %#v from plugin %s\n", fsy, sharedpath)
+				fsy()
+				log.Printf("after running fsy %#v from plugin %s\n", fsy, sharedpath)
+			} else {
+				log.Printf("plugin %s has strange 'monimelt_do' %v\n", sharedpath, fsy)
+				goto pluginend
+			}
+		}
+		log.Printf("done plugin %v\n", plug)
+	pluginend:
+	}
+	//
 	if len(*finalDumpPtr) > 0 {
+		time.Sleep(10 * time.Millisecond)
 		log.Printf("monimelt should final dump in %s\n", *finalDumpPtr)
 		objvalmo.DumpIntoDirectory(*finalDumpPtr)
 		log.Printf("monimelt did final dump in %s\n", *finalDumpPtr)
