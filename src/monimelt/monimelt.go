@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	osexec "os/exec"
+	"path"
 	"plugin"
 	"runtime"
 	"time"
 	/// our packages:
 	"objvalmo"
+	_ "payloadmo"
 	"serialmo"
 )
 
@@ -90,10 +91,17 @@ func main() {
 			log.Printf("plugin %s build failure; %v\n", pluginsrc, err)
 			goto pluginend
 		}
+		if _, err := os.Stat(sharedpath); err == nil {
+			log.Printf("plugin will open sharedpath %s\n", sharedpath)
+		} else {
+			log.Printf("plugin without sharedpath %s - %v\n", sharedpath, err)
+			goto pluginend
+		}
 		if plug, err = plugin.Open(sharedpath); err != nil {
 			log.Printf("plugin %s open %s failure: %v\n", sharedpath, err)
 			goto pluginend
 		}
+		log.Printf("plugin %s opened %v\n", sharedpath, plug)
 		if symb, err = plug.Lookup("DoMonimelt"); err == nil {
 			log.Printf("plugin %s has 'DoMonimelt' %v\n", sharedpath, symb)
 			if fsy, ok := symb.(func()); ok {
