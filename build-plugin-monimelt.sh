@@ -10,7 +10,7 @@ if echo $GOPATH | grep $PWD ; then
 else
     export GOPATH=$GOPATH:$PWD/
 fi
-go build -buildmode=plugin -v $*
+go build -linkshared -buildmode=plugin -v $*
 err=$?
 logger --id=$$ -t build-plugin-monimelt -s in $PWD end $* err $err
 exit $err
