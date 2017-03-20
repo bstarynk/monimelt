@@ -10,5 +10,11 @@ else
     export GOPATH=$GOPATH:$PWD/
     echo updated GOPATH "$GOPATH"
 fi
-go build -buildmode=shared -v serialmo objvalmo payloadmo
-go build -linkshared -buildmode=exe -v monimelt
+echo
+echo building our packages
+time go build -buildmode=shared -v serialmo objvalmo payloadmo
+echo
+echo
+echo build the program
+time go build -linkshared -buildmode=exe -v monimelt
+echo
