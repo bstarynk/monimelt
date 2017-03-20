@@ -8,8 +8,8 @@
   path = vendor/src/github.com/mattn/go-sqlite3/
   url = https://github.com/mattn/go-sqlite3/
 
-[submodule "llrb"]
-  path = vendor/src/github.com/petar/GoLLRB/llrb/
-  url = https://github.com/petar/GoLLRB/llrb/
+[submodule "rbt"]
+  path = vendor/src/github.com/ocdogan/rbt/
+  url = https://github.com/ocdogan/rbt/
 
 ## eof .gitmodules in monimelt
