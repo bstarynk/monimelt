@@ -5,8 +5,9 @@ if [ -z "$GOPATH" ]; then
     exit 1
 fi
 if echo $GOPATH | grep $PWD ; then
-   echo GOPATH contains current directory $PWD
+   echo GOPATH "$GOPATH" contains current directory $PWD
 else
     export GOPATH=$GOPATH:$PWD/
+    echo updated GOPATH "$GOPATH"
 fi
-go build -buildmode=exe -v monimelt
+go build -buildmode=shared -v monimelt
