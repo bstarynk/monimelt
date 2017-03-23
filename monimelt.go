@@ -12,9 +12,9 @@ import (
 	"runtime"
 	"time"
 	/// our packages:
-	"objvalmo"
-	_ "payloadmo"
-	"serialmo"
+	"objvalmo" // import "./objvalmo"
+	"serialmo" // import "./serialmo"
+	_ "payloadmo" // import "./payloadmo"
 )
 
 func main() {
