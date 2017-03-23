@@ -1,6 +1,6 @@
 // file objvalmo/sqlitelog.go
 
-package objvalmo
+package objvalmo  // import "github.com/bstarynk/monimelt/objvalmo"
 
 import (
 	_ "github.com/mattn/go-sqlite3"

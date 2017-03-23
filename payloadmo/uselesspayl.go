@@ -1,6 +1,6 @@
 // file payloadmo/symbolpayl.go
 
-package payloadmo
+package payloadmo // import "github.com/bstarynk/monimelt/payloadmo"
 
 import (
 	"fmt"

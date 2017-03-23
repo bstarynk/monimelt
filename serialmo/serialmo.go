@@ -1,6 +1,6 @@
 // file serialmo.go
 
-package serialmo
+package serialmo  // import "github.com/bstarynk/monimelt/serialmo/"
 
 import (
 	cryptrand "crypto/rand"

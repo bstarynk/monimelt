@@ -1,7 +1,7 @@
 // file objvalmo/predef.go
 // it should be generated
 
-package objvalmo
+package objvalmo  // import "github.com/bstarynk/monimelt/objvalmo"
 
 var pv_02hL3RuX4x6_6y6PTK9vZs7 *ObjectMo
 var pv_1xKb8cfVIXo_7zufUqzNXfu *ObjectMo

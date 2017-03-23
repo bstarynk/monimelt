@@ -1,6 +1,6 @@
 // file objvalmo.go
 
-package objvalmo
+package objvalmo  // import "github.com/bstarynk/monimelt/objvalmo"
 
 import (
 	"bytes"

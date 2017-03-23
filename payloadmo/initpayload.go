@@ -1,6 +1,6 @@
 // file payloadmo/initpayload.go
 
-package payloadmo
+package payloadmo // import "github.com/bstarynk/monimelt/payloadmo"
 
 import (
 	"log"

@@ -1,5 +1,5 @@
 // file monimelt/monimelt.go
-package main
+package main  // import "github.com/bstarynk/monimelt/"
 
 import (
 	"flag"

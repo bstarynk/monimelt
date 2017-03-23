@@ -1,6 +1,6 @@
 // file serialmo/first_test.go
 
-package serialmo
+package serialmo  // import "github.com/bstarynk/monimelt/serialmo"
 
 import (
 	"fmt"

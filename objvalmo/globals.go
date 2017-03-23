@@ -1,6 +1,6 @@
 // file objvalmo/globals.go
 // it should be generated
-package objvalmo
+package objvalmo  // import "github.com/bstarynk/monimelt/objvalmo"
 
 import "log"
 

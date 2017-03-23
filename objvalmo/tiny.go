@@ -1,6 +1,6 @@
 // file objvalmo/tiny.go
 
-package objvalmo
+package objvalmo // import "github.com/bstarynk/monimelt/objvalmo"
 
 import (
 	"log"
