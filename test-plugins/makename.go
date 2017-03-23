@@ -1,5 +1,5 @@
 /// file makename.go, a plugin
-package main // import "github.com/bstarynk/monimelt/test-plugins/"
+package main // import "github.com/bstarynk/monimelt/test-plugins"
 
 import (
 	"log"
