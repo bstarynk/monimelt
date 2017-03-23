@@ -10,8 +10,9 @@ import (
 	"log"
 	"math"
 	osexec "os/exec"
-	"serialmo"
 	"testing"
+	/// our packages
+	"serialmo" // import "github.com/bstarynk/monimelt/serialmo"
 )
 
 func TestFirstObj(t *testing.T) {

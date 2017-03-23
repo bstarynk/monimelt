@@ -3,14 +3,15 @@
 package payloadmo
 
 import (
-	. "objvalmo"
 	//"bytes"
 	"fmt"
-	rbt "github.com/ocdogan/rbt"
 	"log"
 	"regexp"
-	"serialmo"
 	"sync"
+	rbt "github.com/ocdogan/rbt"
+	// our packages 
+	. "objvalmo" // import "github.com/bstarynk/monimelt/objvalmo"
+	"serialmo" // import "github.com/bstarynk/monimelt/serialmo"
 )
 
 type SymbolPy struct {

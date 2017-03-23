@@ -1,10 +1,11 @@
-/// file makename.go
+/// file makename.go, a plugin
 package main
 
 import (
 	"log"
-	"objvalmo"
-	"payloadmo"
+	// our packages
+	"objvalmo"    // import "github.com/bstarynk/monimelt/objvalmo"
+	"payloadmo"   // import "github.com/bstarynk/monimelt/payloadmo"
 )
 
 var namob *objvalmo.ObjectMo

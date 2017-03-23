@@ -5,8 +5,8 @@ package payloadmo
 import (
 	"fmt"
 	"log"
-	// "serialmo"
-	. "objvalmo"
+	// "serialmo"  // import "github.com/bstarynk/monimelt/serialmo"
+	. "objvalmo"  // import "github.com/bstarynk/monimelt/objvalmo"
 )
 
 type UselessPy struct {

@@ -9,9 +9,9 @@ import (
 	jason "github.com/antonholmquist/jason"
 	"log"
 	"math"
-	"serialmo"
 	"strconv"
 	"strings"
+	"serialmo" // import "github.com/bstarynk/monimelt/serialmo"
 )
 
 type jsonIdent struct {

@@ -9,7 +9,7 @@ import (
 	"math"
 	"regexp"
 	"runtime"
-	"serialmo"
+	"serialmo" // import "github.com/bstarynk/monimelt/serialmo"
 	"sort"
 	"sync"
 	"time"

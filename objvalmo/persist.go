@@ -13,10 +13,10 @@ import (
 	osexec "os/exec"
 	"regexp"
 	"runtime"
-	"serialmo"
 	"sort"
 	"strings"
 	"time"
+	"serialmo" // import "github.com/bstarynk/monimelt/serialmo"
 )
 
 const DefaultGlobalDbname = "monimelt_global"
