@@ -1,7 +1,18 @@
-#!/bin/sh
+#!/bin/bash
 # file get-monimelt-dependencies.sh
-if [ -z "$GOPATH" ]; then
-    echo missing GOPATH, consider setting it e.g. with export GOPATH='$HOME/mygoworkspace' >&2
-    exit 1
-fi
-grep url .gitmodules | sed 's+.*https://github.com/+go get -v github.com/+' | sh -x
+date +"start of get-monimelt-dependencies.sh at %c"
+github_dependencies=( \
+		      antonholmquist/jason \
+			  mattn/go-sqlite3 \
+			  ocdogan/rbt \
+    )
+
+for gd in $github_dependencies; do
+    echo
+    echo '=*=*=*=*= +++' getting from github $gd
+    go get -u -v -buildmode=shared -loadshared github.com/$gd
+    echo '=*=*=*=*= ---' got from github $gd
+    echo
+done
+
+date +"end of get-monimelt-dependencies.sh at %c"

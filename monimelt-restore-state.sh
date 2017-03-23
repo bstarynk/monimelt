@@ -24,8 +24,8 @@ dbfile=$1
 sqlfile=$2
 
 if [ -z "$dbfile" ] ; then
-    dbfile=monimelt_state.sqlite
-    sqlfile=monimelt_state.sql
+    dbfile=monimelt_global.sqlite
+    sqlfile=monimelt_global.sql
 fi
 
 if [ -f "$dbfile" ] ; then

@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-const DefaultGlobalDbname = "monimelt_state"
+const DefaultGlobalDbname = "monimelt_global"
 const DefaultUserDbname = "monimelt_user"
 
 const SqliteProgram = "sqlite3"

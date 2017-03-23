@@ -1,7 +1,7 @@
--- monimelt_state.sql dump 2017 Mar 09 from monimelt_state.sqlite dumped by ./monimelt-dump-state.sh .....
+-- monimelt_global.sql dump 2017 Mar 09 from monimelt_global.sqlite dumped by ./monimelt-dump-state.sh .....
 
  --   Copyright (C) 2017 Basile Starynkevitch.
- --  This sqlite3 dump file monimelt_state.sql is part of MONIMELT.
+ --  This sqlite3 dump file monimelt_global.sql is part of MONIMELT.
  --
  --  MONIMELT is free software; you can redistribute it and/or modify
  --  it under the terms of the GNU General Public License as published by
@@ -43,4 +43,4 @@ CREATE TABLE t_globals
  (glob_name VARCHAR(80) PRIMARY KEY ASC NOT NULL UNIQUE,
   glob_oid VARCHAR(26)  NOT NULL);
 COMMIT;
--- monimelt-dump-state end dump monimelt_state.sqlite
+-- monimelt-dump-state end dump monimelt_global.sql
