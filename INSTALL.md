@@ -78,7 +78,7 @@ dependencies)
 + `go-sqlite3`, from [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3), is an [Sqlite3](http://sqlite.org/) driver.
 
 + `rbt`, from
-[github.com/ocdogan/rbt/](https://github.com/ocdogan/rbt/]
+[github.com/ocdogan/rbt/](https://github.com/ocdogan/rbt/)
 is a red-black tree implementation (useful for the dictionnary of
 symbols).
 
