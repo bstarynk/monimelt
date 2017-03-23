@@ -24,6 +24,15 @@ workspace](https://golang.org/doc/code.html#Workspaces)*, that we
 assume is the default `$HOME/go/` (so you have `src/`, `bin/`, `pkg/`
 directories under `$HOME/go/`).
 
+
+## For `go` users
+
+You can't simply use `go install` on this repository. You *sometimes*
+need to carefully pass `-buildmode=shared -linkshared`. So if you want
+to use `go get` be sure to pass `-d` (for the "download only" mode).
+
+
+
 ### plugins and shared libraries support
 
 The
