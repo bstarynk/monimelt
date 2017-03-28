@@ -10,7 +10,7 @@ github_dependencies=( \
 for gd in $github_dependencies; do
     echo
     echo '=*=*=*=*= +++' getting from github $gd
-    go get -u -v -buildmode=shared -loadshared github.com/$gd
+    go get -u -v -buildmode=shared -linkshared github.com/$gd
     echo '=*=*=*=*= ---' got from github $gd
     echo
 done
