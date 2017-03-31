@@ -38,7 +38,9 @@ to use `go get` be sure to pass `-d` (for the "download only" mode).
 The
 [tutorial](http://blog.ralch.com/tutorial/golang-sharing-libraries/)
 from Svetlin Ralchev on *Sharing Golang packages to C and Go* is a
-useful read. See also this [plugin (Go 1.8) and
+useful read. Read also [exploring shared objects in
+Go](https://blog.ksub.org/bytes/2017/02/12/exploring-shared-objects-in-go/). See
+also this [plugin (Go 1.8) and
 packages](https://groups.google.com/forum/#!topic/golang-nuts/IKh1BqrNoxI)
 thread, and that [plugin
 questions](https://groups.google.com/forum/#!topic/golang-nuts/swTLZyP5QK8)
@@ -128,3 +130,8 @@ main program is in `monimelt/` sub-directory.
 
 So you should run our [`./build-monimelt.sh`](./build-monimelt.sh)
 bash script.
+
+Sadly, that script don't work. See [package, files at build (in
+relation to plugins, -linkshared, -buildmode=shared,
+....)](https://groups.google.com/forum/#!topic/golang-nuts/hW4bofPskzI)
+thread.
