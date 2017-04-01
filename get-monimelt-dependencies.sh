@@ -34,10 +34,10 @@ fi
 
 function get_github_dependency () {
     gd=$1
-    echo '=*=*=*=*= +++' getting from github $gd
+    echo '=*=*=*=*= +++' getting github.com/$gd
     go get -u -v -buildmode=shared -linkshared github.com/$gd
     failcod=$?
-    if [ $failcod -ge 0 ]; then
+    if [ $failcod -gt 0 ]; then
 	echo '!!!!!' failed to get from github $gd : $failcod
 	exit $failcod
     fi
@@ -46,7 +46,7 @@ function get_github_dependency () {
 }
 
 get_github_dependency antonholmquist/jason
-get_github_dependency mattn/go-sqlite3
+get_github_dependency bstarynk/go-sqlite3
 get_github_dependency ocdogan/rbt
 
 
