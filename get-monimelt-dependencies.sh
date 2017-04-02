@@ -32,22 +32,21 @@ else
 fi
 
 
-function get_github_dependency () {
-    gd=$1
-    echo '=*=*=*=*= +++' getting github.com/$gd
-    go get -u -v -buildmode=shared -linkshared github.com/$gd
+function get_dependency () {
+    echo '=*=*=*=*= +++' getting "$@"
+    go get -u -v -buildmode=shared -linkshared $*
     failcod=$?
     if [ $failcod -gt 0 ]; then
-	echo '!!!!!' failed to get from github $gd : $failcod
+	echo '!!!!!' failed to get "$@" : $failcod
 	exit $failcod
     fi
-    echo '=*=*=*=*= ---' got from github $gd
+    echo '=*=*=*=*= ---' got from "$@"
     echo    
 }
 
-get_github_dependency antonholmquist/jason
-get_github_dependency bstarynk/go-sqlite3
-get_github_dependency ocdogan/rbt
+get_dependency github.com/antonholmquist/jason
+get_dependency -tags "libsqlite3 $mygoos" github.com/bstarynk/go-sqlite3
+get_dependency github.com/ocdogan/rbt
 
 
 date +"end of get-monimelt-dependencies.sh at %c%n"
